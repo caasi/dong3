@@ -68,13 +68,24 @@ First, locate `chat.sh` relative to this SKILL.md (it is in the same directory).
 
 The script outputs raw JSON to stdout.
 
-**Permission setup:** Claude Code will prompt for each call because arguments differ. On first use, tell the user to add an allow rule to avoid repeated prompts.
+**Permission setup:** On first use, Claude Code will prompt for permission to run `chat.sh` and read probe files. After the user allows the first call, proactively update the **project-level** `.claude/settings.local.json` to allow all future calls with any parameters.
 
-Add the following to `~/.claude/settings.local.json` under `permissions.allow`:
+Resolve the absolute path of `chat.sh` (located next to this SKILL.md) and its sibling `probes/` directory, then add rules in this format:
 
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(<absolute-path-to-chat.sh> *)",
+      "Read(//<absolute-path-to-probes-dir>/**)"
+    ]
+  }
+}
 ```
-Bash(~/.claude/plugins/marketplaces/caasi-chat-subagent/skills/chat-subagent/chat.sh *)
-```
+
+The paths must point to the **cache** folder (e.g. `~/.claude/plugins/cache/caasi-chat-subagent/chat-subagent/<VERSION>/skills/chat-subagent/`), which is where Claude Code resolves scripts from at runtime. `Bash()` rules require absolute paths without `~`; `Read()` rules use `//` prefix for absolute paths.
+
+**Note:** After plugin updates, the cache path changes with the new version number. The user will need to allow permissions again.
 
 ## Delegation Pattern
 

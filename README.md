@@ -45,13 +45,22 @@ Claude will:
 
 ### Permission setup
 
-Claude Code prompts for each `chat.sh` call because arguments differ. Add this allow rule once to skip repeated prompts.
+Claude Code will prompt for permission on the first `chat.sh` call and probe file reads. Allow it once, and Claude will update the project-level `.claude/settings.local.json` to cover all future calls automatically.
 
-Add the following to `~/.claude/settings.local.json` under `permissions.allow`:
+You can also set it up manually. Replace `<HOME>` with your home directory and `<VERSION>` with the installed version (e.g. `0.1.1`). Permissions target the **cache** folder, which is where Claude Code resolves scripts from at runtime:
 
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(<HOME>/.claude/plugins/cache/caasi-chat-subagent/chat-subagent/<VERSION>/skills/chat-subagent/chat.sh *)",
+      "Read(//<HOME>/.claude/plugins/cache/caasi-chat-subagent/chat-subagent/<VERSION>/skills/chat-subagent/probes/**)"
+    ]
+  }
+}
 ```
-Bash(~/.claude/plugins/marketplaces/caasi-chat-subagent/skills/chat-subagent/chat.sh *)
-```
+
+**Note:** After updating the plugin, the cache path changes with the new version number. You will need to allow permissions again or update the version in your rules.
 
 ## Probe system
 
