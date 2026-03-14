@@ -23,11 +23,7 @@ This is not a security solution. Prompt injection from untrusted model responses
 ## Install
 
 ```bash
-# If published to a marketplace:
-# claude plugin install chat-subagent@your-marketplace
-
-# Or add directly from GitHub:
-# claude plugin add caasi/chat-subagent
+claude plugin add caasi/chat-subagent
 ```
 
 ## Usage
