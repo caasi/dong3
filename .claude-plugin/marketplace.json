@@ -1,0 +1,21 @@
+{
+  "name": "caasi-chat-subagent",
+  "owner": {
+    "name": "caasi"
+  },
+  "metadata": {
+    "description": "Delegate tasks to external OpenAI-compatible chat endpoints with capability probing and prompt injection awareness",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "chat-subagent",
+      "source": {
+        "source": "github",
+        "repo": "caasi/chat-subagent"
+      },
+      "description": "Delegate tasks to external OpenAI-compatible chat endpoints",
+      "version": "0.1.0"
+    }
+  ]
+}
