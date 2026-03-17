@@ -92,6 +92,21 @@ run_test "Multiple choices all filtered" \
   '{"choices":[{"message":{"role":"assistant","content":"A","reasoning":"r1"}},{"message":{"role":"assistant","content":"<think>t</think>\nB","reasoning":"r2"}}]}' \
   '{"choices":[{"message":{"role":"assistant","content":"A"}},{"message":{"role":"assistant","content":"B"}}]}'
 
+# --- 12. Analysis block stripped from content ---
+run_test "Analysis block stripped from content" \
+  '{"choices":[{"message":{"role":"assistant","content":"<analysis>\nLet me break this down.\nStep 1: check.\n</analysis>\n\nThe answer is 42."}}]}' \
+  '{"choices":[{"message":{"role":"assistant","content":"The answer is 42."}}]}'
+
+# --- 13. Analysis block inline (no trailing newline) ---
+run_test "Analysis block inline" \
+  '{"choices":[{"message":{"role":"assistant","content":"<analysis>quick check</analysis>result"}}]}' \
+  '{"choices":[{"message":{"role":"assistant","content":"result"}}]}'
+
+# --- 14. Both think and analysis blocks ---
+run_test "Both think and analysis blocks" \
+  '{"choices":[{"message":{"role":"assistant","content":"<think>reasoning</think>\n<analysis>checking</analysis>\nfinal answer"}}]}' \
+  '{"choices":[{"message":{"role":"assistant","content":"final answer"}}]}'
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

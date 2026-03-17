@@ -1,7 +1,7 @@
 {
   "name": "chat-subagent",
   "description": "Delegate tasks to external OpenAI-compatible chat endpoints with capability probing, delegation patterns, and prompt injection awareness",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "caasi"
   },
