@@ -5,7 +5,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: chat.sh <endpoint> <prompt> [-s system] [-m model] [-k api_key] [-t timeout]
+Usage: chat.sh <endpoint> <prompt> [-s system] [-m model] [-k api_key] [-t timeout] [-T]
 
   endpoint   Base URL, e.g. http://localhost:1234/v1
   prompt     User message (use quotes for multi-word)
@@ -13,6 +13,7 @@ Usage: chat.sh <endpoint> <prompt> [-s system] [-m model] [-k api_key] [-t timeo
   -m         Model name (default: "any")
   -k         Bearer token (optional)
   -t         Timeout in seconds (default: 120)
+  -T         Filter out thinking/reasoning output from response (requires jq)
 EOF
   exit 1
 }
@@ -26,6 +27,7 @@ SYSTEM="You are a helpful assistant."
 MODEL="any"
 API_KEY=""
 TIMEOUT=120
+FILTER_THINKING=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     -m) MODEL="$2"; shift 2 ;;
     -k) API_KEY="$2"; shift 2 ;;
     -t) TIMEOUT="$2"; shift 2 ;;
+    -T) FILTER_THINKING=1; shift ;;
     *)  echo "Unknown option: $1" >&2; usage ;;
   esac
 done
@@ -58,4 +61,30 @@ CURL_ARGS=(-s -X POST "$ENDPOINT" -H "Content-Type: application/json" --max-time
 
 RESPONSE=$(curl "${CURL_ARGS[@]}")
 
-echo "$RESPONSE"
+if [[ "$FILTER_THINKING" -eq 1 ]]; then
+  if ! command -v jq &>/dev/null; then
+    echo "Error: -T flag requires jq but it's not installed." >&2
+    exit 1
+  fi
+  # Filter out thinking/reasoning fields from all providers:
+  #   - reasoning_content (DeepSeek)
+  #   - reasoning, reasoning_details (OpenRouter / OpenAI)
+  #   - thinking_blocks (Anthropic via litellm)
+  # Also strip <think>...</think> blocks from content (Qwen3)
+  echo "$RESPONSE" | jq '
+    if .choices then
+      .choices |= map(
+        if .message then
+          .message |= (
+            del(.reasoning_content, .reasoning, .reasoning_details, .thinking_blocks)
+            | if .content then
+                .content |= gsub("<think>(.|\n)*?</think>\n*"; "")
+              else . end
+          )
+        else . end
+      )
+    else . end
+  '
+else
+  echo "$RESPONSE"
+fi
