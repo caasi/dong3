@@ -66,25 +66,8 @@ if [[ "$FILTER_THINKING" -eq 1 ]]; then
     echo "Error: -T flag requires jq but it's not installed." >&2
     exit 1
   fi
-  # Filter out thinking/reasoning fields from all providers:
-  #   - reasoning_content (DeepSeek)
-  #   - reasoning, reasoning_details (OpenRouter / OpenAI)
-  #   - thinking_blocks (Anthropic via litellm)
-  # Also strip <think>...</think> blocks from content (Qwen3)
-  echo "$RESPONSE" | jq '
-    if .choices then
-      .choices |= map(
-        if .message then
-          .message |= (
-            del(.reasoning_content, .reasoning, .reasoning_details, .thinking_blocks)
-            | if .content then
-                .content |= gsub("<think>(.|\n)*?</think>\n*"; "")
-              else . end
-          )
-        else . end
-      )
-    else . end
-  '
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  echo "$RESPONSE" | jq -f "$SCRIPT_DIR/thinking-filter.jq"
 else
   echo "$RESPONSE"
 fi
