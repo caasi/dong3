@@ -24,11 +24,8 @@ This is not a security solution. Prompt injection from untrusted model responses
 ## Install
 
 ```bash
-# 1. Add the marketplace
 claude plugin marketplace add caasi/dong3
-
-# 2. Install the plugin
-claude plugin install chat-subagent@caasi-dong3
+claude plugin install dong3@caasi-dong3
 ```
 
 ## Usage

@@ -1,13 +1,13 @@
 {
-  "name": "chat-subagent",
-  "description": "Delegate tasks to external OpenAI-compatible chat endpoints with capability probing, delegation patterns, and prompt injection awareness",
-  "version": "0.3.2",
+  "name": "dong3",
+  "description": "A collection of Claude Code skills: chat-subagent for delegating to external LLM endpoints, and compose for describing agent workflows with an Arrow-style DSL",
+  "version": "0.4.0",
   "author": {
     "name": "caasi"
   },
   "homepage": "https://github.com/caasi/dong3",
   "repository": "https://github.com/caasi/dong3",
   "license": "MIT",
-  "keywords": ["subagent", "chat", "openai", "delegation", "local-llm", "ollama", "lm-studio"],
+  "keywords": ["subagent", "chat", "openai", "delegation", "local-llm", "ollama", "lm-studio", "compose", "dsl", "arrow", "workflow", "pipeline"],
   "skills": "./skills/"
 }
