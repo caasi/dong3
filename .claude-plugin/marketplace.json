@@ -1,10 +1,10 @@
 {
-  "name": "caasi-chat-subagent",
+  "name": "caasi-dong3",
   "owner": {
     "name": "caasi"
   },
   "metadata": {
-    "description": "Delegate tasks to external OpenAI-compatible chat endpoints with capability probing and prompt injection awareness",
+    "description": "caasi's plugin collection for Claude Code",
     "version": "1.0.0"
   },
   "plugins": [
