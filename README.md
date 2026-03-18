@@ -10,6 +10,12 @@ Delegate tasks to external OpenAI-compatible chat endpoints with capability prob
 
 See [skills/chat-subagent/README.md](skills/chat-subagent/README.md) for full documentation.
 
+### compose
+
+Describe multi-step agent workflows using an Arrow-style DSL and validate them structurally with the `ocaml-compose-dsl` binary. The DSL is a planning language — the agent expands it into concrete tool calls.
+
+See [skills/compose/SKILL.md](skills/compose/SKILL.md) for full documentation.
+
 ## Install
 
 ```bash
