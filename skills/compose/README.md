@@ -32,7 +32,7 @@ read(source: "data.csv")
 
 ```bash
 claude plugin marketplace add caasi/dong3
-claude plugin install dong3@caasi-dong3
+claude plugin install compose@caasi-dong3
 ```
 
 The skill includes an install script that downloads the `ocaml-compose-dsl` binary to `~/.local/bin/`. On first use, Claude will offer to run it for you.

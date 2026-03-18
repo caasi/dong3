@@ -25,7 +25,7 @@ This is not a security solution. Prompt injection from untrusted model responses
 
 ```bash
 claude plugin marketplace add caasi/dong3
-claude plugin install dong3@caasi-dong3
+claude plugin install chat-subagent@caasi-dong3
 ```
 
 ## Usage

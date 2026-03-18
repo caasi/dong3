@@ -16,6 +16,15 @@
       },
       "description": "Delegate tasks to external OpenAI-compatible chat endpoints",
       "version": "0.3.2"
+    },
+    {
+      "name": "compose",
+      "source": {
+        "source": "github",
+        "repo": "caasi/dong3"
+      },
+      "description": "Describe multi-step agent workflows using an Arrow-style DSL and validate them structurally",
+      "version": "0.1.0"
     }
   ]
 }
