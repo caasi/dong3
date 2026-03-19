@@ -12,12 +12,14 @@
     {
       "name": "chat-subagent",
       "source": "./plugins/chat-subagent",
-      "description": "Delegate tasks to external OpenAI-compatible chat endpoints"
+      "description": "Delegate tasks to external OpenAI-compatible chat endpoints",
+      "version": "0.3.2"
     },
     {
       "name": "compose",
       "source": "./plugins/compose",
-      "description": "Describe multi-step agent workflows using an Arrow-style DSL (>>>, ***, &&&, |||, loop) and validate them structurally"
+      "description": "Describe multi-step agent workflows using an Arrow-style DSL (>>>, ***, &&&, |||, loop) and validate them structurally",
+      "version": "0.2.0"
     }
   ]
 }

@@ -1,7 +1,6 @@
 {
   "name": "compose",
   "description": "Describe multi-step agent workflows using an Arrow-style DSL and validate them structurally",
-  "version": "0.4.0",
   "author": {
     "name": "caasi"
   },

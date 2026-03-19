@@ -1,7 +1,6 @@
 {
   "name": "chat-subagent",
   "description": "Delegate tasks to external OpenAI-compatible chat endpoints as a subagent",
-  "version": "0.4.0",
   "author": {
     "name": "caasi"
   },
