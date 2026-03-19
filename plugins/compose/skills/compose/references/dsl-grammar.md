@@ -24,6 +24,7 @@ args     = arg , { "," , arg } ;
 arg      = ident , ":" , value ;
 
 value    = string
+         | number
          | ident
          | "[" , [ value , { "," , value } ] , "]"
          ;
@@ -31,6 +32,8 @@ value    = string
 ident    = ( letter | "_" ) , { letter | digit | "-" | "_" } ;
 
 string   = '"' , { any char - '"' } , '"' ;
+
+number   = [ "-" ] , digit , { digit } , [ "." , digit , { digit } ] , { letter } ;
 
 comment  = "--" , { any char - newline } ;
 ```
@@ -123,6 +126,26 @@ loop(
     >>> evaluate(criteria: all_pass)     -- check pass/fail
 )
 ```
+
+### Numeric Literals
+
+Numbers can be integers, floats, negative, or carry unit suffixes:
+
+```
+resize(width: 1920, height: 1080)     -- integers
+  >>> compress(quality: 85)
+  >>> dose(amount: 100mg)             -- unit suffix
+  >>> adjust(offset: -3.14)           -- negative float
+```
+
+Numbers appear wherever a value is expected — as arguments or inside lists:
+
+```
+mix(volumes: [100ml, 250ml, 50ml])
+  >>> heat(temp: 72.5c, duration: 30min)
+```
+
+Note: leading-dot (`.5`) and trailing-dot (`5.`) forms are **not** valid — use `0.5` and `5` respectively.
 
 ### Cross-Agent Portability
 

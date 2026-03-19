@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.2.0** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.3.0** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.2.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.3.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -147,6 +147,17 @@ read(source: file)
 
 `&&&` feeds the same input to both sides; `***` feeds separate inputs to each side.
 
+### Numeric Parameters
+
+Numeric literals — integers, floats, negatives, and unit suffixes — can be used directly as values:
+
+```
+resize(width: 1920, height: 1080)
+  >>> compress(quality: 85)
+  >>> dose(amount: 100mg)       -- unit suffix
+  >>> adjust(offset: -3.14)     -- negative float
+```
+
 ## Additional Resources
 
 ### Examples
@@ -158,6 +169,7 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/ci-pipeline.arr`** — Fanout lint+test → gate → parallel multi-platform build → upload
 - **`examples/test-fix-loop.arr`** — Iterative edit-test-evaluate feedback loop
 - **`examples/resilient-fetch.arr`** — Primary/mirror fallback with `|||`
+- **`examples/numeric-literals.arr`** — Numeric literal values: integers, floats, negatives, and unit suffixes
 - **`examples/mixed-par-fanout.arr`** — Mixing `***` and `&&&`: precedence behavior and explicit grouping
 
 Use these as starting points: copy, modify node names/arguments, and validate with `ocaml-compose-dsl`.
