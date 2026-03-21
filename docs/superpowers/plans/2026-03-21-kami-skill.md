@@ -115,7 +115,8 @@ description: >-
   the impact", "reflect on this skill", "examine this agent's boundaries",
   mentions "/kami", "kami", "civic AI", "humane intelligence", "仁工智慧",
   or wants a Socratic dialogue about human-AI collaboration and stewardship.
-  Also triggered when other skills recommend reflection.
+  Other skills may suggest reflection, but only invoke when the user
+  explicitly agrees.
 ---
 
 # Kami — Socratic Dialogue for Human-AI Stewardship
