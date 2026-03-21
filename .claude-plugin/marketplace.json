@@ -20,6 +20,12 @@
       "source": "./plugins/compose",
       "description": "Describe multi-step agent workflows using an Arrow-style DSL (>>>, ***, &&&, |||, loop) and validate them structurally",
       "version": "0.4.0"
+    },
+    {
+      "name": "kami",
+      "source": "./plugins/kami",
+      "description": "Socratic dialogue for reflecting on human-AI stewardship",
+      "version": "0.1.0"
     }
   ]
 }

@@ -16,6 +16,12 @@ Describe multi-step agent workflows using an Arrow-style DSL and validate them s
 
 See [plugins/compose/skills/compose/README.md](plugins/compose/skills/compose/README.md) for full documentation.
 
+### kami
+
+Reflect on human-AI stewardship through Socratic dialogue. A mirror, not a checklist — rooted in Audrey Tang's Humane Intelligence framework and Civic AI 6-Pack of Care.
+
+See [plugins/kami/skills/kami/README.md](plugins/kami/skills/kami/README.md) for full documentation.
+
 ## Install
 
 ```bash
