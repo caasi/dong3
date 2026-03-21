@@ -160,7 +160,7 @@ resize(width: 1920, height: 1080)
 
 ### Unicode Identifiers
 
-Node names, argument keys, and unit suffixes accept any non-ASCII UTF-8 codepoint. The DSL works naturally with non-Latin scripts:
+Node names, argument keys, and unit suffixes support full UTF-8 identifiers, including non-ASCII characters. The DSL works naturally with non-Latin scripts:
 
 ```
 読み込み(ソース: "データ.csv")
@@ -189,6 +189,8 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/numeric-literals.arr`** — Numeric literal values: integers, floats, negatives, and unit suffixes
 - **`examples/mixed-par-fanout.arr`** — Mixing `***` and `&&&`: precedence behavior and explicit grouping
 - **`examples/unicode-identifiers.arr`** — Unicode node names, argument keys, and unit suffixes with non-Latin scripts
+The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts.
+
 - **`examples/osint-social-media-forensics.arr`** — Crawl social media timelines to extract identifying artifacts and compile evidence
 - **`examples/osint-account-correlation.arr`** — Cross-platform account linking via public breadcrumbs and business registry lookups
 - **`examples/osint-evidence-compilation.arr`** — Systematic screenshot and archival loop for court-ready evidence folders

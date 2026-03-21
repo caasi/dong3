@@ -32,4 +32,4 @@
   >>> validate_all(checker: "ocaml-compose-dsl")           -- ref: Bash("ocaml-compose-dsl *.arr")
 
   -- Phase 5: verify binary version requirement
-  >>> check_version(binary: "ocaml-compose-dsl", minimum: "0.3.0") -- ref: Bash("ocaml-compose-dsl --version")
+  >>> check_version(binary: "ocaml-compose-dsl", minimum: "0.4.0") -- ref: Bash("ocaml-compose-dsl --version")

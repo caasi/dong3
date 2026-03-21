@@ -39,14 +39,16 @@ ident_char  = ? any valid UTF-8 codepoint that is not ASCII whitespace,
 
 string   = '"' , { ? any valid UTF-8 codepoint except '"' ? } , '"' ;
 
+digit    = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
 number   = [ "-" ] , digit , { digit } , [ "." , digit , { digit } ] , [ ident_start , { ident_char } ] ;
 
-comment  = "--" , { any char - newline } ;
+comment  = "--" , { ? any valid UTF-8 codepoint except newline ? } ;
 ```
 
 All operators are right-associative (matching Haskell Arrow fixity). Comments can appear after any term and are attached to the preceding node as purpose descriptions or reference tool annotations.
 
-Identifiers and unit suffixes accept any non-ASCII UTF-8 codepoint (CJK, Greek, accented Latin, etc.), so the DSL works naturally with non-Latin scripts. Error positions report codepoint-level columns, not byte offsets.
+Identifiers and unit suffixes support full UTF-8 codepoints, including non-ASCII characters (CJK, Greek, accented Latin, etc.), so the DSL works naturally with non-Latin scripts. Error positions report codepoint-level columns, not byte offsets.
 
 ## Combinators
 
