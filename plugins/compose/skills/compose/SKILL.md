@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.3.0** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.4.0** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.3.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.4.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -158,6 +158,23 @@ resize(width: 1920, height: 1080)
   >>> adjust(offset: -3.14)     -- negative float
 ```
 
+### Unicode Identifiers
+
+Node names, argument keys, and unit suffixes accept any non-ASCII UTF-8 codepoint. The DSL works naturally with non-Latin scripts:
+
+```
+読み込み(ソース: "データ.csv")
+  >>> フィルタ(条件: "年齢 > 18")
+  >>> 出力
+```
+
+```
+加熱(溫度: 72.5℃, 時間: 30分鐘)
+  >>> 冷卻(目標: 4℃)
+```
+
+Error positions report codepoint-level columns, not byte offsets, so diagnostics stay accurate for multibyte characters.
+
 ## Additional Resources
 
 ### Examples
@@ -171,6 +188,13 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/resilient-fetch.arr`** — Primary/mirror fallback with `|||`
 - **`examples/numeric-literals.arr`** — Numeric literal values: integers, floats, negatives, and unit suffixes
 - **`examples/mixed-par-fanout.arr`** — Mixing `***` and `&&&`: precedence behavior and explicit grouping
+- **`examples/unicode-identifiers.arr`** — Unicode node names, argument keys, and unit suffixes with non-Latin scripts
+- **`examples/osint-social-media-forensics.arr`** — Crawl social media timelines to extract identifying artifacts and compile evidence
+- **`examples/osint-account-correlation.arr`** — Cross-platform account linking via public breadcrumbs and business registry lookups
+- **`examples/osint-evidence-compilation.arr`** — Systematic screenshot and archival loop for court-ready evidence folders
+- **`examples/osint-geolocation.arr`** — Geolocate facilities from broadcast footage by cross-referencing with satellite imagery
+- **`examples/osint-media-monitoring.arr`** — Monitor state media for military unit designations and map to known bases
+- **`examples/osint-infrastructure-change.arr`** — Temporal satellite imagery comparison to detect new military construction
 
 Use these as starting points: copy, modify node names/arguments, and validate with `ocaml-compose-dsl`.
 

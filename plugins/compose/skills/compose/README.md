@@ -36,6 +36,12 @@ read(source: "data.csv")
   >>> upload(tag: "v0.1.0")
 ```
 
+```
+読み込み(ソース: "データ.csv")
+  >>> フィルタ(条件: "年齢 > 18")
+  >>> 出力
+```
+
 More examples in `examples/` — including a meta-workflow that describes how this skill updates itself from the upstream repo.
 
 ## Install
