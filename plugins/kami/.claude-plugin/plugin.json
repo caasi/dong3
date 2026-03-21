@@ -1,0 +1,10 @@
+{
+  "name": "kami",
+  "description": "Socratic dialogue for reflecting on human-AI stewardship",
+  "author": { "name": "caasi" },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["kami", "civic-ai", "humane-intelligence", "reflection", "stewardship"],
+  "skills": "./skills/"
+}
