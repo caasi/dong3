@@ -190,11 +190,11 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/mixed-par-fanout.arr`** — Mixing `***` and `&&&`: precedence behavior and explicit grouping
 - **`examples/unicode-identifiers.arr`** — Unicode node names, argument keys, and unit suffixes with non-Latin scripts
 
-The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts.
+The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts. Person-targeting examples model defensive workflows (tracing dox attackers) and include de-identification, public methodology disclosure, and legal reporting steps.
 
-- **`examples/osint-social-media-forensics.arr`** — Crawl social media timelines to extract identifying artifacts and compile evidence
-- **`examples/osint-account-correlation.arr`** — Cross-platform account linking via public breadcrumbs and business registry lookups
-- **`examples/osint-evidence-compilation.arr`** — Systematic screenshot and archival loop for court-ready evidence folders
+- **`examples/osint-social-media-forensics.arr`** — Trace who spread a victim's personal data; de-identify results, publish methodology, report to law enforcement
+- **`examples/osint-account-correlation.arr`** — Trace the source of a dox attack via cross-platform correlation; de-identify before public disclosure, file full evidence with authorities
+- **`examples/osint-evidence-compilation.arr`** — Compile scattered dox evidence into court-ready folders; publish redacted methodology summary, export full evidence for legal proceedings
 - **`examples/osint-geolocation.arr`** — Geolocate facilities from broadcast footage by cross-referencing with satellite imagery
 - **`examples/osint-media-monitoring.arr`** — Monitor state media for military unit designations and map to known bases
 - **`examples/osint-infrastructure-change.arr`** — Temporal satellite imagery comparison to detect new military construction
