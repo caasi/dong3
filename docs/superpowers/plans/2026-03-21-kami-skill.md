@@ -4,7 +4,7 @@
 
 **Goal:** Create the `kami` plugin — a Socratic dialogue skill for reflecting on human-AI stewardship, rooted in Audrey Tang's Humane Intelligence and Civic AI frameworks.
 
-**Architecture:** Three files: `plugin.json` (manifest), `SKILL.md` (the skill prompt with YAML frontmatter), and `README.md` (documentation). Plus an update to the root `README.md` to register the new plugin. No code, no binaries, no tests — this is a pure-prompt skill.
+**Architecture:** Plugin manifest, skill prompt, reference documents (fetched from source talks/pages), README, and root README update. No code, no binaries, no tests — this is a pure-prompt skill. Reference documents are signposts back to the source, not definitive answers — like scripture, the text can never fully preserve the mind behind it. The skill's value is in the repeated practice of reflection, not in the frozen document.
 
 **Tech Stack:** Markdown, YAML frontmatter, JSON
 
@@ -18,6 +18,9 @@
 |--------|------|----------------|
 | Create | `plugins/kami/.claude-plugin/plugin.json` | Plugin manifest |
 | Create | `plugins/kami/skills/kami/SKILL.md` | The skill itself |
+| Create | `plugins/kami/skills/kami/references/humane-intelligence-dialogue.md` | 仁工智慧對話 full text |
+| Create | `plugins/kami/skills/kami/references/civic-ai-6pack.md` | Civic AI 6-Pack of Care framework |
+| Create | `plugins/kami/skills/kami/references/alignment-assemblies.md` | Audrey Tang on democratic AI governance |
 | Create | `plugins/kami/skills/kami/README.md` | User-facing documentation |
 | Modify | `README.md` | Add kami to the marketplace listing |
 
@@ -62,7 +65,37 @@ git commit -m "feat(kami): add plugin manifest"
 
 ---
 
-### Task 2: Write SKILL.md
+### Task 2: Fetch reference documents
+
+Fetch key source materials and save them as markdown in `plugins/kami/skills/kami/references/`. These are signposts — they let future updaters (and curious users) return to the source rather than relying solely on the skill's approximation.
+
+**Files:**
+- Create: `plugins/kami/skills/kami/references/humane-intelligence-dialogue.md`
+- Create: `plugins/kami/skills/kami/references/civic-ai-6pack.md`
+- Create: `plugins/kami/skills/kami/references/alignment-assemblies.md`
+
+- [ ] **Step 1: Fetch 仁工智慧對話**
+
+Use WebFetch to retrieve the full content from `https://archive.tw/2026-03-13-仁工智慧對話` and save as markdown to `plugins/kami/skills/kami/references/humane-intelligence-dialogue.md`. Include a header noting the source URL and fetch date.
+
+- [ ] **Step 2: Fetch Civic AI 6-Pack of Care**
+
+Use WebFetch to retrieve the full content from `https://civic.ai/` and `https://civic.ai/tw/` and save as markdown to `plugins/kami/skills/kami/references/civic-ai-6pack.md`. Include both English and Traditional Chinese source URLs.
+
+- [ ] **Step 3: Fetch Alignment Assemblies**
+
+Use WebFetch to retrieve the full content from `https://rebootdemocracy.ai/blog/audrey-tang-ai-democracy/` and save as markdown to `plugins/kami/skills/kami/references/alignment-assemblies.md`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add plugins/kami/skills/kami/references/
+git commit -m "docs(kami): add reference documents fetched from source talks"
+```
+
+---
+
+### Task 3: Write SKILL.md
 
 This is the heart of the plugin. The SKILL.md is a prompt that Claude reads when the skill is invoked. It must encode the philosophical foundations, dialogue rhythm, and anti-checklist discipline — all as instructions to the LLM, not as content shown to the user.
 
@@ -95,7 +128,12 @@ Using this skill is itself a practice of Civic AI. You do not need to name it as
 
 ## Living Document Notice
 
-This skill is based on Audrey Tang's Humane Intelligence (仁工智慧) framework, the Civic AI 6-Pack of Care, and Douglas Engelbart's Augmenting Human Intellect. These ideas are still evolving. This skill is a snapshot, not a definitive statement. Last updated: 2026-03-21.
+This skill is based on Audrey Tang's Humane Intelligence (仁工智慧) framework, the Civic AI 6-Pack of Care, and Douglas Engelbart's Augmenting Human Intellect. These ideas are still evolving — and no text can fully preserve the mind behind them, just as the Analerta cannot preserve Confucius nor the Bible preserve Christ. This skill is a tentative approximation. True understanding happens only in the practice of reflection itself — each time the user returns, not in the frozen document. Last updated: 2026-03-21.
+
+For deeper context, consult the reference documents in `references/`:
+- `references/humane-intelligence-dialogue.md` — The full 仁工智慧對話 (2026-03-13, Dharamsala)
+- `references/civic-ai-6pack.md` — Civic AI 6-Pack of Care framework
+- `references/alignment-assemblies.md` — Democratic AI governance through citizen participation
 
 ## Your Inner Vocabulary
 
@@ -192,7 +230,7 @@ git commit -m "feat(kami): add skill prompt for Socratic stewardship dialogue"
 
 ## Chunk 2: Documentation and Registration
 
-### Task 3: Write README.md
+### Task 4: Write README.md
 
 **Files:**
 - Create: `plugins/kami/skills/kami/README.md`
@@ -270,7 +308,7 @@ git commit -m "docs(kami): add README with usage and references"
 
 ---
 
-### Task 4: Update root README.md
+### Task 5: Update root README.md
 
 **Files:**
 - Modify: `README.md:15` (after the compose section, before ## Install)
