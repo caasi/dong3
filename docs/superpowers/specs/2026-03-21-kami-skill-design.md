@@ -33,7 +33,7 @@ These six are the skill's inner vocabulary for generating questions — never a 
 
 ### Augmenting Human Intellect
 
-From Douglas Engelbart: tools don't replace humans, they make humans more capable. The goal is not AI autonomy but human-AI symbiosis where the human grows stronger.
+From Douglas Engelbart: tools don't replace humans, they make humans more capable. The goal is not AI autonomy but human-AI symbiosis where the human grows stronger. This is why the skill never prescribes — it amplifies the user's own reflective capacity rather than substituting external judgment.
 
 ### Human + Agents = Kami
 
@@ -99,6 +99,15 @@ No explicit modes. The skill reads context from the first few exchanges:
 - User brings a vague unease → questions are open, exploring their relationship with their agents
 - User is reviewing an existing skill → questions target that skill's behavior and boundaries
 
+### Session Boundaries
+
+No fixed length. The dialogue follows the user's rhythm:
+
+- **User wants to end early**: respect it immediately. Even a single exchange has value. No "but we haven't covered..." guilt.
+- **Natural closing**: when the user articulates an insight or says they've seen enough, transition to the Self-Awareness phase. If they already said what they needed, just close.
+- **Going deeper**: if the user wants to keep exploring, keep going. No artificial cutoff.
+- **Stateless**: each `/kami` invocation is a fresh conversation. No carry-over between sessions. The user's growth carries over; the skill doesn't need to track it.
+
 ### Output
 
 Pure dialogue. The conversation itself is the value. The user takes away their own realizations.
@@ -113,14 +122,53 @@ Version awareness: the skill notes what materials it's based on and when it was 
 
 ## Plugin Structure
 
+Follows the existing dong3 convention:
+
 ```
 plugins/kami/
-  plugin.json
+  .claude-plugin/
+    plugin.json        # Plugin manifest
   skills/
     kami/
-      kami.md          # The skill itself
+      SKILL.md         # The skill itself (with YAML frontmatter)
       README.md        # Documentation
 ```
+
+### SKILL.md Frontmatter
+
+```yaml
+---
+name: kami
+description: >-
+  Use when the user wants to reflect on their relationship with AI agents,
+  review a design through an ethical lens, examine an existing agent or skill,
+  asks "what kind of steward am I", mentions "/kami", or wants a Socratic
+  dialogue about human-AI collaboration. Also triggered when other skills
+  recommend reflection.
+---
+```
+
+### plugin.json
+
+```json
+{
+  "name": "kami",
+  "description": "Socratic dialogue for reflecting on human-AI stewardship",
+  "author": { "name": "caasi" },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["kami", "civic-ai", "humane-intelligence", "reflection", "stewardship"],
+  "skills": "./skills/"
+}
+```
+
+### Recommendation Convention
+
+Other skills recommend `/kami` by simply including a suggestion line in their output text, e.g.:
+> "Want to use `/kami` to reflect on this design?"
+
+No inter-skill API or structured mechanism is needed.
 
 ## References
 
@@ -129,6 +177,6 @@ plugins/kami/
 - [Civic AI Taiwan (civic.ai/tw)](https://civic.ai/tw/) — Traditional Chinese version of the framework
 - [Right Livelihood Award (2025)](https://rightlivelihood.org/the-change-makers/find-a-laureate/audrey-tang/) — Award recognizing Tang's use of humane intelligence to transform conflict into co-creation
 - [Audrey Tang: Alignment Assemblies](https://rebootdemocracy.ai/blog/audrey-tang-ai-democracy/) — Democratic governance of AI through citizen participation
-- [Audrey Tang - Berlin Freedom Conference](https://x.com/audreyt/status/1988206814727667852) — Moving AI from addictive to assistive intelligence
-- [Audrey Tang - DeepMind presentation on 6-Pack of Care](https://x.com/audreyt/status/1962816679299162227) — "A good gardener tills to the tune of the garden"
+- [Audrey Tang - Berlin Freedom Conference](https://x.com/audreyt/status/1988206814727667852) — "Moving AI from addictive to assistive intelligence is key" (quote preserved in case tweet is deleted)
+- [Audrey Tang - DeepMind presentation on 6-Pack of Care](https://x.com/audreyt/status/1962816679299162227) — "A good gardener tills to the tune of the garden. But a great gardener remembers to respect the Plurality of the plants" (quote preserved in case tweet is deleted)
 - [Douglas Engelbart - Augmenting Human Intellect: A Conceptual Framework (1962)](https://www.dougengelbart.org/content/view/138) — The foundational paper on tools that amplify human capability
