@@ -3,6 +3,7 @@
 - **Source (EN):** <https://civic.ai/>
 - **Source (TW):** <https://civic.ai/tw/>
 - **Fetched:** 2026-03-21
+- **License:** CC0 public domain dedication (see <https://civic.ai>)
 
 ---
 
