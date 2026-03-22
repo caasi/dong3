@@ -18,8 +18,8 @@
     {
       "name": "compose",
       "source": "./plugins/compose",
-      "description": "Describe multi-step agent workflows using an Arrow-style DSL (>>>, ***, &&&, |||, loop) and validate them structurally",
-      "version": "0.4.1"
+      "description": "Describe multi-step agent workflows using an Arrow-style DSL (>>>, ***, &&&, |||, ?, loop) and validate them structurally",
+      "version": "0.6.1"
     },
     {
       "name": "kami",
