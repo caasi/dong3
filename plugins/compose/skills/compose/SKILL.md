@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.4.0** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.6.1** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.4.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.6.1` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -33,7 +33,8 @@ If the output is lower than `0.4.0` or the `--version` flag is not recognized, t
 | `\|\|\|` | Branch — try left, fallback to right (infixr 2) | Conditional fallback |
 | `***` | Parallel — run both concurrently (infixr 3) | Multiple tool calls in one message |
 | `&&&` | Fanout — run both on same input (infixr 3) | Multiple tool calls, same input |
-| `loop()` | Feedback — repeat until evaluation passes | Retry / iterative refinement |
+| `loop()` | Feedback — repeat body iteratively | Retry / iterative refinement |
+| `?` | Question — marks step as producing Either | Branching via `\|\|\|` |
 | `()` | Grouping | Precedence control |
 
 All operators are **right-associative**. `***` and `&&&` bind tighter than `|||`, which binds tighter than `>>>`.
@@ -79,7 +80,7 @@ Or from a file:
 ocaml-compose-dsl pipeline.arr
 ```
 
-The binary exits `0` with AST output (OCaml constructor format) on valid input, `1` with error messages on structural problems. Fix any structural errors before proceeding.
+The binary exits `0` with AST output (OCaml constructor format) on valid input, `1` with error messages (with `line:col` positions) on structural problems. Warnings go to stderr without affecting exit code. Fix any structural errors before proceeding.
 
 ### 3. Expand and Execute
 
@@ -89,7 +90,7 @@ After validation, expand each node into concrete tool calls based on available t
 - `***` nodes → execute as parallel tool calls in one message (each side gets its own input)
 - `&&&` nodes → execute as parallel tool calls in one message (both sides get the same input)
 - `|||` nodes → try first branch, use second on failure
-- `loop()` → repeat the body until the evaluation node passes
+- `loop()` → repeat the body iteratively (use `?` + `|||` for exit conditions)
 
 ### 4. Save Successful Pipelines
 
@@ -104,6 +105,14 @@ read(source: "config.yaml")       -- ref: Read
 
 When a similar task arises, load and modify the existing pipeline instead of reasoning from scratch.
 
+### Checker Warnings
+
+The checker emits warnings to stderr without affecting exit code. Currently:
+
+- `?` without matching `|||` — the Either produced by `?` has no consumer
+
+Warnings help catch structural oversights early. They do not block validation.
+
 ## Common Patterns
 
 ### Data Processing
@@ -115,7 +124,7 @@ read(source: input) >>> parse(format: fmt) >>> transform(mapping: m) >>> write(d
 ### Resilient Fetch
 
 ```
-(fetch(url: primary) ||| fetch(url: mirror)) >>> process
+(fetch(url: primary)? ||| fetch(url: mirror)) >>> process
 ```
 
 ### Test-Fix Loop
@@ -124,7 +133,8 @@ read(source: input) >>> parse(format: fmt) >>> transform(mapping: m) >>> write(d
 loop(
   edit(target: code, change: fix)
     >>> test(suite: relevant)
-    >>> evaluate(criteria: all_pass)
+    >>> "all tests pass"?
+    >>> (done ||| retry)
 )
 ```
 
