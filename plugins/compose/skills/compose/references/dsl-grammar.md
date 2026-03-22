@@ -12,9 +12,14 @@ alt_expr = par_expr , "|||" , alt_expr              (* branch — infixr 2 *)
 par_expr = term , ( "***" | "&&&" ) , par_expr      (* parallel / fanout — infixr 3 *)
          | term ;
 
+question_term = string , "?"                       (* question — produces Either *)
+              | node , "?"
+              ;
+
 term     = node
          | "loop" , "(" , seq_expr , ")"            (* feedback loop *)
          | "(" , seq_expr , ")"                    (* grouping *)
+         | question_term
          ;
 
 node     = ident , [ "(" , [ args ] , ")" ] ;
@@ -59,6 +64,7 @@ Identifiers and unit suffixes support full UTF-8 codepoints, including non-ASCII
 | Parallel | `***` | infixr 3 | `Arrow a b → Arrow c d → Arrow (a,c) (b,d)` | Multiple tool calls in one message |
 | Fanout | `&&&` | infixr 3 | `Arrow a b → Arrow a c → Arrow a (b,c)` | Multiple tool calls, same input |
 | Loop | `loop(expr)` | — | `Arrow (a,s) (b,s) → Arrow a b` | Retry / iterative refinement |
+| Question | `node?` / `"string"?` | — | `Arrow a (Either a a)` | Marks step as producing Either for `\|\|\|` |
 | Group | `(expr)` | — | Precedence grouping | No direct expansion |
 
 `***` is right-associative: `a *** b *** c` types as `(A, (B, C))`.
@@ -137,6 +143,27 @@ loop(
 )
 ```
 
+### Question Operator
+
+`?` marks a step as producing Either, feeding into `|||` for branching:
+
+```
+fetch(url: primary)? ||| fetch(url: mirror)
+```
+
+`?` can appear upstream in a `>>>` chain that feeds into `|||`:
+
+```
+loop(
+  generate >>> verify >>> "all tests pass"?
+  >>> (done ||| fix_and_retry)
+)
+```
+
+Only the "try" side (left operand of `|||`, or the upstream step producing Either) gets `?`. The fallback side does not.
+
+The checker emits a warning (to stderr, exit code unaffected) if `?` appears without a matching `|||` in scope.
+
 ### Numeric Literals
 
 Numbers can be integers, floats, negative, or carry unit suffixes:
@@ -191,7 +218,7 @@ read(source: "data.csv")
 
 ## Structural Rules
 
-The checker validates **syntax structure** only:
+The checker validates **syntax structure** only, and emits warnings:
 
 - Balanced parentheses
 - Valid operator usage and precedence
@@ -206,3 +233,9 @@ The checker does NOT validate:
 - Whether reference tools exist
 - Tool parameter formats
 - Anything requiring execution
+
+### Warnings
+
+The checker also emits **warnings** (to stderr, without affecting exit code):
+
+- `?` without matching `|||` in scope — the Either has no consumer
