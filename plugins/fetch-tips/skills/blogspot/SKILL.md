@@ -1,6 +1,6 @@
 ---
 name: blogspot
-description: Fetch Blogspot/Blogger content via JSON Feed API instead of scraping JS-rendered pages. Use when the user wants to read, search, or extract content from any *.blogspot.com site.
+description: Fetch Blogspot/Blogger content via JSON Feed API instead of scraping JS-rendered pages. Use when the user mentions a blogspot.com or blogger.com URL, wants to read or extract content from a Blogger site, asks to "fetch from blogspot", "scrape a blog", "get blog posts", or encounters empty/broken WebFetch results from *.blogspot.com pages.
 ---
 
 # Blogspot / Blogger Fetch Strategy
