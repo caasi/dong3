@@ -39,7 +39,7 @@ plugins/<name>/
 
 ## Versioning
 
-- Plugin versions live in each `plugin.json` AND in the top-level `marketplace.json` — keep both in sync when bumping.
+- Plugin versions live in the top-level `marketplace.json`.
 - No package registries; compose binary distributed via GitHub releases of `caasi/ocaml-compose-dsl`.
 
 ## Conventions

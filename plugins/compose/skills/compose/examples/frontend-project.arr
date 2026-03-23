@@ -141,7 +141,7 @@
 >>> (
   Style_Dictionary(任務: Design_Token轉CSS變數) >>> Style_Dictionary(任務: 生成Tailwind設定)
   &&&
-  Figma(匯出: SVG圖示) &&& Figma(匯出: 圖片資源) >>> ImageOptim(任務: 資源壓縮)
+  (Figma(匯出: SVG圖示) &&& Figma(匯出: 圖片資源)) >>> ImageOptim(任務: 資源壓縮)
   &&&
   Notion(文件: 互動規格)
   &&& Notion(文件: 動畫規格, 含: easing與duration)

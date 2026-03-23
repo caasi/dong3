@@ -209,6 +209,7 @@ The following OSINT examples are illustrative and should be used only in lawful,
 - **`examples/osint-geolocation.arr`** — Geolocate facilities from broadcast footage by cross-referencing with satellite imagery
 - **`examples/osint-media-monitoring.arr`** — Monitor state media for military unit designations and map to known bases
 - **`examples/osint-infrastructure-change.arr`** — Temporal satellite imagery comparison to detect new military construction
+- **`examples/frontend-project.arr`** — Full product lifecycle: discovery → outsourced design → handoff → in-house implementation → delivery. Stress-tests all combinators at 230 lines
 
 Use these as starting points: copy, modify node names/arguments, and validate with `ocaml-compose-dsl`.
 
