@@ -6,9 +6,9 @@
   Google_Meet(對象: 利害關係人, 目的: 需求訪談) :: 專案 -> 訪談紀錄
   >>> Google_Meet(對象: 使用者, 目的: 痛點訪談) :: 訪談紀錄 -> 使用者回饋
   >>> (
-    Fireflies(輸出: 逐字稿) :: 錄影 -> 逐字稿 >>> Claude(任務: 會議重點摘要) :: 逐字稿 -> 摘要
+    (Fireflies(輸出: 逐字稿) :: 錄影 -> 逐字稿 >>> Claude(任務: 會議重點摘要) :: 逐字稿 -> 摘要)
     &&&
-    Claude(任務: 使用者痛點分析) :: 使用者回饋 -> 痛點報告 >>> Notion(文件: 使用者旅程地圖) :: 痛點報告 -> 文件
+    (Claude(任務: 使用者痛點分析) :: 使用者回饋 -> 痛點報告 >>> Notion(文件: 使用者旅程地圖) :: 痛點報告 -> 文件)
   )
   >>> Notion(文件: 會議紀錄) :: 摘要 -> 文件
   &&&
@@ -137,9 +137,9 @@
     >>> (Notion(文件: 元件規格) :: 標註 -> 文件 &&& Notion(文件: 互動行為描述) :: 標註 -> 文件 &&& Notion(文件: 邊界情況清單) :: 標註 -> 文件))
 )
 >>> (
-  Style_Dictionary(任務: Design_Token轉CSS變數) :: TokenJSON -> CSS變數 >>> Style_Dictionary(任務: 生成Tailwind設定) :: CSS變數 -> TailwindConfig
+  (Style_Dictionary(任務: Design_Token轉CSS變數) :: TokenJSON -> CSS變數 >>> Style_Dictionary(任務: 生成Tailwind設定) :: CSS變數 -> TailwindConfig)
   &&&
-  (Figma(匯出: SVG圖示) :: DevMode稿 -> SVG &&& Figma(匯出: 圖片資源) :: DevMode稿 -> 圖片) >>> ImageOptim(任務: 資源壓縮) :: 資源 -> 壓縮資源
+  ((Figma(匯出: SVG圖示) :: DevMode稿 -> SVG &&& Figma(匯出: 圖片資源) :: DevMode稿 -> 圖片) >>> ImageOptim(任務: 資源壓縮) :: 資源 -> 壓縮資源)
   &&&
   Notion(文件: 互動規格) :: Handoff產出 -> 文件
   &&& Notion(文件: 動畫規格, 含: easing與duration) :: Handoff產出 -> 文件
