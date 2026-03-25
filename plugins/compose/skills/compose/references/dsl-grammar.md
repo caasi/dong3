@@ -157,7 +157,7 @@ loop(
 
 ```
 fetch(url: primary)?
-  >>> (process ||| fetch(url: mirror) >>> process)
+  >>> (process ||| (fetch(url: mirror) >>> process))
 ```
 
 `?` can also appear upstream in a `>>>` chain that feeds into `|||`:

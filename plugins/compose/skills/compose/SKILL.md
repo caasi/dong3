@@ -138,7 +138,7 @@ read(source: input) >>> parse(format: fmt) >>> transform(mapping: m) >>> write(d
 
 ```
 fetch(url: primary)?
-  >>> (process ||| fetch(url: mirror) >>> process)
+  >>> (process ||| (fetch(url: mirror) >>> process))
 ```
 
 ### Test-Fix Loop

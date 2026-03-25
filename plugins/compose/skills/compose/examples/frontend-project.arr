@@ -41,11 +41,11 @@
 >>> loop(
   Google_Meet(目的: 內部審查會議) :: 規格書 -> 審查紀錄
   >>> 內部審查? :: 審查紀錄 -> Either
-  >>> (通過 :: Either -> 規格書 ||| Claude(任務: 修正需求規格書) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書)
+  >>> (通過 :: Either -> 規格書 ||| (Claude(任務: 修正需求規格書) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書))
 )
 >>> loop(
   DocuSign(對象: 客戶, 文件: 需求規格書)? :: 規格書 -> Either
-  >>> (通過 :: Either -> 規格書 ||| Claude(任務: 依客戶意見修正) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書)
+  >>> (通過 :: Either -> 規格書 ||| (Claude(任務: 依客戶意見修正) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書))
 )
 
 -- Phase 2: Design (outsourced)
@@ -130,11 +130,11 @@
 >>> Figma_MCP(任務: 讀取元件規格) :: 元件文件 -> 元件規格
 >>> AI生成品質評估? :: 元件規格 -> Either
 >>> (
-  (Cursor(任務: 生成元件程式碼) :: Either -> 程式碼 &&& Claude(任務: 程式碼品質檢查) :: Either -> 檢查報告)
-    >>> Cursor(任務: 修正生成結果) :: 檢查結果 -> 元件程式碼
+  ((Cursor(任務: 生成元件程式碼) :: Either -> 程式碼 &&& Claude(任務: 程式碼品質檢查) :: Either -> 檢查報告)
+    >>> Cursor(任務: 修正生成結果) :: 檢查結果 -> 元件程式碼)
   |||
-  Zeplin(任務: 標註匯出) :: Either -> 標註
-    >>> (Notion(文件: 元件規格) :: 標註 -> 文件 &&& Notion(文件: 互動行為描述) :: 標註 -> 文件 &&& Notion(文件: 邊界情況清單) :: 標註 -> 文件)
+  (Zeplin(任務: 標註匯出) :: Either -> 標註
+    >>> (Notion(文件: 元件規格) :: 標註 -> 文件 &&& Notion(文件: 互動行為描述) :: 標註 -> 文件 &&& Notion(文件: 邊界情況清單) :: 標註 -> 文件))
 )
 >>> (
   Style_Dictionary(任務: Design_Token轉CSS變數) :: TokenJSON -> CSS變數 >>> Style_Dictionary(任務: 生成Tailwind設定) :: CSS變數 -> TailwindConfig
@@ -226,7 +226,7 @@
 >>> loop(
   Google_Meet(目的: 客戶驗收會議) :: Production環境 -> 驗收紀錄
   >>> 客戶驗收? :: 驗收紀錄 -> Either
-  >>> (通過 :: Either -> 結案 ||| Cursor(任務: 驗收意見修正) :: Either -> 修正碼 >>> Vercel(任務: 重新部署, 環境: production) :: 修正碼 -> Production環境)
+  >>> (通過 :: Either -> 結案 ||| (Cursor(任務: 驗收意見修正) :: Either -> 修正碼 >>> Vercel(任務: 重新部署, 環境: production) :: 修正碼 -> Production環境))
 )
 >>> (
   Notion(文件: 專案結案報告) :: 結案 -> 文件

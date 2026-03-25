@@ -25,7 +25,7 @@
 
 -- Question with annotation
 -- fetch(url: primary)? :: URL -> Either
---   ||| fetch(url: mirror) :: URL -> Response
+--   >>> (process :: Either -> Response ||| (fetch(url: mirror) :: URL -> Response >>> process :: Response -> Response))
 
 -- Grouped expression with annotation
 -- (read(source: "data.csv") >>> parse(format: csv)) :: File -> Data
