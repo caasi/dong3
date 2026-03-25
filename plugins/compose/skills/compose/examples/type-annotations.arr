@@ -53,7 +53,7 @@ fetch(url: "https://example.com") :: URL -> HTML
   >>> (
     store(dest: db) :: Bundle -> Ack
     ||| loop(
-      fix(issue: validation) :: Error -> Bundle
+      fix(issue: validation) :: Bundle -> Bundle
         >>> revalidate :: Bundle -> Result
         >>> "validation passes"?
         >>> (done :: Result -> Ack ||| retry :: Result -> Error)
