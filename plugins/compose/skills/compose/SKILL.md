@@ -21,7 +21,7 @@ This skill requires **v0.7.0** or later. After confirming the binary exists, ver
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.6.1` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.7.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -137,7 +137,8 @@ read(source: input) >>> parse(format: fmt) >>> transform(mapping: m) >>> write(d
 ### Resilient Fetch
 
 ```
-(fetch(url: primary)? ||| fetch(url: mirror)) >>> process
+fetch(url: primary)?
+  >>> (process ||| fetch(url: mirror) >>> process)
 ```
 
 ### Test-Fix Loop

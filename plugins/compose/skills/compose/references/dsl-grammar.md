@@ -156,10 +156,11 @@ loop(
 `?` marks a step as producing Either, feeding into `|||` for branching:
 
 ```
-fetch(url: primary)? ||| fetch(url: mirror)
+fetch(url: primary)?
+  >>> (process ||| fetch(url: mirror) >>> process)
 ```
 
-`?` can appear upstream in a `>>>` chain that feeds into `|||`:
+`?` can also appear upstream in a `>>>` chain that feeds into `|||`:
 
 ```
 loop(
