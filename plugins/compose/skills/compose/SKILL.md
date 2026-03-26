@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.6.1** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.7.0** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.6.1` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.7.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -50,6 +50,18 @@ read(source: "data.csv")  -- ref: Read, cat, fetch
 - The node name and arguments express intent
 - Comments (`--`) annotate purpose or suggest reference tools
 - The expanding agent chooses which concrete tool to use
+
+### Type Annotations
+
+Nodes and terms can carry optional type annotations using `::`:
+
+```
+fetch(url: "https://example.com") :: URL -> HTML
+  >>> parse :: HTML -> Data
+  >>> format(as: report) :: Data -> Report
+```
+
+Annotations document intended data flow for humans and agents reading the pipeline. The checker parses them but performs no type checking.
 
 For detailed grammar (EBNF), combinators, and examples, consult **`references/dsl-grammar.md`**.
 
@@ -110,6 +122,7 @@ When a similar task arises, load and modify the existing pipeline instead of rea
 The checker emits warnings to stderr without affecting exit code. Currently:
 
 - `?` without matching `|||` — the Either produced by `?` has no consumer
+- `?` as operand of `|||` — `?` already implies `|||` with an implicit empty branch; using both is redundant
 
 Warnings help catch structural oversights early. They do not block validation.
 
@@ -124,7 +137,8 @@ read(source: input) >>> parse(format: fmt) >>> transform(mapping: m) >>> write(d
 ### Resilient Fetch
 
 ```
-(fetch(url: primary)? ||| fetch(url: mirror)) >>> process
+fetch(url: primary)?
+  >>> (process ||| (fetch(url: mirror) >>> process))
 ```
 
 ### Test-Fix Loop
@@ -200,6 +214,7 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/mixed-par-fanout.arr`** — Mixing `***` and `&&&`: precedence behavior and explicit grouping
 - **`examples/unicode-identifiers.arr`** — Unicode node names, argument keys, and unit suffixes with non-Latin scripts
 - **`examples/question-operator.arr`** — Question operator `?`: marking steps as producing Either for `|||` branching
+- **`examples/type-annotations.arr`** — Type annotation syntax (`:: Ident -> Ident`) on sequential, parallel, fanout, loop, and question terms
 
 The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts. Person-targeting examples model defensive workflows (tracing dox attackers) and include de-identification, public methodology disclosure, and legal reporting steps.
 
