@@ -12,6 +12,7 @@
 2. **Keep `jq`** — pipe responses through jq filters to strip reasoning/thinking tokens before they enter Claude's context (token savings)
 3. **Dual API support** — OpenAI-compatible and LM Studio native, selected by config `type` field
 4. **Zero new dependencies** — `curl` and `jq` are available on all target platforms (macOS, Linux)
+5. **Version bump to 0.4.0** — removing `chat.sh` is a breaking change for users with permission rules pointing to it
 
 ## Non-Goals
 
@@ -101,7 +102,20 @@ plugins/chat-subagent/skills/chat-subagent/
     lmstudio-api.md                 # ADD: LM Studio native curl template + response parsing
 
   chat.sh                           # DELETE
-  test-thinking-filter.sh           # DELETE
+  test-thinking-filter.sh           # DELETE (replace with new tests for both jq filters)
+  .claude-plugin/plugin.json        # MODIFY: update description to mention LM Studio
+```
+
+### Test Strategy
+
+The implementation plan must include tests for both jq filters:
+- `thinking-filter.jq` — existing filter, existing test cases (port from `test-thinking-filter.sh`)
+- `thinking-filter-lmstudio.jq` — new filter, new test cases with sample native API responses
+
+Tests should verify:
+- Reasoning items are filtered from `output[]`
+- `<think>`, `<thinking>`, `<analysis>` tags are stripped from message content
+- Non-reasoning items (message, tool_call) are preserved intact
 ```
 
 ### SKILL.md Changes
@@ -144,21 +158,37 @@ On first use, proactively update the project-level `.claude/settings.local.json`
 }
 
 Resolve the absolute path from this SKILL.md's cache location.
-Note: pipe commands (curl ... | jq ...) may require the full pattern to match.
-Verify actual permission requirements during implementation.
+
+**TBD: pipe command permission pattern.** The actual usage is `curl ... | jq -f ...`.
+Claude Code matches against the full Bash command string. The exact pattern
+(e.g. `Bash(curl * | jq *)` or separate rules) must be tested during
+implementation before the permission setup instructions are finalized.
 ```
 
 ### chat.sh Responsibilities → New Owner
 
 | chat.sh feature | New handling |
 |---|---|
-| Auto-append `/chat/completions` path | Reference docs specify full paths |
+| Auto-append `/chat/completions` path | Reference docs specify full endpoint paths (see URL contract below) |
 | `-s` system prompt | Claude builds `messages` array / `input` string directly |
 | `-m` model | Claude reads `model` from config, puts in JSON body |
 | `-k` API key | Claude reads env var specified by `api_key_env` config field |
 | `-t` timeout | Claude adds `--max-time` to curl |
 | `-T` thinking filter | Claude checks `thinking: true` in config, pipes through jq |
-| Error handling | Claude uses `curl --fail-with-body` and checks exit code |
+| Error handling | Claude uses `curl --fail-with-body` and checks exit code (requires curl ≥ 7.76.0; fallback: `--write-out '%{http_code}'` for older versions) |
+
+### URL Contract
+
+The `url` field in config is the **base URL without API version prefix**. Examples:
+
+- `http://localhost:1234` (not `http://localhost:1234/v1`)
+- `https://api.deepseek.com` (not `https://api.deepseek.com/v1`)
+
+Reference docs append the full path:
+- OpenAI: `{url}/v1/chat/completions`
+- LM Studio native: `{url}/api/v1/chat`
+
+**Migration note:** Existing configs with `/v1` in the URL (e.g. `http://localhost:1234/v1`) must be updated. The SKILL.md should warn about this when it detects a URL ending in `/v1` or `/v1/`.
 
 ### references/openai-api.md
 
@@ -205,7 +235,7 @@ Extends existing `chat-subagent.local.md` with `type` and `integrations` fields:
 ```yaml
 endpoints:
   homelab:
-    url: http://192.168.50.50:1234
+    url: http://<lmstudio-host>:1234
     model: qwen3.5-9b
     type: lmstudio
     thinking: true
@@ -214,7 +244,7 @@ endpoints:
       - mcp/web-search
       - mcp/fetch
   cloud:
-    url: https://api.deepseek.com/v1
+    url: https://api.deepseek.com
     model: deepseek-reasoner
     type: openai
     thinking: true
@@ -223,10 +253,18 @@ endpoints:
 
 - `type` (optional): `lmstudio` or `openai`. Defaults to `openai` if absent.
 - `integrations` (optional): array of MCP server identifiers. Only used when `type: lmstudio`.
+- `context_length` (optional): integer, passed to LM Studio native API. Only used when `type: lmstudio`. Defaults to model's configured context length if omitted.
+
+### Metadata Updates
+
+Update descriptions in these files to mention LM Studio support alongside OpenAI-compatible:
+- `SKILL.md` frontmatter `description` field
+- `.claude-plugin/plugin.json` description
+- Top-level `marketplace.json` plugin description
 
 ### Unchanged
 
-- Probe flow (plain text in/out, works with both APIs)
+- Probe flow (plain text in/out — probes use the same API path as real calls; Claude reads the appropriate reference doc to build the curl command for probes too)
 - Delegation pattern
 - Prompt injection defense (native API adds server-executed tool calls — model interpretation still untrusted, same review protocol)
 - Endpoint alias management (save/list/remove)
