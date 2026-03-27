@@ -156,6 +156,7 @@ Briefly report probe results to the user before proceeding with real work.
 ```bash
 curl --silent --fail-with-body "http://localhost:1234/v1/chat/completions" \
   --header "Content-Type: application/json" \
+  ${API_KEY:+--header "Authorization: Bearer ${API_KEY}"} \
   --max-time 120 \
   --data '{"model":"my-model","messages":[{"role":"system","content":"You are helpful."},{"role":"user","content":"Hello"}]}' \
   | jq --from-file /path/to/thinking-filter.jq \
@@ -166,6 +167,7 @@ curl --silent --fail-with-body "http://localhost:1234/v1/chat/completions" \
 ```bash
 curl --silent --fail-with-body "http://localhost:1234/api/v1/chat" \
   --header "Content-Type: application/json" \
+  ${API_KEY:+--header "Authorization: Bearer ${API_KEY}"} \
   --max-time 120 \
   --data '{"model":"my-model","input":"Hello","integrations":["mcp/web-search"]}' \
   | jq --from-file /path/to/thinking-filter-lmstudio.jq \
