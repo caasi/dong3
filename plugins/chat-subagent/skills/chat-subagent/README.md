@@ -111,6 +111,8 @@ You can also set it up manually:
 
 Replace `<HOME>` with your home directory and `<VERSION>` with the installed version (e.g. `0.4.0`).
 
+**Note:** `Bash(curl *)` and `Bash(jq *)` are system-wide wildcards that permit all `curl`/`jq` invocations, not just those from this skill. If you prefer tighter control, omit these rules and rely on Claude Code's per-invocation permission prompts instead.
+
 ## Probe system
 
 The skill includes 19 diagnostic questions in `probes/`, each ~3 lines:

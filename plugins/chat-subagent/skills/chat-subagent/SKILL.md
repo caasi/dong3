@@ -193,8 +193,16 @@ On first use, proactively update the project-level `.claude/settings.local.json`
 Resolve the absolute path from this SKILL.md's cache location (e.g. `~/.claude/plugins/cache/...`).
 `Bash()` rules require absolute paths without `~`; `Read()` rules use `//` prefix.
 
-**Note:** The actual permission pattern for pipe commands (`curl ... | jq ...`) may differ.
-Test the pattern during first use and adjust the rules accordingly.
+**Security note:** `Bash(curl *)` and `Bash(jq *)` are system-wide wildcards — they permit
+all `curl` and `jq` invocations, not just those from this skill. This is broader than the
+old `Bash(chat.sh *)` rule, which was path-scoped. The tradeoff is intentional: direct `curl`
+invocations cannot be scoped to a specific path. Users who want tighter control should rely
+on Claude Code's per-invocation prompts instead of adding these allow rules.
+
+**Pipe commands:** Claude Code evaluates `Bash()` rules against the full command string.
+A piped command like `curl ... | jq ...` is matched as one string, so `Bash(curl *)` alone
+may suffice for the full pipeline. If permission prompts persist for piped commands, try
+adding a single pattern for the full pipeline instead of separate `curl` and `jq` rules.
 
 ## Delegation Pattern
 
