@@ -33,7 +33,7 @@ claude plugin install chat-subagent@caasi-dong3
 
 Once installed, tell Claude something like:
 
-> "Use `http://localhost:11434/v1` as a subagent to help analyze this code."
+> "Use `http://localhost:11434` as a subagent to help analyze this code."
 
 Claude will:
 
