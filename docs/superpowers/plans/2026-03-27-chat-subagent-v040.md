@@ -827,10 +827,10 @@ Expected: All 28 tests PASS.
 Search the entire `plugins/chat-subagent/` directory for any remaining references to `chat.sh`:
 
 ```bash
-grep --recursive "chat\.sh" plugins/chat-subagent/
+grep --recursive "chat\.sh" plugins/chat-subagent/skills/ plugins/chat-subagent/.claude-plugin/
 ```
 
-Expected: No matches.
+Expected: No matches (design docs may reference it historically).
 
 - [ ] **Step 3: Verify file structure**
 

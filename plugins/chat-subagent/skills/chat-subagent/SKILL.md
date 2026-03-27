@@ -195,9 +195,9 @@ Resolve the absolute path from this SKILL.md's cache location (e.g. `~/.claude/p
 
 **Security note:** `Bash(curl *)` and `Bash(jq *)` are system-wide wildcards — they permit
 all `curl` and `jq` invocations, not just those from this skill. This is broader than the
-old `Bash(chat.sh *)` rule, which was path-scoped. The tradeoff is intentional: direct `curl`
-invocations cannot be scoped to a specific path. Users who want tighter control should rely
-on Claude Code's per-invocation prompts instead of adding these allow rules.
+old path-scoped wrapper script rule. The tradeoff is intentional: direct `curl` invocations
+cannot be scoped to a specific path. Users who want tighter control should rely on Claude
+Code's per-invocation prompts instead of adding these allow rules.
 
 **Pipe commands:** Claude Code evaluates `Bash()` rules against the full command string.
 A piped command like `curl ... | jq ...` is matched as one string, so `Bash(curl *)` alone
