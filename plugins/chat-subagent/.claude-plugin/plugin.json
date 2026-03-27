@@ -1,6 +1,6 @@
 {
   "name": "chat-subagent",
-  "description": "Delegate tasks to external OpenAI-compatible chat endpoints as a subagent",
+  "description": "Delegate tasks to external chat endpoints (OpenAI-compatible and LM Studio native API) as a subagent",
   "author": {
     "name": "caasi"
   },
