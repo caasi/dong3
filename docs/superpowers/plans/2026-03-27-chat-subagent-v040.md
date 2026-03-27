@@ -295,7 +295,7 @@ Expected: OpenAI tests PASS, LM Studio tests FAIL (filter file not found or erro
 
 Run: `plugins/chat-subagent/skills/chat-subagent/test-thinking-filters.sh`
 
-Expected: All 28 tests PASS (17 OpenAI + 11 LM Studio).
+Expected: All 29 tests PASS (17 OpenAI + 12 LM Studio).
 
 - [ ] **Step 5: Commit**
 
@@ -751,7 +751,7 @@ git commit -m "feat(chat-subagent): replace chat.sh with direct curl in SKILL.md
 
 Run: `plugins/chat-subagent/skills/chat-subagent/test-thinking-filters.sh`
 
-Expected: All 28 tests PASS.
+Expected: All 29 tests PASS.
 
 - [ ] **Step 2: Delete files**
 
@@ -820,7 +820,7 @@ git commit -m "chore(chat-subagent): bump to v0.4.0, update descriptions for LM 
 plugins/chat-subagent/skills/chat-subagent/test-thinking-filters.sh
 ```
 
-Expected: All 28 tests PASS.
+Expected: All 29 tests PASS.
 
 - [ ] **Step 2: Verify no stale references to chat.sh**
 
