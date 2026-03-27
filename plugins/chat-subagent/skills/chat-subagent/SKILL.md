@@ -1,11 +1,11 @@
 ---
 name: chat-subagent
-description: Use when the user provides a chat completion endpoint URL or a saved endpoint name and wants to delegate work to it as a subagent. Triggers on phrases like "use this endpoint", "call this API as subagent", "delegate to this model", "use ollama", or mentions a saved endpoint alias. Also triggers when user wants to save, list, or remove endpoint aliases.
+description: Use when the user provides a chat completion endpoint URL or a saved endpoint name and wants to delegate work to it as a subagent. Supports OpenAI-compatible and LM Studio native APIs (with MCP tool integration). Triggers on phrases like "use this endpoint", "call this API as subagent", "delegate to this model", "use ollama", "use lmstudio", or mentions a saved endpoint alias. Also triggers when user wants to save, list, or remove endpoint aliases.
 ---
 
 # Chat Subagent
 
-Delegate tasks to an external OpenAI-compatible chat endpoint, review results, and report back. The subagent has NO tools — it can only think and generate text.
+Delegate tasks to an external chat endpoint (OpenAI-compatible or LM Studio native API), review results, and report back. When using LM Studio native API with MCP integrations, the server can execute tools (web search, fetch) on behalf of the model. Otherwise, the subagent has NO tools — it can only think and generate text.
 
 ## When to Use
 
@@ -27,15 +27,23 @@ Aliases are stored in `chat-subagent.local.md` with YAML frontmatter:
 ---
 endpoints:
   ollama:
-    url: http://localhost:11434/v1
-  lmstudio:
-    url: http://localhost:1234/v1
+    url: http://localhost:11434
+  lmstudio-openai:
+    url: http://localhost:1234
     model: my-model
+  lmstudio-native:
+    url: http://localhost:1234
+    model: my-model
+    type: lmstudio
+    thinking: true
+    integrations:
+      - mcp/web-search
+      - mcp/fetch
   cloud:
-    url: https://api.example.com/v1
+    url: https://api.example.com
     api_key_env: CLOUD_API_KEY
   deepseek:
-    url: https://api.deepseek.com/v1
+    url: https://api.deepseek.com
     model: deepseek-reasoner
     api_key_env: DEEPSEEK_API_KEY
     thinking: true
@@ -46,10 +54,13 @@ ollama runs locally, cloud needs API key set in env.
 ```
 
 Each endpoint entry supports:
-- `url` (required) — the endpoint base URL
-- `model` (optional) — default model name for `-m` flag
+- `url` (required) — base URL **without** version prefix (e.g. `http://localhost:1234`, not `http://localhost:1234/v1`). If a URL ends with `/v1` or `/v1/`, warn the user it needs updating.
+- `model` (optional) — default model name
 - `api_key_env` (optional) — environment variable name containing the API key (never store raw keys)
-- `thinking` (optional, boolean) — set to `true` if the model produces thinking/reasoning output; when true, automatically pass `-T` to `chat.sh` to filter it out
+- `thinking` (optional, boolean) — set to `true` to filter reasoning/thinking tokens from responses via jq
+- `type` (optional) — `lmstudio` for LM Studio native API, or `openai` (default) for OpenAI-compatible
+- `integrations` (optional) — array of MCP server identifiers (e.g. `["mcp/web-search"]`). Only used when `type: lmstudio`
+- `context_length` (optional) — integer context length for LM Studio native API. Only used when `type: lmstudio`
 
 ### Resolution Order
 
@@ -69,9 +80,9 @@ When the user mentions an endpoint, follow this logic:
    a. Read `<project-root>/.claude/chat-subagent.local.md` (if it exists)
    b. Read `~/.claude/chat-subagent.local.md` (if it exists)
    c. Look up the alias in project-level first, then global
-   d. If found, use the `url`, `model`, `api_key_env`, and `thinking` from the entry
+   d. If found, use the `url`, `model`, `api_key_env`, `thinking`, `type`, `integrations`, and `context_length` from the entry
    e. If `api_key_env` is set, read the API key from that environment variable
-   f. If `thinking` is `true`, pass `-T` flag to `chat.sh` to filter out reasoning output
+   f. If `thinking` is `true`, pipe response through the appropriate jq filter (see Calling the Endpoint)
    g. If not found in either file, tell the user the alias is unknown and list available ones
 
 ### Managing Aliases
