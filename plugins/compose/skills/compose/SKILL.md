@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.7.0** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.10.0** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.7.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.10.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -35,7 +35,11 @@ If the output is lower than `0.7.0` or the `--version` flag is not recognized, t
 | `&&&` | Fanout — run both on same input (infixr 3) | Multiple tool calls, same input |
 | `loop()` | Feedback — repeat body iteratively | Retry / iterative refinement |
 | `?` | Question — marks step as producing Either | Branching via `\|\|\|` |
-| `()` | Grouping | Precedence control |
+| `(expr)` | Grouping | Precedence control |
+| `\x -> expr` | Lambda — parameterized workflow fragment | Abstraction (not a tool call) |
+| `let x = expr in body` | Let binding — name a workflow fragment | Abstraction (not a tool call) |
+| `()` | Unit — no-input value or trigger | Standalone value |
+| `;` | Statement separator — multiple independent pipelines | Separate programs |
 
 All operators are **right-associative**. `***` and `&&&` bind tighter than `|||`, which binds tighter than `>>>`.
 
@@ -62,6 +66,62 @@ fetch(url: "https://example.com") :: URL -> HTML
 ```
 
 Annotations document intended data flow for humans and agents reading the pipeline. The checker parses them but performs no type checking.
+
+Type names can be identifiers or `()` (unit): `:: () -> Server`, `:: Input -> ()`.
+
+### Abstraction
+
+Lambda and let bindings are tools for organizing complex workflows — naming reusable fragments and parameterizing patterns. They are part of the DSL, not syntactic sugar that disappears.
+
+**Lambda** creates parameterized workflow fragments:
+
+```arrow
+\name -> hello(to: name) >>> respond
+\trigger, fix -> loop(trigger >>> (pass ||| fix))
+```
+
+**Let** names a workflow fragment for reuse:
+
+```arrow
+let review = \trigger, fix ->
+  loop(trigger >>> (pass ||| fix))
+in
+let phase1 = gather >>> review(check?, rework) in
+let phase2 = build >>> review(test?, fix) in
+phase1 >>> phase2
+```
+
+- `let` requires `in` to delimit scope
+- `let...in` works inside parentheses: `(let x = a in x)`
+- Named and positional arguments can be freely mixed: `push(remote: origin, v)` where `v` is a positional expression
+- Reserved words: `let`, `loop`, `in` cannot be used as identifiers
+
+### Statements
+
+A program can contain multiple independent pipelines separated by `;`:
+
+```arrow
+planning :: Doc -> Commit
+  >>> commit(branch: main);
+
+implementation :: Code -> Commit
+  >>> branch(pattern: "feature/*") :: Code -> Branch
+  >>> commit :: Branch -> Commit
+```
+
+- Trailing semicolon is optional
+- Semicolons are not allowed inside parentheses
+
+### Unit
+
+`()` is a value representing "no input" or "trigger":
+
+```arrow
+() >>> start_server :: () -> Server
+```
+
+- `()` is also valid as a type name in annotations: `:: () -> Server`, `:: Input -> ()`
+- `f()` passes Unit as a positional argument — it is not an empty argument list
 
 For detailed grammar (EBNF), combinators, and examples, consult **`references/dsl-grammar.md`**.
 
@@ -91,6 +151,14 @@ Or from a file:
 ```bash
 ocaml-compose-dsl pipeline.arr
 ```
+
+For Markdown files with embedded arrow blocks (fenced with `arrow` or `arr`):
+
+```bash
+ocaml-compose-dsl --literate README.md
+```
+
+Any Markdown file can be a literate Arrow document. Use `arrow` or `arr` as the code fence language tag.
 
 The binary exits `0` with AST output (OCaml constructor format) on valid input, `1` with error messages (with `line:col` positions) on structural problems. Warnings go to stderr without affecting exit code. Fix any structural errors before proceeding.
 
@@ -199,6 +267,17 @@ Node names, argument keys, and unit suffixes support full UTF-8 identifiers, inc
 
 Error positions report codepoint-level columns, not byte offsets, so diagnostics stay accurate for multibyte characters.
 
+### Reusable Review Loop
+
+```arrow
+let review = \trigger, fix ->
+  loop(trigger >>> (pass ||| fix))
+in
+let phase1 = gather >>> review(check?, rework) in
+let phase2 = build >>> review(test?, fix) in
+phase1 >>> phase2
+```
+
 ## Additional Resources
 
 ### Examples
@@ -215,6 +294,10 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/unicode-identifiers.arr`** — Unicode node names, argument keys, and unit suffixes with non-Latin scripts
 - **`examples/question-operator.arr`** — Question operator `?`: marking steps as producing Either for `|||` branching
 - **`examples/type-annotations.arr`** — Type annotation syntax (`:: Ident -> Ident`) on sequential, parallel, fanout, loop, and question terms
+- **`examples/lambda.arr`** — Lambda expressions: parameterized workflow fragments, multi-param, positional arguments
+- **`examples/let-binding.arr`** — Let bindings: named fragments, nested lets, let inside parentheses, multi-phase composition
+- **`examples/unit-type.arr`** — Unit value and type: `()` standalone, in type annotations, `f()` semantics
+- **`examples/multi-statement.arr`** — Semicolon statement separator: independent pipelines, trailing semicolon
 
 The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts. Person-targeting examples model defensive workflows (tracing dox attackers) and include de-identification, public methodology disclosure, and legal reporting steps.
 
@@ -224,7 +307,7 @@ The following OSINT examples are illustrative and should be used only in lawful,
 - **`examples/osint-geolocation.arr`** — Geolocate facilities from broadcast footage by cross-referencing with satellite imagery
 - **`examples/osint-media-monitoring.arr`** — Monitor state media for military unit designations and map to known bases
 - **`examples/osint-infrastructure-change.arr`** — Temporal satellite imagery comparison to detect new military construction
-- **`examples/frontend-project.arr`** — Full product lifecycle: discovery → outsourced design → handoff → in-house implementation → delivery. Stress-tests all combinators at 230 lines
+- **`examples/frontend-project.arr`** — Full product lifecycle: discovery → outsourced design → handoff → in-house implementation → delivery. Stress-tests all combinators at 225 lines
 
 Use these as starting points: copy, modify node names/arguments, and validate with `ocaml-compose-dsl`.
 

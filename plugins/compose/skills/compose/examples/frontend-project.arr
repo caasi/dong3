@@ -1,6 +1,10 @@
 -- Frontend project: client request to production delivery
 -- 外包設計 + 內部開發的完整產品流程
 
+let 審核 = \提案, 修正 ->
+  loop(提案? >>> (通過 ||| 修正))
+in
+
 -- Phase 1: Discovery
 (
   Google_Meet(對象: 利害關係人, 目的: 需求訪談) :: 專案 -> 訪談紀錄
@@ -38,15 +42,8 @@
 )
 >>> Claude(任務: 需求規格書草稿) :: Discovery產出 -> 規格草稿
 >>> Notion(文件: 需求規格書定稿) :: 規格草稿 -> 規格書
->>> loop(
-  Google_Meet(目的: 內部審查會議) :: 規格書 -> 審查紀錄
-  >>> 內部審查? :: 審查紀錄 -> Either
-  >>> (通過 :: Either -> 規格書 ||| (Claude(任務: 修正需求規格書) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書))
-)
->>> loop(
-  DocuSign(對象: 客戶, 文件: 需求規格書)? :: 規格書 -> Either
-  >>> (通過 :: Either -> 規格書 ||| (Claude(任務: 依客戶意見修正) :: Either -> 修正稿 >>> Notion(文件: 需求規格書更新) :: 修正稿 -> 規格書))
-)
+>>> 審核(Google_Meet(目的: 內部審查會議) >>> 內部審查, Claude(任務: 修正需求規格書) >>> Notion(文件: 需求規格書更新))
+>>> 審核(DocuSign(對象: 客戶, 文件: 需求規格書), Claude(任務: 依客戶意見修正) >>> Notion(文件: 需求規格書更新))
 
 -- Phase 2: Design (outsourced)
 >>> (
@@ -56,11 +53,7 @@
   Figma(任務: 品牌風格探索, 面向: 色彩) :: 靈感素材 -> 色彩方案 &&& Figma(任務: 品牌風格探索, 面向: 字型) :: 靈感素材 -> 字型方案
 )
 >>> Miro(任務: Moodboard彙整) :: 風格素材 -> Moodboard
->>> loop(
-  Loom(任務: 風格方向提案) :: Moodboard -> 提案影片
-  >>> 客戶風格確認? :: 提案影片 -> Either
-  >>> (通過 :: Either -> 風格定稿 ||| Figma(任務: 風格方向修正) :: Either -> Moodboard)
-)
+>>> 審核(Loom(任務: 風格方向提案) >>> 客戶風格確認, Figma(任務: 風格方向修正))
 >>> (
   Figma(任務: Wireframe, 裝置: mobile) :: 風格定稿 -> 線框稿 >>> Figma(任務: 互動流程, 裝置: mobile) :: 線框稿 -> 互動稿
   &&&
@@ -116,11 +109,7 @@
 >>> Figma(任務: 設計修正, 輪次: 1) :: 改善建議 -> 修正稿
 >>> Maze(任務: 修正後驗證測試) :: 修正稿 -> 驗證結果
 >>> Figma(任務: 設計修正, 輪次: 2) :: 驗證結果 -> 設計完稿
->>> loop(
-  Loom(任務: 最終設計簡報) :: 設計完稿 -> 簡報影片
-  >>> 客戶最終簽核? :: 簡報影片 -> Either
-  >>> (通過 :: Either -> 設計定版 ||| Figma(任務: 設計修正_依客戶意見) :: Either -> 設計完稿)
-)
+>>> 審核(Loom(任務: 最終設計簡報) >>> 客戶最終簽核, Figma(任務: 設計修正_依客戶意見))
 
 -- Phase 3: Handoff
 >>> Figma(任務: Dev_Mode啟用) :: 設計定版 -> DevMode稿

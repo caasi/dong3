@@ -8,6 +8,9 @@ A Claude Code skill for describing multi-step agent workflows using an Arrow-sty
 - Validates pipeline structure with a pre-built binary checker (parse errors, unbalanced branches) and emits warnings (`?` without `|||`)
 - Saves successful pipelines as `.arr` files for reuse across conversations
 - Provides common patterns: sequential, parallel, branch/fallback, and feedback loops
+- Supports abstraction with lambda (`\x -> expr`) and let bindings (`let x = expr in body`) for naming and reusing workflow fragments
+- Validates arrow blocks embedded in Markdown files via literate mode (`--literate`)
+- Supports multiple independent pipelines in one file via semicolon `;` separator
 
 ## Arrow Combinators
 
@@ -19,6 +22,11 @@ A Claude Code skill for describing multi-step agent workflows using an Arrow-sty
 | `&&&` | Fanout — run both on same input | infixr 3 |
 | `loop()` | Feedback — repeat body iteratively | — |
 | `?` | Question — marks step as producing Either | — |
+| `(expr)` | Grouping | — |
+| `\x -> expr` | Lambda — parameterized fragment | — |
+| `let x = expr in body` | Let binding — named fragment | — |
+| `()` | Unit — no-input value | — |
+| `;` | Statement separator | — |
 
 ## Examples
 
@@ -43,7 +51,16 @@ read(source: "data.csv")
   >>> 出力
 ```
 
-More examples in `examples/` — including a meta-workflow that describes how this skill updates itself from the upstream repo.
+```arrow
+let review = \trigger, fix ->
+  loop(trigger >>> (pass ||| fix))
+in
+let phase1 = gather >>> review(check?, rework) in
+let phase2 = build >>> review(test?, fix) in
+phase1 >>> phase2
+```
+
+21 examples in `examples/` — including a meta-workflow that describes how this skill updates itself from the upstream repo.
 
 ## Install
 
