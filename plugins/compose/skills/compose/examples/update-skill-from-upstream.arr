@@ -59,4 +59,8 @@ let verify =
   check_version(binary: "ocaml-compose-dsl", minimum: "0.10.0")
 in
 
+-- Main pipeline
 gather >>> analyze >>> update_docs >>> update_examples >>> validate >>> bump_version >>> verify
+
+-- Separate statement: signal completion with unit trigger
+; () >>> notify(channel: "compose-updates", status: done)
