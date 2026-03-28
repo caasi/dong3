@@ -31,8 +31,9 @@ type_name   = ident | "(" , ")" ;
 
 term     = ident , [ "(" , [ call_args ] , ")" ] , [ "?" ]
                                                     (* ident with optional args and question *)
-         | string , [ "?" ]                        (* string literal, optionally question;
-                                                      AST represents both as Question(expr) *)
+         | string , [ "?" ]                        (* string literal, optionally followed by "?";
+                                                      only the postfix-"?" form (expr?) becomes
+                                                      Question(expr) in the AST *)
          | "(" , ")" , [ "?" ]                     (* unit value, with optional question *)
          | "loop" , "(" , seq_expr , ")"            (* feedback loop *)
          | "(" , stmt , ")"                        (* grouping — allows let bindings
@@ -46,7 +47,7 @@ call_args = call_arg , { "," , call_arg } ;
 call_arg  = arg_key , ":" , value                   (* Named — per-arg disambiguation via key ":" *)
           | seq_expr                                (* Positional — any expression *)
           ;
-arg_key   = ident | "in" ;                          (* reserved words allowed as named arg keys *)
+arg_key   = ident | "in" ;                          (* reserved word "in" allowed as named arg key *)
 
 value    = string
          | number
