@@ -100,7 +100,7 @@ phase1 >>> phase2
 
 A program can contain multiple independent pipelines separated by `;`:
 
-```
+```arrow
 planning :: Doc -> Commit
   >>> commit(branch: main);
 
@@ -116,7 +116,7 @@ implementation :: Code -> Commit
 
 `()` is a value representing "no input" or "trigger":
 
-```
+```arrow
 () >>> start_server :: () -> Server
 ```
 
@@ -269,7 +269,7 @@ Error positions report codepoint-level columns, not byte offsets, so diagnostics
 
 ### Reusable Review Loop
 
-```
+```arrow
 let review = \trigger, fix ->
   loop(trigger >>> (pass ||| fix))
 in
