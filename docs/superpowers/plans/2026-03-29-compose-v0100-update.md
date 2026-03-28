@@ -783,7 +783,7 @@ git commit -m "fix(compose): fix validation errors in <file>"
 - [ ] **Step 4: Verify final file count**
 
 ```bash
-ls plugins/compose/skills/compose/examples/*.arr | wc -l
+ls plugins/compose/skills/compose/examples/*.arr | wc --lines
 ```
 
 Expected: 21 files (17 existing + 4 new).
