@@ -59,10 +59,11 @@ plugins/compose/skills/compose/
 
 #### Core Concepts — Arrow Combinators Table
 
-Add to existing table:
+Update existing table: rename `()` row from "Grouping" to `(expr)` for clarity, then add new rows:
 
 | Syntax | Meaning |
 |--------|---------|
+| `(expr)` | Grouping — precedence control (rename from `()`) |
 | `\x -> expr` | Lambda — parameterized workflow fragment |
 | `let x = expr in body` | Let binding — name a workflow fragment |
 | `()` | Unit — no-input value or trigger |
@@ -129,30 +130,23 @@ Update the list to include the four new `.arr` files.
 
 ### 3. references/dsl-grammar.md — Full Rewrite
 
-Replace the entire file with the upstream EBNF grammar, adapted for the compose skill context:
+Replace the entire file. The **complete** EBNF is sourced from the upstream README at implementation time (fetch via `gh api repos/caasi/ocaml-compose-dsl/contents/README.md`). Key new productions compared to the current dsl-grammar.md:
 
 ```ebnf
 program     = { ";" } , [ stmt , { ";" , { ";" } , stmt } , { ";" } ] ;
 stmt        = let_expr | pipeline ;
 let_expr    = "let" , ident , "=" , seq_expr , "in" , stmt ;
 lambda      = "\" , ident , { "," , ident } , "->" , seq_expr ;
-pipeline    = seq_expr ;
-seq_expr    = alt_expr , ">>>" , seq_expr | lambda | alt_expr ;
-alt_expr    = par_expr , "|||" , alt_expr | par_expr ;
-par_expr    = typed_term , ( "***" | "&&&" ) , par_expr | typed_term ;
-typed_term  = term , [ "::" , type_expr ] ;
-type_expr   = type_name , "->" , type_name ;
 type_name   = ident | "(" , ")" ;
-term        = ident , [ "(" , [ call_args ] , ")" ] , [ "?" ]
-            | string , [ "?" ]
-            | "(" , ")" , [ "?" ]
-            | "loop" , "(" , seq_expr , ")"
-            | "(" , stmt , ")" ;
+term        = ... | "(" , ")" , [ "?" ] | "(" , stmt , ")" ;
 call_args   = call_arg , { "," , call_arg } ;
 call_arg    = arg_key , ":" , value | seq_expr ;
 arg_key     = ident | "in" ;
-...
+ident       = ident_start , { ident_char } - reserved ;
+reserved    = "let" | "loop" | "in" ;
 ```
+
+The remaining productions (`seq_expr`, `alt_expr`, `par_expr`, `typed_term`, `value`, `number`, `string`, `ident_start`, `ident_char`, `comment`) are copied verbatim from the upstream README. The implementer must fetch the full upstream EBNF — this excerpt highlights only what changed.
 
 Plus: combinator table (including `;`, `\`, `let...in`, `()`), node design section, examples, structural rules, warnings.
 
