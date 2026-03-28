@@ -59,10 +59,10 @@ ident       = ident_start , { ident_char } - reserved ;
 reserved    = "let" | "loop" | "in" ;
 ident_start = ? any valid UTF-8 codepoint that is not an ASCII digit,
                 not ASCII whitespace, and not one of ( ) [ ] : , > * | & - " .
-                ! # $ % ^ + = { } < ; ' ` ~ / ? @ \ ? ;
+                ! # $ % ^ + = { } < ; ' ` ~ / QUESTION MARK @ \ ? ;
 ident_char  = ? any valid UTF-8 codepoint that is not ASCII whitespace,
                 and not one of ( ) [ ] : , > * | & " .
-                ! # $ % ^ + = { } < ; ' ` ~ / ? @ \ ? ;
+                ! # $ % ^ + = { } < ; ' ` ~ / QUESTION MARK @ \ ? ;
                 (* note: "-" is a valid ident_char, but the lexer stops
                    before "->" so that the arrow token is recognized
                    even without surrounding whitespace *)
