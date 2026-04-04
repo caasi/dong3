@@ -284,19 +284,19 @@ read(source: "data.csv")
 
 Lambda creates parameterized workflow fragments:
 
-```arrow
+```
 \name -> hello(to: name) >>> respond
 ```
 
 Multi-parameter lambda:
 
-```arrow
+```
 \trigger, fix -> loop(trigger >>> (pass ||| fix))
 ```
 
 Lambda with type annotations:
 
-```arrow
+```
 \url -> fetch(url: url) :: URL -> HTML
   >>> parse :: HTML -> Data
 ```
@@ -359,7 +359,7 @@ planning :: Doc -> Commit
   >>> commit(branch: main);
 
 implementation :: Code -> Commit
-  >>> branch(pattern: "feature/*") :: Code -> Branch
+  >>> git_branch(pattern: "feature/*") :: Code -> Branch
   >>> commit :: Branch -> Commit
 ```
 
@@ -404,6 +404,7 @@ The checker validates **syntax structure** only, and emits warnings:
 - Valid operator usage and precedence
 - Well-formed node definitions
 - Semicolons separate top-level statements only — they are not valid inside parentheses
+- Epistemic operator conventions — `branch`/`merge` pairing and `leaf`/`check` suggestion
 
 The checker does NOT validate:
 
@@ -421,3 +422,7 @@ The checker also emits **warnings** (to stderr, without affecting exit code):
 
 - `?` without matching `|||` in scope — the Either has no consumer
 - `?` as operand of `|||` — `?` already implies `|||` with an implicit empty branch; using both is redundant
+- `branch` without matching `merge` in the same statement — the epistemic branch has no convergence point
+- `leaf` without matching `check` in the same statement — suggests adding a verification step after the bounded reasoning zone (suggestion, not warning)
+
+The checker matches these five epistemic names (`gather`, `branch`, `merge`, `leaf`, `check`) by identifier name only — they are not reserved words and can be shadowed by `let` bindings. If a node named `branch` has non-epistemic meaning (e.g., git branching), rename it to avoid the lint: `git_branch(pattern: "feature/*")`.
