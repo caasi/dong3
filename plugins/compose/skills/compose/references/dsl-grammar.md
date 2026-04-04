@@ -423,6 +423,6 @@ The checker also emits **warnings** (to stderr, without affecting exit code):
 - `?` without matching `|||` in scope — the Either has no consumer
 - `?` as operand of `|||` — `?` already implies `|||` with an implicit empty branch; using both is redundant
 - `branch` without matching `merge` in the same statement — the epistemic branch has no convergence point
-- `leaf` without matching `check` in the same statement — suggests adding a verification step after the bounded reasoning zone (suggestion, not warning)
+- `leaf` without matching `check` in the same statement — consider adding a verification step after the bounded reasoning zone
 
 The checker matches these five epistemic names (`gather`, `branch`, `merge`, `leaf`, `check`) by identifier name only — they are not reserved words and can be shadowed by `let` bindings. If a node named `branch` has non-epistemic meaning (e.g., git branching), rename it to avoid the lint: `git_branch(pattern: "feature/*")`.

@@ -192,7 +192,7 @@ The checker emits warnings to stderr without affecting exit code. Currently:
 - `?` without matching `|||` — the Either produced by `?` has no consumer
 - `?` as operand of `|||` — `?` already implies `|||` with an implicit empty branch; using both is redundant
 - `branch` without matching `merge` in the same statement — warns that an epistemic branch has no convergence point
-- `leaf` without matching `check` in the same statement — suggests adding a verification step after the bounded reasoning zone
+- `leaf` without matching `check` in the same statement — consider adding a verification step after the bounded reasoning zone
 
 Warnings help catch structural oversights early. They do not block validation.
 
