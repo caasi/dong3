@@ -15,13 +15,13 @@ Ensure `~/.local/bin` is in `PATH`.
 
 ### Version Check
 
-This skill requires **v0.10.0** or later. After confirming the binary exists, verify the version:
+This skill requires **v0.11.0** or later. After confirming the binary exists, verify the version:
 
 ```bash
 ocaml-compose-dsl --version
 ```
 
-If the output is lower than `0.10.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
+If the output is lower than `0.11.0` or the `--version` flag is not recognized, the binary is outdated. Offer to re-run `scripts/install.sh` to upgrade to the latest release.
 
 ## Core Concepts
 
@@ -75,7 +75,7 @@ Lambda and let bindings are tools for organizing complex workflows — naming re
 
 **Lambda** creates parameterized workflow fragments:
 
-```arrow
+```
 \name -> hello(to: name) >>> respond
 \trigger, fix -> loop(trigger >>> (pass ||| fix))
 ```
@@ -105,7 +105,7 @@ planning :: Doc -> Commit
   >>> commit(branch: main);
 
 implementation :: Code -> Commit
-  >>> branch(pattern: "feature/*") :: Code -> Branch
+  >>> git_branch(pattern: "feature/*") :: Code -> Branch
   >>> commit :: Branch -> Commit
 ```
 
@@ -191,8 +191,26 @@ The checker emits warnings to stderr without affecting exit code. Currently:
 
 - `?` without matching `|||` — the Either produced by `?` has no consumer
 - `?` as operand of `|||` — `?` already implies `|||` with an implicit empty branch; using both is redundant
+- `branch` without matching `merge` in the same statement — warns that an epistemic branch has no convergence point
+- `leaf` without matching `check` in the same statement — suggests adding a verification step after the bounded reasoning zone
 
 Warnings help catch structural oversights early. They do not block validation.
+
+### Epistemic Conventions
+
+Five identifier names serve as **epistemic operators** — cognitive role markers for human-LLM shared reasoning scaffolds, inspired by [λ-RLM](https://github.com/lambda-calculus-LLM/lambda-RLM). They are ordinary identifiers (not reserved words) matched by name only.
+
+| Name | Intent | Common Pattern |
+|------|--------|----------------|
+| `gather` | Collect evidence/sub-questions before reasoning | `gather >>> leaf` |
+| `branch` | Explore multiple candidate paths | `branch >>> ... >>> merge` |
+| `merge` | Converge candidates into auditable artifact | `... >>> merge >>> check?` |
+| `leaf` | High-cost reasoning zone — bounded sub-problem | `leaf >>> check?` |
+| `check` | Verifiable validation step | `check? >>> (pass \|\|\| fix)` |
+
+The checker lints two conventions: `branch` without `merge`, and `leaf` without `check`. These are warnings, not errors.
+
+**Avoiding false positives:** If a node named `branch` means something else (e.g., git branching), rename it to avoid the lint — e.g., `git_branch(pattern: "feature/*")`.
 
 ## Common Patterns
 
@@ -298,6 +316,7 @@ The `examples/` directory contains ready-to-use `.arr` files demonstrating commo
 - **`examples/let-binding.arr`** — Let bindings: named fragments, nested lets, let inside parentheses, multi-phase composition
 - **`examples/unit-type.arr`** — Unit value and type: `()` standalone, in type annotations, `f()` semantics
 - **`examples/multi-statement.arr`** — Semicolon statement separator: independent pipelines, trailing semicolon
+- **`examples/epistemic-debugging.arr`** — Systematic debugging workflow using all five epistemic operators: gather symptoms, branch hypotheses, merge evidence, leaf root-cause analysis, check fix verification
 
 The following OSINT examples are illustrative and should be used only in lawful, ToS-compliant, and privacy-respecting contexts. Person-targeting examples model defensive workflows (tracing dox attackers) and include de-identification, public methodology disclosure, and legal reporting steps.
 
