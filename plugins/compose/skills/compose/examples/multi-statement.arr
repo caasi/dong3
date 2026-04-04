@@ -5,7 +5,7 @@ planning :: Doc -> Commit
   >>> commit(branch: main);
 
 implementation :: Code -> Commit
-  >>> branch(pattern: "feature/*") :: Code -> Branch
+  >>> git_branch(pattern: "feature/*") :: Code -> Branch
   >>> commit :: Branch -> Commit;
 
 -- Trailing semicolon is optional on the last statement
