@@ -37,7 +37,7 @@ These are naming conventions, not keywords. They can be shadowed by `let` bindin
 | File | Field | Old | New |
 |------|-------|-----|-----|
 | `marketplace.json` | compose version | `0.10.0` | `0.11.0` |
-| `plugin.json` | description | current | add epistemic operators mention |
+| `plugin.json` | description (text only, no version field exists) | current | add epistemic operators mention |
 | `SKILL.md` | Version Check text | `v0.10.0` | `v0.11.0` |
 
 `install.sh` already fetches latest release — no change.
@@ -91,6 +91,12 @@ Run all 21 `.arr` files through v0.11.0 checker. For each file, categorize:
 
 **Rename `branch` to avoid false positive:**
 - Any example using `branch` as a non-epistemic node (e.g., git branch semantics) → rename to `git_branch` or similar
+- This audit also covers embedded arrow blocks in SKILL.md, README.md, and dsl-grammar.md — not just standalone `.arr` files
+
+**Known `branch` rename targets:**
+- `multi-statement.arr` line 8: `branch(pattern: "feature/*")` → `git_branch(pattern: "feature/*")`
+- SKILL.md Statements section (inline example): same rename
+- dsl-grammar.md Multi-Statement example: same rename
 
 **Introduce epistemic naming where semantically appropriate (only where natural):**
 
@@ -102,7 +108,7 @@ Run all 21 `.arr` files through v0.11.0 checker. For each file, categorize:
 | `osint-*.arr` (6 files) | `gather` + `check` candidates | Evidence gathering + verification is natural fit |
 
 **Leave unchanged (syntax demos, no epistemic semantics):**
-- `data-pipeline.arr`, `resilient-fetch.arr`, `question-operator.arr`, `lambda.arr`, `let-binding.arr`, `unit-type.arr`, `multi-statement.arr`, `type-annotations.arr`, `numeric-literals.arr`, `mixed-par-fanout.arr`, `unicode-identifiers.arr`
+- `data-pipeline.arr`, `resilient-fetch.arr`, `question-operator.arr`, `lambda.arr`, `let-binding.arr`, `unit-type.arr`, `type-annotations.arr`, `numeric-literals.arr`, `mixed-par-fanout.arr`, `unicode-identifiers.arr`
 
 Actual changes determined by running the checker and reviewing each file's semantics during implementation. The table above is initial guidance, not prescriptive.
 
