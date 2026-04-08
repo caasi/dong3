@@ -17,6 +17,7 @@ reference files as needed.
 | Mobile Top 10 | 2023 | `top10-mobile/2023/` | [OWASP/www-project-mobile-top-10](https://github.com/OWASP/www-project-mobile-top-10) |
 | CI/CD Security Top 10 | v1.0 | `top10-cicd/` | [OWASP/www-project-top-10-ci-cd-security-risks](https://github.com/OWASP/www-project-top-10-ci-cd-security-risks) |
 | Kubernetes Top 10 | 2025 | `top10-k8s/2025/` | [OWASP/www-project-kubernetes-top-ten](https://github.com/OWASP/www-project-kubernetes-top-ten) |
+| CheatSheetSeries | current | `cheatsheets-index.md` | [OWASP/CheatSheetSeries](https://github.com/OWASP/CheatSheetSeries) |
 
 For older Web Top 10 versions (pre-2017), consult the upstream repo directly:
 https://github.com/OWASP/Top10
