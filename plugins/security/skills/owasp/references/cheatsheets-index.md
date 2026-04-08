@@ -1,8 +1,9 @@
 # OWASP CheatSheetSeries Index
 
-Categorized index of [OWASP Cheat Sheet Series](https://github.com/OWASP/CheatSheetSeries)
-(CC BY-SA 4.0). These cheat sheets are **not embedded** in this skill — fetch from
-upstream URLs when needed.
+**License notice:** This index file is original content licensed under the repository's
+MIT license. The referenced [OWASP Cheat Sheet Series](https://github.com/OWASP/CheatSheetSeries)
+is separate upstream content licensed under CC BY-SA 4.0 and is **not embedded** in
+this skill — fetch from upstream URLs when needed.
 
 Base URL: `https://raw.githubusercontent.com/OWASP/CheatSheetSeries/master/cheatsheets/`
 
