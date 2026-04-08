@@ -1,0 +1,30 @@
+# OWASP Security Review
+
+Security review skill using OWASP frameworks with offline reference data.
+
+Inspired by [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp).
+
+## Usage
+
+Invoke explicitly with `/owasp` or ask for "OWASP review", "security review", "安全審查".
+
+Default: reviews against **Web Top 10:2025**. Specify a different project or year as needed.
+
+## Coverage
+
+| Project | Version | Reference Files |
+|---------|---------|-----------------|
+| Web Top 10 | 2017 (outline), 2021, 2025 | 20 files |
+| API Security Top 10 | 2023 | 10 files |
+| LLM Top 10 | v2.0 | 10 files |
+| MCP Top 10 | 2025 | 10 files |
+| Agentic Skills Top 10 | v1.0 | 10 files |
+| Mobile Top 10 | 2023 | 10 files |
+| CI/CD Security Top 10 | v1.0 | 10 files |
+| Kubernetes Top 10 | 2025 | 10 files |
+| CheatSheetSeries | current | Index only (113 entries, fetched on demand) |
+
+## License
+
+- Skill files (SKILL.md, README.md, INDEX.md, cheatsheets-index.md): MIT
+- Reference files in `references/`: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), sourced from [OWASP GitHub repositories](https://github.com/OWASP)
