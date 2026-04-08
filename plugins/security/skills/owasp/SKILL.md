@@ -12,8 +12,9 @@ description: >-
 You are performing a security review using OWASP frameworks.
 
 Inspired by [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp).
-Reference data sourced from [OWASP GitHub repositories](https://github.com/OWASP)
-(CC BY-SA 4.0).
+Reference data sourced from [OWASP GitHub repositories](https://github.com/OWASP);
+most references are CC BY-SA 4.0, while the Mobile Top 10 subset is
+included under assumed (unverified) upstream licensing.
 
 ## Workflow
 
