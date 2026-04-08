@@ -1,14 +1,14 @@
-# Security Plugin — OWASP Skill Design
+# OWASP Plugin — OWASP Skill Design
 
 **Date:** 2026-04-08
-**Plugin:** `security` (new, v0.1.0)
+**Plugin:** `owasp` (new, v0.1.0)
 **Skill:** `owasp`
 
 Inspired by [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp). Reference data sourced from multiple OWASP GitHub repositories under CC BY-SA 4.0.
 
 ## Scope
 
-A single skill (`owasp`) under a new `security` plugin. The skill provides OWASP security review guidance with offline reference data — no web search required for covered resources.
+A single skill (`owasp`) under a new `owasp` plugin. The skill provides OWASP security review guidance with offline reference data — no web search required for covered resources.
 
 ### In Scope
 
@@ -216,10 +216,10 @@ Exception — Mobile Top 10 files use:
 
 ## Plugin Registration
 
-**`plugins/security/.claude-plugin/plugin.json`:**
+**`plugins/owasp/.claude-plugin/plugin.json`:**
 ```json
 {
-  "name": "security",
+  "name": "owasp",
   "description": "Security review skills — OWASP Top 10 and more",
   "author": {
     "name": "caasi"
@@ -235,8 +235,8 @@ Exception — Mobile Top 10 files use:
 **marketplace.json addition:**
 ```json
 {
-  "name": "security",
-  "source": "./plugins/security",
+  "name": "owasp",
+  "source": "./plugins/owasp",
   "description": "Security review skills — OWASP vulnerability analysis with offline reference data from 8 Top 10 projects and CheatSheetSeries index",
   "version": "0.1.0"
 }

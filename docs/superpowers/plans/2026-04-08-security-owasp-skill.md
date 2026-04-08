@@ -1,8 +1,8 @@
-# Security Plugin — OWASP Skill Implementation Plan
+# OWASP Plugin — OWASP Skill Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create the `security` plugin with an `owasp` skill that provides offline OWASP security review guidance backed by ~90 reference files from 8 OWASP Top 10 projects plus a CheatSheetSeries index.
+**Goal:** Create the `owasp` plugin with an `owasp` skill that provides offline OWASP security review guidance backed by ~90 reference files from 8 OWASP Top 10 projects plus a CheatSheetSeries index.
 
 **Architecture:** Plugin scaffold + compact SKILL.md (behavior only) + `references/` directory containing per-vulnerability markdown files fetched from OWASP GitHub repos, a master INDEX.md with quick reference tables and evolution map, and a cheatsheets-index.md. No code, no binaries — pure content skill.
 
@@ -16,22 +16,22 @@
 
 | Action | Path | Responsibility |
 |--------|------|----------------|
-| Create | `plugins/security/.claude-plugin/plugin.json` | Plugin manifest |
-| Create | `plugins/security/skills/owasp/SKILL.md` | Skill system prompt |
-| Create | `plugins/security/skills/owasp/README.md` | User-facing docs |
-| Create | `plugins/security/skills/owasp/references/LICENSE` | CC BY-SA 4.0 full text |
-| Create | `plugins/security/skills/owasp/references/INDEX.md` | Master index + quick ref tables + evolution map |
-| Create | `plugins/security/skills/owasp/references/cheatsheets-index.md` | CheatSheetSeries categorized index |
-| Create | `plugins/security/skills/owasp/references/top10-web/2021/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-web/2025/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-api/2023/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-llm/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-mcp/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-agentic/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-mobile/2023/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-cicd/*.md` | 10 files |
-| Create | `plugins/security/skills/owasp/references/top10-k8s/2025/*.md` | 10 files |
-| Modify | `.claude-plugin/marketplace.json` | Add security plugin entry |
+| Create | `plugins/owasp/.claude-plugin/plugin.json` | Plugin manifest |
+| Create | `plugins/owasp/skills/owasp/SKILL.md` | Skill system prompt |
+| Create | `plugins/owasp/skills/owasp/README.md` | User-facing docs |
+| Create | `plugins/owasp/skills/owasp/references/LICENSE` | CC BY-SA 4.0 full text |
+| Create | `plugins/owasp/skills/owasp/references/INDEX.md` | Master index + quick ref tables + evolution map |
+| Create | `plugins/owasp/skills/owasp/references/cheatsheets-index.md` | CheatSheetSeries categorized index |
+| Create | `plugins/owasp/skills/owasp/references/top10-web/2021/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-web/2025/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-api/2023/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-llm/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-mcp/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-agentic/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-mobile/2023/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-cicd/*.md` | 10 files |
+| Create | `plugins/owasp/skills/owasp/references/top10-k8s/2025/*.md` | 10 files |
+| Modify | `.claude-plugin/marketplace.json` | Add owasp plugin entry |
 
 ---
 
@@ -44,7 +44,7 @@ After Task 1 (scaffold), Tasks 2–13 are **fully independent** and can be dispa
 ## Task 1: Feature Branch + Plugin Scaffold
 
 **Files:**
-- Create: `plugins/security/.claude-plugin/plugin.json`
+- Create: `plugins/owasp/.claude-plugin/plugin.json`
 - Create: all `references/` subdirectories (empty)
 
 - [ ] **Step 1: Create feature branch**
@@ -56,25 +56,25 @@ git checkout -b feat/security-owasp-skill
 - [ ] **Step 2: Create directory structure**
 
 ```bash
-mkdir -p plugins/security/.claude-plugin
-mkdir -p plugins/security/skills/owasp/references/top10-web/2021
-mkdir -p plugins/security/skills/owasp/references/top10-web/2025
-mkdir -p plugins/security/skills/owasp/references/top10-api/2023
-mkdir -p plugins/security/skills/owasp/references/top10-llm
-mkdir -p plugins/security/skills/owasp/references/top10-mcp
-mkdir -p plugins/security/skills/owasp/references/top10-agentic
-mkdir -p plugins/security/skills/owasp/references/top10-mobile/2023
-mkdir -p plugins/security/skills/owasp/references/top10-cicd
-mkdir -p plugins/security/skills/owasp/references/top10-k8s/2025
+mkdir -p plugins/owasp/.claude-plugin
+mkdir -p plugins/owasp/skills/owasp/references/top10-web/2021
+mkdir -p plugins/owasp/skills/owasp/references/top10-web/2025
+mkdir -p plugins/owasp/skills/owasp/references/top10-api/2023
+mkdir -p plugins/owasp/skills/owasp/references/top10-llm
+mkdir -p plugins/owasp/skills/owasp/references/top10-mcp
+mkdir -p plugins/owasp/skills/owasp/references/top10-agentic
+mkdir -p plugins/owasp/skills/owasp/references/top10-mobile/2023
+mkdir -p plugins/owasp/skills/owasp/references/top10-cicd
+mkdir -p plugins/owasp/skills/owasp/references/top10-k8s/2025
 ```
 
 - [ ] **Step 3: Write plugin.json**
 
-Create `plugins/security/.claude-plugin/plugin.json`:
+Create `plugins/owasp/.claude-plugin/plugin.json`:
 
 ```json
 {
-  "name": "security",
+  "name": "owasp",
   "description": "Security review skills — OWASP Top 10 and more",
   "author": {
     "name": "caasi"
@@ -90,8 +90,8 @@ Create `plugins/security/.claude-plugin/plugin.json`:
 - [ ] **Step 4: Commit**
 
 ```bash
-git add plugins/security/.claude-plugin/plugin.json
-git commit -m "chore(security): scaffold plugin structure"
+git add plugins/owasp/.claude-plugin/plugin.json
+git commit -m "chore(owasp): scaffold plugin structure"
 ```
 
 ---
@@ -99,11 +99,11 @@ git commit -m "chore(security): scaffold plugin structure"
 ## Task 2: Create SKILL.md
 
 **Files:**
-- Create: `plugins/security/skills/owasp/SKILL.md`
+- Create: `plugins/owasp/skills/owasp/SKILL.md`
 
 - [ ] **Step 1: Write SKILL.md**
 
-Create `plugins/security/skills/owasp/SKILL.md`:
+Create `plugins/owasp/skills/owasp/SKILL.md`:
 
 ```markdown
 ---
@@ -149,7 +149,7 @@ For each finding:
 - [ ] **Step 2: Verify frontmatter parses correctly**
 
 ```bash
-head -6 plugins/security/skills/owasp/SKILL.md
+head -6 plugins/owasp/skills/owasp/SKILL.md
 ```
 
 Expected: YAML frontmatter with `name: owasp` and `description:` field.
@@ -157,8 +157,8 @@ Expected: YAML frontmatter with `name: owasp` and `description:` field.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/SKILL.md
-git commit -m "feat(security): add OWASP skill system prompt"
+git add plugins/owasp/skills/owasp/SKILL.md
+git commit -m "feat(owasp): add OWASP skill system prompt"
 ```
 
 ---
@@ -166,7 +166,7 @@ git commit -m "feat(security): add OWASP skill system prompt"
 ## Task 3: Create references/LICENSE
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/LICENSE`
+- Create: `plugins/owasp/skills/owasp/references/LICENSE`
 
 - [ ] **Step 1: Write CC BY-SA 4.0 license**
 
@@ -174,13 +174,13 @@ Fetch the canonical CC BY-SA 4.0 legal text:
 
 ```bash
 gh api repos/OWASP/Top10/contents/LICENSE --header 'Accept: application/vnd.github.raw+json' \
-  > plugins/security/skills/owasp/references/LICENSE
+  > plugins/owasp/skills/owasp/references/LICENSE
 ```
 
 - [ ] **Step 2: Verify it contains CC BY-SA 4.0**
 
 ```bash
-head -3 plugins/security/skills/owasp/references/LICENSE
+head -3 plugins/owasp/skills/owasp/references/LICENSE
 ```
 
 Expected: "Creative Commons Attribution-ShareAlike 4.0 International Public License"
@@ -188,8 +188,8 @@ Expected: "Creative Commons Attribution-ShareAlike 4.0 International Public Lice
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/LICENSE
-git commit -m "chore(security): add CC BY-SA 4.0 license for OWASP references"
+git add plugins/owasp/skills/owasp/references/LICENSE
+git commit -m "chore(owasp): add CC BY-SA 4.0 license for OWASP references"
 ```
 
 ---
@@ -197,15 +197,15 @@ git commit -m "chore(security): add CC BY-SA 4.0 license for OWASP references"
 ## Task 4: Fetch Web Top 10 References (2021 + 2025)
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-web/2021/*.md` (10 files)
-- Create: `plugins/security/skills/owasp/references/top10-web/2025/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-web/2021/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-web/2025/*.md` (10 files)
 
 Source repo: `OWASP/Top10` (branch: `master`)
 
 - [ ] **Step 1: Fetch 2021 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-web/2021"
+DEST="plugins/owasp/skills/owasp/references/top10-web/2021"
 REPO="OWASP/Top10"
 BRANCH="master"
 SRC_DIR="2021/docs/en"
@@ -239,7 +239,7 @@ done
 - [ ] **Step 2: Fetch 2025 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-web/2025"
+DEST="plugins/owasp/skills/owasp/references/top10-web/2025"
 SRC_DIR="2025/docs/en"
 
 declare -A FILES_2025=(
@@ -271,15 +271,15 @@ done
 - [ ] **Step 3: Verify file counts**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-web/2021/ | wc -l  # expect 10
-ls plugins/security/skills/owasp/references/top10-web/2025/ | wc -l  # expect 10
+ls plugins/owasp/skills/owasp/references/top10-web/2021/ | wc -l  # expect 10
+ls plugins/owasp/skills/owasp/references/top10-web/2025/ | wc -l  # expect 10
 ```
 
 - [ ] **Step 4: Verify attribution headers present**
 
 ```bash
-head -3 plugins/security/skills/owasp/references/top10-web/2021/A01-broken-access-control.md
-head -3 plugins/security/skills/owasp/references/top10-web/2025/A01-broken-access-control.md
+head -3 plugins/owasp/skills/owasp/references/top10-web/2021/A01-broken-access-control.md
+head -3 plugins/owasp/skills/owasp/references/top10-web/2025/A01-broken-access-control.md
 ```
 
 Expected: `<!-- Source: ... -->` on line 1.
@@ -287,8 +287,8 @@ Expected: `<!-- Source: ... -->` on line 1.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-web/
-git commit -m "feat(security): add OWASP Web Top 10 references (2021 + 2025)"
+git add plugins/owasp/skills/owasp/references/top10-web/
+git commit -m "feat(owasp): add OWASP Web Top 10 references (2021 + 2025)"
 ```
 
 ---
@@ -296,7 +296,7 @@ git commit -m "feat(security): add OWASP Web Top 10 references (2021 + 2025)"
 ## Task 5: Fetch API Security Top 10 References (2023)
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-api/2023/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-api/2023/*.md` (10 files)
 
 Source repo: `OWASP/API-Security` (branch: `master`)
 Source path: `editions/2023/en/`
@@ -304,7 +304,7 @@ Source path: `editions/2023/en/`
 - [ ] **Step 1: Fetch API Security references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-api/2023"
+DEST="plugins/owasp/skills/owasp/references/top10-api/2023"
 REPO="OWASP/API-Security"
 BRANCH="master"
 SRC_DIR="editions/2023/en"
@@ -338,15 +338,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-api/2023/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-api/2023/0xa1-broken-object-level-authorization.md
+ls plugins/owasp/skills/owasp/references/top10-api/2023/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-api/2023/0xa1-broken-object-level-authorization.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-api/
-git commit -m "feat(security): add OWASP API Security Top 10 references (2023)"
+git add plugins/owasp/skills/owasp/references/top10-api/
+git commit -m "feat(owasp): add OWASP API Security Top 10 references (2023)"
 ```
 
 ---
@@ -354,7 +354,7 @@ git commit -m "feat(security): add OWASP API Security Top 10 references (2023)"
 ## Task 6: Fetch LLM Top 10 References
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-llm/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-llm/*.md` (10 files)
 
 Source repo: `OWASP/www-project-top-10-for-large-language-model-applications` (branch: `main`)
 Source path: `2_0_vulns/`
@@ -362,7 +362,7 @@ Source path: `2_0_vulns/`
 - [ ] **Step 1: Fetch LLM Top 10 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-llm"
+DEST="plugins/owasp/skills/owasp/references/top10-llm"
 REPO="OWASP/www-project-top-10-for-large-language-model-applications"
 BRANCH="main"
 SRC_DIR="2_0_vulns"
@@ -396,15 +396,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-llm/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-llm/LLM01-prompt-injection.md
+ls plugins/owasp/skills/owasp/references/top10-llm/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-llm/LLM01-prompt-injection.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-llm/
-git commit -m "feat(security): add OWASP LLM Top 10 references (v2.0)"
+git add plugins/owasp/skills/owasp/references/top10-llm/
+git commit -m "feat(owasp): add OWASP LLM Top 10 references (v2.0)"
 ```
 
 ---
@@ -412,7 +412,7 @@ git commit -m "feat(security): add OWASP LLM Top 10 references (v2.0)"
 ## Task 7: Fetch MCP Top 10 References
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-mcp/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-mcp/*.md` (10 files)
 
 Source repo: `OWASP/www-project-mcp-top-10` (branch: `main`)
 Source path: `2025/`
@@ -422,7 +422,7 @@ Source path: `2025/`
 Note: MCP source filenames contain special characters (en-dash `–` in MCP02). Use exact upstream names.
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-mcp"
+DEST="plugins/owasp/skills/owasp/references/top10-mcp"
 REPO="OWASP/www-project-mcp-top-10"
 BRANCH="main"
 SRC_DIR="2025"
@@ -458,15 +458,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-mcp/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-mcp/MCP01-token-mismanagement-and-secret-exposure.md
+ls plugins/owasp/skills/owasp/references/top10-mcp/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-mcp/MCP01-token-mismanagement-and-secret-exposure.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-mcp/
-git commit -m "feat(security): add OWASP MCP Top 10 references (2025)"
+git add plugins/owasp/skills/owasp/references/top10-mcp/
+git commit -m "feat(owasp): add OWASP MCP Top 10 references (2025)"
 ```
 
 ---
@@ -474,7 +474,7 @@ git commit -m "feat(security): add OWASP MCP Top 10 references (2025)"
 ## Task 8: Fetch Agentic Skills Top 10 References
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-agentic/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-agentic/*.md` (10 files)
 
 Source repo: `OWASP/www-project-agentic-skills-top-10` (branch: `main`)
 Source path: root (`ast*.md`)
@@ -482,7 +482,7 @@ Source path: root (`ast*.md`)
 - [ ] **Step 1: Fetch Agentic Skills references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-agentic"
+DEST="plugins/owasp/skills/owasp/references/top10-agentic"
 REPO="OWASP/www-project-agentic-skills-top-10"
 BRANCH="main"
 
@@ -502,15 +502,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-agentic/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-agentic/ast01.md
+ls plugins/owasp/skills/owasp/references/top10-agentic/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-agentic/ast01.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-agentic/
-git commit -m "feat(security): add OWASP Agentic Skills Top 10 references"
+git add plugins/owasp/skills/owasp/references/top10-agentic/
+git commit -m "feat(owasp): add OWASP Agentic Skills Top 10 references"
 ```
 
 ---
@@ -518,7 +518,7 @@ git commit -m "feat(security): add OWASP Agentic Skills Top 10 references"
 ## Task 9: Fetch Mobile Top 10 References (2023)
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-mobile/2023/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-mobile/2023/*.md` (10 files)
 
 Source repo: `OWASP/www-project-mobile-top-10` (branch: `master`)
 Source path: `2023-risks/`
@@ -528,7 +528,7 @@ Source path: `2023-risks/`
 - [ ] **Step 1: Fetch Mobile Top 10 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-mobile/2023"
+DEST="plugins/owasp/skills/owasp/references/top10-mobile/2023"
 REPO="OWASP/www-project-mobile-top-10"
 BRANCH="master"
 SRC_DIR="2023-risks"
@@ -561,15 +561,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-mobile/2023/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-mobile/2023/m1-improper-credential-usage.md
+ls plugins/owasp/skills/owasp/references/top10-mobile/2023/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-mobile/2023/m1-improper-credential-usage.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-mobile/
-git commit -m "feat(security): add OWASP Mobile Top 10 references (2023)"
+git add plugins/owasp/skills/owasp/references/top10-mobile/
+git commit -m "feat(owasp): add OWASP Mobile Top 10 references (2023)"
 ```
 
 ---
@@ -577,7 +577,7 @@ git commit -m "feat(security): add OWASP Mobile Top 10 references (2023)"
 ## Task 10: Fetch CI/CD Top 10 References
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-cicd/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-cicd/*.md` (10 files)
 
 Source repo: `OWASP/www-project-top-10-ci-cd-security-risks` (branch: `main`)
 Source path: root (`CICD-SEC-*.md`)
@@ -585,7 +585,7 @@ Source path: root (`CICD-SEC-*.md`)
 - [ ] **Step 1: Fetch CI/CD Top 10 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-cicd"
+DEST="plugins/owasp/skills/owasp/references/top10-cicd"
 REPO="OWASP/www-project-top-10-ci-cd-security-risks"
 BRANCH="main"
 
@@ -618,15 +618,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-cicd/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-cicd/CICD-SEC-01-insufficient-flow-control.md
+ls plugins/owasp/skills/owasp/references/top10-cicd/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-cicd/CICD-SEC-01-insufficient-flow-control.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-cicd/
-git commit -m "feat(security): add OWASP CI/CD Security Top 10 references"
+git add plugins/owasp/skills/owasp/references/top10-cicd/
+git commit -m "feat(owasp): add OWASP CI/CD Security Top 10 references"
 ```
 
 ---
@@ -634,7 +634,7 @@ git commit -m "feat(security): add OWASP CI/CD Security Top 10 references"
 ## Task 11: Fetch Kubernetes Top 10 References (2025)
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/top10-k8s/2025/*.md` (10 files)
+- Create: `plugins/owasp/skills/owasp/references/top10-k8s/2025/*.md` (10 files)
 
 Source repo: `OWASP/www-project-kubernetes-top-ten` (branch: `main`)
 Source path: `2025/en/src/`
@@ -642,7 +642,7 @@ Source path: `2025/en/src/`
 - [ ] **Step 1: Fetch K8s Top 10 references**
 
 ```bash
-DEST="plugins/security/skills/owasp/references/top10-k8s/2025"
+DEST="plugins/owasp/skills/owasp/references/top10-k8s/2025"
 REPO="OWASP/www-project-kubernetes-top-ten"
 BRANCH="main"
 SRC_DIR="2025/en/src"
@@ -676,15 +676,15 @@ done
 - [ ] **Step 2: Verify**
 
 ```bash
-ls plugins/security/skills/owasp/references/top10-k8s/2025/ | wc -l  # expect 10
-head -3 plugins/security/skills/owasp/references/top10-k8s/2025/K01-insecure-workload-configurations.md
+ls plugins/owasp/skills/owasp/references/top10-k8s/2025/ | wc -l  # expect 10
+head -3 plugins/owasp/skills/owasp/references/top10-k8s/2025/K01-insecure-workload-configurations.md
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/top10-k8s/
-git commit -m "feat(security): add OWASP Kubernetes Top 10 references (2025)"
+git add plugins/owasp/skills/owasp/references/top10-k8s/
+git commit -m "feat(owasp): add OWASP Kubernetes Top 10 references (2025)"
 ```
 
 ---
@@ -692,7 +692,7 @@ git commit -m "feat(security): add OWASP Kubernetes Top 10 references (2025)"
 ## Task 12: Create INDEX.md
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/INDEX.md`
+- Create: `plugins/owasp/skills/owasp/references/INDEX.md`
 
 This is the master index that the agent reads first. It contains:
 1. Project directory
@@ -701,7 +701,7 @@ This is the master index that the agent reads first. It contains:
 
 - [ ] **Step 1: Write INDEX.md**
 
-Create `plugins/security/skills/owasp/references/INDEX.md`. The file is large (~250 lines) so write it in full. Content structure:
+Create `plugins/owasp/skills/owasp/references/INDEX.md`. The file is large (~250 lines) so write it in full. Content structure:
 
 ```markdown
 # OWASP Security Reference Index
@@ -913,7 +913,7 @@ Note: Upstream filenames (`ast01.md`–`ast10.md`) lack descriptive names. After
 Check that all file paths referenced in INDEX.md match the spec's directory structure:
 
 ```bash
-grep -oP '`top10-[^`]+\.md`' plugins/security/skills/owasp/references/INDEX.md | sort | wc -l
+grep -oP '`top10-[^`]+\.md`' plugins/owasp/skills/owasp/references/INDEX.md | sort | wc -l
 ```
 
 Expected: 90 (one reference per table row, excluding 2017 which has no files).
@@ -921,8 +921,8 @@ Expected: 90 (one reference per table row, excluding 2017 which has no files).
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/INDEX.md
-git commit -m "feat(security): add OWASP master index with quick reference tables and evolution map"
+git add plugins/owasp/skills/owasp/references/INDEX.md
+git commit -m "feat(owasp): add OWASP master index with quick reference tables and evolution map"
 ```
 
 ---
@@ -930,7 +930,7 @@ git commit -m "feat(security): add OWASP master index with quick reference table
 ## Task 13: Create cheatsheets-index.md
 
 **Files:**
-- Create: `plugins/security/skills/owasp/references/cheatsheets-index.md`
+- Create: `plugins/owasp/skills/owasp/references/cheatsheets-index.md`
 
 This index categorizes the 113 OWASP Cheat Sheets by security domain with upstream links. The agent reads this to find relevant remediation guidance, then fetches from upstream.
 
@@ -944,7 +944,7 @@ This returns all 113 filenames. Use these to build the categorized index.
 
 - [ ] **Step 2: Write cheatsheets-index.md**
 
-Create `plugins/security/skills/owasp/references/cheatsheets-index.md`. Group cheat sheets by security domain. Each entry has: name, one-line description (derived from the filename), and upstream raw URL.
+Create `plugins/owasp/skills/owasp/references/cheatsheets-index.md`. Group cheat sheets by security domain. Each entry has: name, one-line description (derived from the filename), and upstream raw URL.
 
 Format:
 
@@ -1014,7 +1014,7 @@ Categorize all 113 cheat sheets into these domains. When a cheat sheet fits mult
 
 ```bash
 # Count entries in cheatsheets-index.md (lines containing .md` in table rows)
-grep -c '\.md`' plugins/security/skills/owasp/references/cheatsheets-index.md
+grep -c '\.md`' plugins/owasp/skills/owasp/references/cheatsheets-index.md
 ```
 
 Expected: 113 (one per cheat sheet). If the upstream count has changed, adjust accordingly.
@@ -1022,8 +1022,8 @@ Expected: 113 (one per cheat sheet). If the upstream count has changed, adjust a
 - [ ] **Step 4: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/references/cheatsheets-index.md
-git commit -m "feat(security): add CheatSheetSeries categorized index"
+git add plugins/owasp/skills/owasp/references/cheatsheets-index.md
+git commit -m "feat(owasp): add CheatSheetSeries categorized index"
 ```
 
 ---
@@ -1031,12 +1031,12 @@ git commit -m "feat(security): add CheatSheetSeries categorized index"
 ## Task 14: Create README.md and Update marketplace.json
 
 **Files:**
-- Create: `plugins/security/skills/owasp/README.md`
+- Create: `plugins/owasp/skills/owasp/README.md`
 - Modify: `.claude-plugin/marketplace.json`
 
 - [ ] **Step 1: Write README.md**
 
-Create `plugins/security/skills/owasp/README.md`:
+Create `plugins/owasp/skills/owasp/README.md`:
 
 ```markdown
 # OWASP Security Review
@@ -1073,12 +1073,12 @@ Default: reviews against **Web Top 10:2025**. Specify a different project or yea
 
 - [ ] **Step 2: Update marketplace.json**
 
-Add the security plugin entry to `.claude-plugin/marketplace.json` in the `plugins` array:
+Add the owasp plugin entry to `.claude-plugin/marketplace.json` in the `plugins` array:
 
 ```json
 {
-  "name": "security",
-  "source": "./plugins/security",
+  "name": "owasp",
+  "source": "./plugins/owasp",
   "description": "Security review skills — OWASP vulnerability analysis with offline reference data from 8 Top 10 projects and CheatSheetSeries index",
   "version": "0.1.0"
 }
@@ -1095,8 +1095,8 @@ Expected: "valid"
 - [ ] **Step 4: Commit**
 
 ```bash
-git add plugins/security/skills/owasp/README.md .claude-plugin/marketplace.json
-git commit -m "feat(security): add README and register in marketplace"
+git add plugins/owasp/skills/owasp/README.md .claude-plugin/marketplace.json
+git commit -m "feat(owasp): add README and register in marketplace"
 ```
 
 ---
@@ -1106,7 +1106,7 @@ git commit -m "feat(security): add README and register in marketplace"
 - [ ] **Step 1: Verify total file count**
 
 ```bash
-find plugins/security/skills/owasp/references/top10-* -name '*.md' | wc -l
+find plugins/owasp/skills/owasp/references/top10-* -name '*.md' | wc -l
 ```
 
 Expected: 90
@@ -1114,7 +1114,7 @@ Expected: 90
 - [ ] **Step 2: Verify all reference files have attribution headers**
 
 ```bash
-for f in $(find plugins/security/skills/owasp/references/top10-* -name '*.md'); do
+for f in $(find plugins/owasp/skills/owasp/references/top10-* -name '*.md'); do
   first_line=$(head -1 "$f")
   if [[ "$first_line" != "<!-- Source:"* ]]; then
     echo "MISSING HEADER: $f"
@@ -1130,7 +1130,7 @@ Expected: no output (all files have headers).
 # plugin.json exists and has required fields
 python3 -c "
 import json
-p = json.load(open('plugins/security/.claude-plugin/plugin.json'))
+p = json.load(open('plugins/owasp/.claude-plugin/plugin.json'))
 assert p['name'] == 'security'
 assert p['skills'] == './skills/'
 assert 'author' in p
@@ -1148,7 +1148,7 @@ print('marketplace.json OK')
 "
 
 # SKILL.md has frontmatter
-head -1 plugins/security/skills/owasp/SKILL.md | grep -q '^---' && echo "SKILL.md frontmatter OK"
+head -1 plugins/owasp/skills/owasp/SKILL.md | grep -q '^---' && echo "SKILL.md frontmatter OK"
 ```
 
 - [ ] **Step 4: Update Agentic Skills table in INDEX.md**
@@ -1158,6 +1158,6 @@ Read each `top10-agentic/ast*.md` file heading and update the Agentic Skills tab
 - [ ] **Step 5: Final commit if Step 4 made changes**
 
 ```bash
-git add plugins/security/skills/owasp/references/INDEX.md
-git commit -m "fix(security): populate Agentic Skills table with actual category names"
+git add plugins/owasp/skills/owasp/references/INDEX.md
+git commit -m "fix(owasp): populate Agentic Skills table with actual category names"
 ```
