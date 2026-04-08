@@ -1,9 +1,10 @@
 ---
 name: owasp
 description: >-
-  Use when the user asks for OWASP security review, vulnerability check,
-  "/owasp", "check OWASP", "安全審查", "security review", or explicitly
-  requests Top 10 analysis. Do not trigger automatically.
+  Use when the user explicitly asks for an OWASP review, OWASP Top 10
+  analysis, "/owasp", "check OWASP", "OWASP 安全審查", or "OWASP
+  security review". Do not trigger automatically or on generic
+  "security review" requests without OWASP context.
 ---
 
 # OWASP Security Review
