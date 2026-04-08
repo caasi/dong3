@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing four independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing five independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -15,8 +15,9 @@ Install: `claude plugin marketplace add caasi/dong3`
 plugins/
   chat-subagent/                  # Delegate to external LLM endpoints (bash/curl)
   compose/                        # Arrow-style DSL for workflow pipelines
-  kami/                           # Socratic dialogue on human-AI stewardship
   fetch-tips/                     # Platform-specific fetch strategies
+  kami/                           # Socratic dialogue on human-AI stewardship
+  owasp/                          # OWASP security review with offline references
 docs/superpowers/                 # Design specs and implementation plans
 ```
 
@@ -39,6 +40,8 @@ plugins/<name>/
 **kami (v0.1.0):** Pure dialogue, no runtime dependencies. Grounded in Audrey Tang's 仁工智慧 framework and the Civic AI 6-Pack of Care.
 
 **fetch-tips (v0.1.0):** Platform-specific fetch strategies for content that resists simple WebFetch.
+
+**owasp (v0.1.0):** OWASP security review with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index. Dual-licensed: skill files MIT, OWASP reference files CC BY-SA 4.0.
 
 ## Versioning
 
