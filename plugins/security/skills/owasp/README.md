@@ -26,5 +26,7 @@ Default: reviews against **Web Top 10:2025**. Specify a different project or yea
 
 ## License
 
-- Skill files (SKILL.md, README.md, INDEX.md, cheatsheets-index.md): MIT
-- Reference files in `references/`: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), sourced from [OWASP GitHub repositories](https://github.com/OWASP)
+- Skill files (`SKILL.md`, `README.md`): MIT
+- Original index files (`references/INDEX.md`, `references/cheatsheets-index.md`): MIT
+- OWASP reference files in `references/top10-*/`: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), sourced from [OWASP GitHub repositories](https://github.com/OWASP)
+- Mobile Top 10 (2023) references: assumed CC BY-SA 4.0 per OWASP convention (upstream repo has no explicit license file)
