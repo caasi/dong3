@@ -6,7 +6,7 @@ Inspired by [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp
 
 ## Usage
 
-Invoke explicitly with `/owasp` or ask for "OWASP review", "security review", "安全審查".
+Invoke explicitly with `/owasp` or ask for "OWASP review", "OWASP security review", "OWASP 安全審查".
 
 Default: reviews against **Web Top 10:2025**. Specify a different project or year as needed.
 
@@ -14,7 +14,7 @@ Default: reviews against **Web Top 10:2025**. Specify a different project or yea
 
 | Project | Version | Reference Files |
 |---------|---------|-----------------|
-| Web Top 10 | 2017 (outline), 2021, 2025 | 20 files |
+| Web Top 10 | 2017 (outline), 2021, 2025 | 20 files (2021+2025); 2017 outline only (no files) |
 | API Security Top 10 | 2023 | 10 files |
 | LLM Top 10 | v2.0 | 10 files |
 | MCP Top 10 | 2025 | 10 files |
