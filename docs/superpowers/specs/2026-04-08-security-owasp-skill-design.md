@@ -56,7 +56,7 @@ references/
   LICENSE                              # CC BY-SA 4.0 full text
   INDEX.md                             # Master index: all projects, quick reference tables, evolution map
   cheatsheets-index.md                 # CheatSheetSeries categorized index + upstream links
-  top10-web/
+  top10-web/                           # No 2017/ folder — 2017 lives only in INDEX.md as outline
     2021/
       A01-broken-access-control.md
       A02-cryptographic-failures.md
@@ -220,9 +220,15 @@ Exception — Mobile Top 10 files use:
 ```json
 {
   "name": "security",
-  "version": "0.1.0",
   "description": "Security review skills — OWASP Top 10 and more",
-  "skills": ["skills/owasp"]
+  "author": {
+    "name": "caasi"
+  },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["security", "owasp", "top10", "vulnerability"],
+  "skills": "./skills/"
 }
 ```
 
