@@ -16,9 +16,9 @@ A single skill (`owasp`) under a new `security` plugin. The skill provides OWASP
 - **OWASP API Security Top 10** — 2023
 - **OWASP LLM Top 10** — v2.0
 - **OWASP MCP Top 10** — 2025
-- **OWASP Agentic Skills Top 10** — current
+- **OWASP Agentic Skills Top 10** — v1.0 (snapshot 2026-04-08)
 - **OWASP Mobile Top 10** — 2023
-- **OWASP CI/CD Security Top 10** — current
+- **OWASP CI/CD Security Top 10** — v1.0 (snapshot 2026-04-08)
 - **OWASP Kubernetes Top 10** — 2025
 - **OWASP CheatSheetSeries** — index + upstream links only (113 cheat sheets, too large to embed)
 
@@ -161,7 +161,7 @@ references/
       K10-inadequate-logging-and-monitoring.md
 ```
 
-Total: ~80 reference files + 2 index files.
+Total: ~90 reference files + 2 index files.
 
 ### INDEX.md Contents
 
