@@ -368,7 +368,3 @@ Other languages (planned):
 - [Anthropic PBT Agent](https://red.anthropic.com/2026/property-based-testing/)
 - [Trail of Bits: Mutation Testing for the Agentic Era](https://blog.trailofbits.com/2026/04/01/mutation-testing-for-the-agentic-era/)
 - [Meta ACH: LLMs Are the Key to Mutation Testing](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
-
-## Licensing
-
-All content MIT (repo license). No third-party reference data bundled.
