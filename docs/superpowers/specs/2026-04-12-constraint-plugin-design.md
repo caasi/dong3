@@ -220,7 +220,9 @@ enforce: ast-grep, pbt
    - Prohibition + ast-grep → ast-grep rule YAML
    - Validation → Typia/ArkType/Zod schema（視現有 stack 決定）
 5. 產出的 artifact 放在 repo 的既有測試目錄（遵循 repo 的 test 結構），檔名使用 `*.constraint.test.ts` 格式以區分手寫測試。每個檔案開頭加註 `// Generated from constraints/<RULE_ID>-<slug>.md — do not edit manually` 標記。重新執行 generate 時覆蓋既有的 generated artifact
-6. 完成後建議下一步：「artifact 已產生，要我用 `/constraint-enforce` 跑驗證嗎？」
+6. 完成後建議兩件事：
+   - 「要我用 `/constraint-enforce` 跑驗證嗎？」
+   - 如果 repo 尚未設定 constraint 相關的 hook，建議加入 PreCommit hook 確保每次 commit 都自動驗證 constraint artifact
 
 ### `constraint-enforce`
 
@@ -254,6 +256,27 @@ constraint-enforce → 報告結果
 ```
 
 使用者也可以跳步（例如已有 constraint 直接跑 generate）。
+
+### Hook 建議
+
+`constraint-generate` 在首次產生 artifact 後，應檢查使用者的 `.claude/settings.json` 是否已設定 constraint 相關 hook。若未設定，建議使用者加入：
+
+```json
+{
+  "hooks": {
+    "PreCommit": [
+      {
+        "matcher": "",
+        "command": "npm test -- --grep constraint"
+      }
+    ]
+  }
+}
+```
+
+這確保 constraint 的 enforcement 不依賴 agent 記得跑 `/constraint-enforce`——每次 commit 都會自動驗證。Agent 忽視 constraint 不重要，因為 test runner 會 fail、commit 會被擋住。
+
+建議方式是**提示使用者**（「要不要加 PreCommit hook？」），而非自動修改 settings。使用者可能有自己的 hook 設定策略。
 
 ## Plugin Structure
 
