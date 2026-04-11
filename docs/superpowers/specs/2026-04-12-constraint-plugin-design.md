@@ -62,6 +62,10 @@ Constraint 是暫態的（agent 讀一次），artifact 是永久的（進 CI，
 | `invariant` | 數學性質，恆為真 | pbt |
 | `protocol` | 操作順序/流程約束 | pbt (state machine) |
 
+### RULE_ID 命名慣例
+
+格式：`<DOMAIN>_<NNN>`。DOMAIN 是使用者選擇的短大寫標籤（如 `USER`、`MONEY`、`API`），NNN 是零填充的流水號。`constraint-write` 應掃描現有 constraints 並建議下一個可用編號。
+
 ### Body Sections
 
 採用法律/BDD 混合結構，直接映射到 test 產生：
@@ -71,9 +75,28 @@ Constraint 是暫態的（agent 讀一次），artifact 是永久的（進 CI，
 | **Given** | 前置條件 / 狀態 | test setup (arrange) |
 | **When** | 觸發動作 | test action (act) |
 | **Then** | 預期結果 | test assertion (assert) |
-| **Unless** | 例外條件 + 例外行為（用 `→` 標示結果） | additional test branch |
+| **Unless** | 例外條件 + 例外行為 | additional test branch |
 | **Examples** | 具體的 input → expected output 表格 | parameterized unit test (`it.each`) |
 | **Properties** | `forall X where 條件: 性質` 半形式化語法 | fast-check `fc.property()` |
+
+### Unless 語法
+
+Unless 包含一或多個例外群組，每個群組由條件行和結果行組成：
+
+```markdown
+## Unless
+- 條件（不帶箭頭）
+- → 結果（箭頭前綴）
+
+- 另一個條件
+- → 另一個結果
+```
+
+多個群組之間是邏輯 OR——任一群組的條件滿足即觸發對應結果。Agent 以 `→` 前綴區分條件行和結果行。
+
+### Kind 作為 enforce 預設值
+
+當 frontmatter 省略 `enforce` 時，`constraint-generate` 使用 Kind 分類表的「典型 enforce」欄位作為預設值，並可根據 constraint 內容追加額外層級。
 
 ### Example: Domain/State Constraint
 
@@ -196,7 +219,7 @@ enforce: ast-grep, pbt
    - Properties → fast-check PBT file
    - Prohibition + ast-grep → ast-grep rule YAML
    - Validation → Typia/ArkType/Zod schema（視現有 stack 決定）
-5. 產出的 artifact 放在 repo 的既有測試目錄（遵循 repo 的 test 結構）
+5. 產出的 artifact 放在 repo 的既有測試目錄（遵循 repo 的 test 結構），檔名使用 `*.constraint.test.ts` 格式以區分手寫測試。每個檔案開頭加註 `// Generated from constraints/<RULE_ID>-<slug>.md — do not edit manually` 標記。重新執行 generate 時覆蓋既有的 generated artifact
 6. 完成後建議下一步：「artifact 已產生，要我用 `/constraint-enforce` 跑驗證嗎？」
 
 ### `constraint-enforce`
@@ -214,8 +237,11 @@ enforce: ast-grep, pbt
 2. 報告每層結果
 3. Layer 3+4 的回饋迴圈：
    - 跑 mutation testing → 存活 mutant → 分析原因 → 補強 property → 重跑
-   - 自動迴圈直到 mutation score 達標或需人工判斷
-4. 最終報告：pass/fail 統計、存活 mutant 列表、建議
+   - 預設 mutation score 目標：80%
+   - 最多 3 輪回饋迭代
+   - 提前終止條件：同一個 mutant 在 2 輪嘗試後仍存活，或 mutation score 停滯不再提升
+   - 超過 3 輪或遇到無法自動處理的 mutant → 列出剩餘 mutant 並交由使用者判斷
+4. 最終報告：pass/fail 統計、mutation score、存活 mutant 列表、建議
 
 ### Guided Flow（skills 之間的銜接）
 
@@ -245,10 +271,14 @@ plugins/constraint/
       SKILL.md
       README.md
       references/
+        constraint-format.md        # 格式規範（與 constraint-write 共用內容）
         toolchain-matrix.md         # 四層工具鏈 × 語言對照表
     constraint-enforce/
       SKILL.md
       README.md
+      references/
+        enforcement-layers.md       # 層級執行順序、工具指令、輸出解讀
+        mutation-feedback-guide.md  # mutant 解讀、迴圈終止條件、score 目標
 ```
 
 ## Plugin Registration
@@ -315,3 +345,7 @@ Other languages (planned):
 - [Anthropic PBT Agent](https://red.anthropic.com/2026/property-based-testing/)
 - [Trail of Bits: Mutation Testing for the Agentic Era](https://blog.trailofbits.com/2026/04/01/mutation-testing-for-the-agentic-era/)
 - [Meta ACH: LLMs Are the Key to Mutation Testing](https://engineering.fb.com/2025/09/30/security/llms-are-the-key-to-mutation-testing-and-better-compliance/)
+
+## Licensing
+
+All content MIT (repo license). No third-party reference data bundled.
