@@ -48,7 +48,7 @@ plugins/<name>/
 
 ## Versioning
 
-- Plugin versions live in the top-level `marketplace.json`.
+- Plugin versions live in `.claude-plugin/marketplace.json`.
 - No package registries; compose binary distributed via GitHub releases of `caasi/ocaml-compose-dsl`.
 
 ## Conventions
