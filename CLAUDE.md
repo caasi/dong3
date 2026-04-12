@@ -17,7 +17,7 @@ plugins/
   compose/                        # Arrow-style DSL for workflow pipelines
   fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
-  constraint/                      # NL constraints → deterministic test artifacts
+  constraint/                     # NL constraints → deterministic test artifacts
   owasp/                          # OWASP security review with offline references
 docs/superpowers/                 # Design specs and implementation plans
 ```
