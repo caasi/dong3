@@ -37,7 +37,7 @@ table's "typical enforce" column as the default (see constraint-format.md).
 
 #### Biome
 
-Static analysis, formatting, and (via Biotype) TypeScript type inference.
+Static analysis and formatting for TypeScript projects.
 
 - **Install:** `npm install --save-dev --save-exact @biomejs/biome`
 - **Init:** `npx @biomejs/biome init`
@@ -72,11 +72,13 @@ Zero schema duplication — generates validators directly from TypeScript types.
 
 - **Install:** `npm install --save-dev typia`
 - **Init:** `npx typia setup` (configures the TypeScript transformer)
-- **Run:** Compile with `tsc` or run tests — Typia validates at compile time
-  and runtime
-- **Pass/fail:** Compilation success = types match. `TypeGuardError` at runtime
-  = validation failure at a trust boundary. Test runner reports assertion
-  failures with the mismatched type path.
+- **Run:** First run `tsc --noEmit` to confirm the TypeScript/Typia transformer
+  is configured correctly. Then run unit/integration tests that execute Typia
+  validators (`typia.assert(...)`, `typia.validate(...)`) at trust boundaries.
+- **Pass/fail:** `tsc --noEmit` success = build/tooling check only; it does
+  **not** prove runtime data is valid. Validation passes when validator-exercising
+  tests complete without `TypeGuardError`. Runtime failures indicate a
+  trust-boundary type mismatch.
 
 #### ArkType (set-theory based)
 
