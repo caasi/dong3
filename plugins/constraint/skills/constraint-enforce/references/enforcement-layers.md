@@ -37,23 +37,25 @@ npx ast-grep scan
 
 ## Layer 2: Validation (Typia / ArkType / Zod)
 
-Runtime and compile-time type validation ensures that data crossing trust
-boundaries conforms to declared schemas.
+Runtime type validation ensures that data crossing trust boundaries conforms
+to declared schemas. Compile-time checks verify tooling setup only.
 
 ### Commands
 
 ```bash
-# Compile-time check (Typia with ts-patch or unplugin)
+# Step 1: Build/tooling check (Typia transformer configured correctly)
 npx tsc --noEmit
 
-# Or: run unit tests that exercise validators
+# Step 2: Run tests that exercise runtime validators at trust boundaries
 npm test -- --grep "constraint.validation"
 ```
 
 ### Expected output
 
-- Compilation succeeds with no type errors, **or**
-- All validation unit tests pass.
+- `tsc --noEmit` succeeds = tooling/build check passed (does **not** prove
+  runtime data is valid).
+- All validation unit tests pass = runtime validators confirm data conforms
+  to schemas at trust boundaries.
 
 ### On failure
 
