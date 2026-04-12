@@ -99,9 +99,10 @@ Properties use a semi-formal universal quantifier syntax:
 
 ```
 forall X where condition: property
+forall (X, Y): property
 ```
 
-Each property maps to a `fc.property()` call in fast-check. The `forall` variables become arbitraries, the `where` clause becomes a filter or precondition, and the property expression becomes the assertion.
+The `where` clause is optional. When present, it becomes a filter or precondition. Each property maps to a `fc.property()` call in fast-check. The `forall` variables become arbitraries and the property expression becomes the assertion.
 
 ## Complete Examples
 
