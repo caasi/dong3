@@ -15,9 +15,9 @@ Install: `claude plugin marketplace add caasi/dong3`
 plugins/
   chat-subagent/                  # Delegate to external LLM endpoints (bash/curl)
   compose/                        # Arrow-style DSL for workflow pipelines
+  constraint/                     # NL constraints → deterministic test artifacts
   fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
-  constraint/                     # NL constraints → deterministic test artifacts
   owasp/                          # OWASP security review with offline references
 docs/superpowers/                 # Design specs and implementation plans
 ```

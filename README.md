@@ -16,6 +16,14 @@ Describe multi-step agent workflows using an Arrow-style DSL and validate them s
 
 See [plugins/compose/skills/compose/README.md](plugins/compose/skills/compose/README.md) for full documentation.
 
+### constraint
+
+Natural language constraints → deterministic test artifacts. Write constraints in structured Markdown (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), generate unit tests / PBT / mutation tests, and enforce with a 4-layer deterministic pipeline.
+
+- [constraint-write](plugins/constraint/skills/constraint-write/README.md) — conversational constraint authoring
+- [constraint-generate](plugins/constraint/skills/constraint-generate/README.md) — artifact generation (TypeScript)
+- [constraint-enforce](plugins/constraint/skills/constraint-enforce/README.md) — enforcement pipeline
+
 ### fetch-tips
 
 Platform-specific fetch strategies for content that resists simple WebFetch. Currently covers Blogspot/Blogger via JSON Feed API.
