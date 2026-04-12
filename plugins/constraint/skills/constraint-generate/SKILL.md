@@ -13,7 +13,7 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
 
 ## Workflow
 
-1. **Scan constraints** — read every file matching `constraints/*.md`. Parse YAML frontmatter (`id`, `scope`, `severity`, tags) and body sections (Rule, Examples, Properties, Prohibition, Validation).
+1. **Scan constraints** — read every file matching `constraints/*.md`. Parse YAML frontmatter (`rule`, `kind`, `scope`, `subject`, `enforce`) and body sections (Given, When, Then, Unless, Examples, Properties).
 
 2. **Understand the format** — read `references/constraint-format.md` for the canonical constraint file structure.
 
