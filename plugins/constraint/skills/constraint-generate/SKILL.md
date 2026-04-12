@@ -17,9 +17,9 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
 
 2. **Understand the format** — read `references/constraint-format.md` for the canonical constraint file structure.
 
-3. **Detect repo toolchain** — check for `package.json`, `tsconfig.json`, `dune-project`, `Cargo.toml`, `pyproject.toml`, etc. to determine language and available tooling.
+3. **Detect repo toolchain** — check for `package.json`, `tsconfig.json`, `dune-project`, `Cargo.toml`, `pyproject.toml`, etc. to determine language and available tooling. **If the detected language is not TypeScript**, inform the user that only TypeScript is currently supported and ask whether to proceed with TypeScript artifacts anyway or stop.
 
-4. **Select tools** — read `references/toolchain-matrix.md` to pick the correct test runner, linter, PBT library, and mutation tool for this repo.
+4. **Select tools** — read `references/toolchain-matrix.md` to pick the correct test runner, linter, PBT library, and mutation tool for this repo. Only TypeScript tools are fully supported in v0.1.0.
 
 5. **Generate artifacts** — for each constraint file, produce the applicable artifacts:
 
