@@ -1,0 +1,12 @@
+{
+  "name": "constraint",
+  "description": "Natural language constraints → deterministic test artifacts",
+  "author": {
+    "name": "caasi"
+  },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["constraint", "testing", "pbt", "mutation-testing", "verification"],
+  "skills": "./skills/"
+}

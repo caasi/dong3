@@ -38,6 +38,12 @@
       "source": "./plugins/owasp",
       "description": "Security review skills — OWASP vulnerability analysis with offline reference data from 8 Top 10 projects and CheatSheetSeries index",
       "version": "0.1.0"
+    },
+    {
+      "name": "constraint",
+      "source": "./plugins/constraint",
+      "description": "Natural language constraints → deterministic test artifacts. Write constraints in structured Markdown, generate unit tests / PBT / mutation tests, enforce with deterministic tools.",
+      "version": "0.1.0"
     }
   ]
 }
