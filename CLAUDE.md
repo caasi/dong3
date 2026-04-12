@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing five independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing six independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -17,6 +17,7 @@ plugins/
   compose/                        # Arrow-style DSL for workflow pipelines
   fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
+  constraint/                      # NL constraints → deterministic test artifacts
   owasp/                          # OWASP security review with offline references
 docs/superpowers/                 # Design specs and implementation plans
 ```
@@ -42,6 +43,8 @@ plugins/<name>/
 **fetch-tips (v0.1.0):** Platform-specific fetch strategies for content that resists simple WebFetch.
 
 **owasp (v0.1.0):** OWASP security review with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index. Dual-licensed: skill files MIT, OWASP reference files CC BY-SA 4.0.
+
+**constraint (v0.1.0):** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for artifact generation (TypeScript: Biome, ast-grep, Typia, fast-check, Stryker), `constraint-enforce` for running the enforcement pipeline.
 
 ## Versioning
 
