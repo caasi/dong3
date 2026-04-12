@@ -60,10 +60,11 @@ import * as fc from "fast-check";
 fc.assert(
   fc.property(fc.array(fc.integer()), (xs) => {
     const sorted = [...xs].sort((a, b) => a - b);
+    const expected = [...xs].sort((a, b) => a - b);
     // Length is preserved
     expect(sorted.length).toBe(xs.length);
     // Every original element is present
-    expect(sorted.sort()).toEqual([...xs].sort());
+    expect(sorted).toEqual(expected);
   })
 );
 ```
