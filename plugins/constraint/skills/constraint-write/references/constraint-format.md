@@ -40,7 +40,7 @@ Every constraint file begins with YAML frontmatter between `---` fences.
 
 | Kind | Semantic Meaning | Typical Enforce |
 |---|---|---|
-| `permission` | Under certain conditions, an action is allowed | validation, guard |
+| `permission` | Under certain conditions, an action is allowed | validation |
 | `prohibition` | An action is forbidden | lint, ast-grep |
 | `obligation` | An action is required | lint, validation |
 | `invariant` | A mathematical property that must always hold | pbt |
