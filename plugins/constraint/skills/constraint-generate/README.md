@@ -17,10 +17,12 @@ Invoke with `/constraint-generate` or ask to "generate constraint tests".
 
 ## Supported Languages
 
-- **TypeScript** — fully supported (Biome, ast-grep, Typia, fast-check, Stryker)
-- OCaml, Rust, Python — planned
+Language-agnostic — detects the repo's primary language and adapts the generated artifacts accordingly. See `references/toolchain-matrix.md` for the tool mapping.
+
+- **TypeScript** — primary reference (Biome, ast-grep, Typia, fast-check, Stryker)
+- **OCaml** — verified (QCheck + alcotest)
+- Other languages — the agent researches idiomatic PBT/lint tools if not in the matrix
 
 ## Guided Flow
 
-After generating artifacts, suggests running `/constraint-enforce` and adding
-a PreCommit hook for automated enforcement.
+After generating artifacts, runs the generated tests immediately to verify them, then suggests `/constraint-enforce` for the full enforcement pipeline.
