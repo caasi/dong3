@@ -17,6 +17,10 @@ Detect the repo's primary language by checking for marker files at the repo root
 
 If multiple markers are detected, ask the user which language to target.
 
+**CLI naming note:** The ast-grep binary is called `sg` when installed via
+cargo or system package, and `npx ast-grep` when run via npm. They are the
+same tool — use whichever matches the project's package manager.
+
 ## Constraint Kind/Enforce → Toolchain Layer
 
 | `enforce` value | Toolchain layer |
