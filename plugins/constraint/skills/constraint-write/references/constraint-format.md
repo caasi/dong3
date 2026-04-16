@@ -160,18 +160,18 @@ enforce: ast-grep, pbt
 ---
 
 ## Given
-- 任何處理金額的程式碼
+- Any code that handles monetary amounts
 
 ## When
-- 宣告變數、函式參數、回傳值涉及金額
+- Declaring variables, function parameters, or return values involving money
 
 ## Then
-- 必須使用 Decimal 型別
-- 乘除運算必須指定 rounding mode
+- Must use Decimal type
+- Multiplication and division must specify rounding mode
 
 ## Unless
-- 顯示用途的格式化函式（toDisplayString）可回傳 string
-- 測試中的 fixture 資料可用 literal number
+- Display-only formatting functions (toDisplayString) may return string
+- Test fixture data may use literal numbers
 
 ## Examples
 | context | type used | valid |
