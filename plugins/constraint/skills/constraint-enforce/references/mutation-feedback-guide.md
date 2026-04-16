@@ -106,9 +106,9 @@ summary table of all unresolved mutants:
 
 | Mutant | Location | Mutation | Survived rounds | Likely cause |
 |--------|----------|----------|-----------------|--------------|
-| M1 | `src/foo:42` | `>=` to `>` | 3 | Equivalent mutant |
-| M2 | `src/bar:17` | Removed call to `validate()` | 2 | Weak test |
-| M3 | `src/baz:88` | Negated condition | 3 | Equivalent mutant |
+| M1 | `src/foo.<ext>:42` | `>=` to `>` | 3 | Equivalent mutant |
+| M2 | `src/bar.<ext>:17` | Removed call to `validate()` | 2 | Weak test |
+| M3 | `src/baz.<ext>:88` | Negated condition | 3 | Equivalent mutant |
 
 For each row, include:
 
