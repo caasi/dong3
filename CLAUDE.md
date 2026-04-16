@@ -38,13 +38,13 @@ plugins/<name>/
 
 **compose (v0.11.0):** Uses an OCaml binary (`ocaml-compose-dsl`) for DSL validation. Install via `scripts/install.sh` (downloads to `~/.local/bin/`). Validate `.arr` files with `ocaml-compose-dsl pipeline.arr` or Markdown files with `ocaml-compose-dsl --literate doc.md`. Arrow combinators: `>>>` (sequential), `|||` (branch), `***` (parallel), `&&&` (fanout), `?` (question/branch), `loop()` (feedback). Abstraction: `\x -> expr` (lambda), `let x = expr in body` (let binding). Other syntax: `()` (unit), `;` (statement separator). Epistemic conventions: `gather`, `branch`, `merge`, `leaf`, `check` (cognitive role markers with lint support). Grammar spec in `references/dsl-grammar.md`, 22 examples in `examples/`.
 
-**kami (v0.1.0):** Pure dialogue, no runtime dependencies. Grounded in Audrey Tang's 仁工智慧 framework and the Civic AI 6-Pack of Care.
+**kami (v0.2.0):** Pure dialogue, no runtime dependencies. Grounded in Audrey Tang's 仁工智慧 framework and the Civic AI 6-Pack of Care.
 
 **fetch-tips (v0.1.0):** Platform-specific fetch strategies for content that resists simple WebFetch.
 
 **owasp (v0.1.0):** OWASP security review with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index. Dual-licensed: skill files MIT, OWASP reference files CC BY-SA 4.0.
 
-**constraint (v0.1.0):** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for artifact generation (TypeScript: Biome, ast-grep, Typia, fast-check, Stryker), `constraint-enforce` for running the enforcement pipeline.
+**constraint (v0.2.0):** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for artifact generation (TypeScript: Biome, ast-grep, Typia, fast-check, Stryker), `constraint-enforce` for running the enforcement pipeline.
 
 ## Versioning
 
