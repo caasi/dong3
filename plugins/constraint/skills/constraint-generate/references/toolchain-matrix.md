@@ -235,12 +235,21 @@ Rust's type system + `serde` handles most validation at compile time. For runtim
 - **Run:** `ruff check .` (lint), `ruff format --check .` (format check)
 - **Pass/fail:** Exit code 0 = clean. Exit code 1 = violations. Use `--fix` for auto-fix.
 
-#### ast-grep / semgrep (structural lint)
+#### ast-grep (structural lint)
 
-ast-grep supports Python via tree-sitter-python. Semgrep is also a strong alternative with a larger rule library.
+ast-grep supports Python via tree-sitter-python.
 
-- **ast-grep:** `sg scan` with YAML rules (`language: Python`)
-- **semgrep:** `semgrep --config=auto .`
+- **Install:** `brew install ast-grep`, `npm install --global @ast-grep/cli`, or download a release binary
+- **Run:** `sg scan` with YAML rules (`language: Python`)
+- **Pass/fail:** Exit code 0 = no matches. Non-zero = prohibited patterns found.
+
+#### semgrep (structural lint, alternative)
+
+Larger rule library than ast-grep; Python-native.
+
+- **Install:** `pip install semgrep` or `brew install semgrep`
+- **Run:** `semgrep --config=auto .`
+- **Pass/fail:** Exit code 0 = no findings. Non-zero = findings or errors.
 
 ### Layer 2: Validation
 
