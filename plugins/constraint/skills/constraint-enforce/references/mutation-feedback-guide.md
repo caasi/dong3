@@ -1,8 +1,10 @@
 # Mutation Feedback Guide
 
-This guide describes how to interpret Stryker mutation testing results and
+This guide describes how to interpret mutation testing results and
 systematically improve property tests until surviving mutants are eliminated
-or identified as equivalent.
+or identified as equivalent. The workflow applies to any mutation tool
+(Stryker, mutaml, cargo-mutants, mutmut) — use the one matching your
+language per the toolchain matrix.
 
 ---
 
@@ -53,7 +55,7 @@ asserts on the behavior the mutation alters.
 
 ### Round 1
 
-1. **Run Stryker** to collect the full mutation report.
+1. **Run the mutation tool** to collect the full mutation report.
 2. **Collect surviving mutants** — note file, line, and mutation operator
    for each.
 3. **Analyze each survivor**: determine which existing property *should*
@@ -61,12 +63,12 @@ asserts on the behavior the mutation alters.
 4. **Strengthen or add properties**:
    - For weak tests: tighten the assertion or add a new postcondition.
    - For missing tests: write a new property covering the code path.
-5. **Re-run PBT** (`npm test -- --grep "constraint.pbt"`) to confirm the
+5. **Re-run PBT** (use the language's test command) to confirm the
    new or strengthened properties pass against the unmutated code.
 
 ### Round 2
 
-1. **Re-run Stryker** to check if previously surviving mutants are now
+1. **Re-run the mutation tool** to check if previously surviving mutants are now
    killed.
 2. For any mutants that still survive:
    - Re-analyze: is this an equivalent mutant, or does the property need
@@ -75,7 +77,7 @@ asserts on the behavior the mutation alters.
 
 ### Round 3
 
-1. **Final Stryker run**.
+1. **Final mutation run**.
 2. Any mutants still surviving after three rounds are candidates for
    escalation (see below).
 
@@ -104,15 +106,15 @@ summary table of all unresolved mutants:
 
 | Mutant | Location | Mutation | Survived rounds | Likely cause |
 |--------|----------|----------|-----------------|--------------|
-| M1 | `src/foo.ts:42` | `>=` to `>` | 3 | Equivalent mutant |
-| M2 | `src/bar.ts:17` | Removed call to `validate()` | 2 | Weak test |
-| M3 | `src/baz.ts:88` | Negated condition | 3 | Equivalent mutant |
+| M1 | `src/foo.<ext>:42` | `>=` to `>` | 3 | Equivalent mutant |
+| M2 | `src/bar.<ext>:17` | Removed call to `validate()` | 2 | Weak test |
+| M3 | `src/baz.<ext>:88` | Negated condition | 3 | Equivalent mutant |
 
 For each row, include:
 
-- **Mutant**: identifier from the Stryker report.
+- **Mutant**: identifier from the mutation report.
 - **Location**: file path and line number.
-- **Mutation**: what Stryker changed (operator, deletion, negation, etc.).
+- **Mutation**: what the tool changed (operator, deletion, negation, etc.).
 - **Survived rounds**: how many feedback rounds this mutant survived.
 - **Likely cause**: your best assessment — equivalent mutant, weak test, or
   missing test.

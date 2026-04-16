@@ -17,6 +17,10 @@ Detect the repo's primary language by checking for marker files at the repo root
 
 If multiple markers are detected, ask the user which language to target.
 
+**CLI naming note:** The ast-grep binary is called `sg` when installed via
+cargo or system package, and `npx ast-grep` when run via npm. They are the
+same tool — use whichever matches the project's package manager.
+
 ## Constraint Kind/Enforce → Toolchain Layer
 
 | `enforce` value | Toolchain layer |
@@ -31,7 +35,7 @@ table's "typical enforce" column as the default (see constraint-format.md).
 
 ---
 
-## TypeScript Toolchain (supported)
+## TypeScript Toolchain
 
 ### Layer 1: Lint
 
@@ -127,13 +131,154 @@ devDependencies.
 
 ---
 
-## Other Languages (planned)
+## OCaml Toolchain
 
-No detailed commands yet. Toolchain mapping for future implementation:
+### Layer 1: Lint
 
-| Layer | OCaml | Rust | Python |
-|---|---|---|---|
-| Lint | ocamlformat | clippy | ruff |
-| Validation | Gospel | — | pydantic |
-| PBT | QCheck / Ortac | proptest | Hypothesis |
-| Mutation | — | cargo-mutants | mutmut |
+#### ocamlformat
+
+- **Install:** `opam install ocamlformat` (pin version in `.ocamlformat`: `version = 0.27.0`)
+- **Run:** `dune fmt` (requires `(formatting (enabled_for ocaml))` in `dune-project`)
+- **Pass/fail:** Exit code 0 = clean. Exit code 1 = files differ from formatted output.
+
+#### semgrep (structural lint)
+
+ast-grep does not support OCaml. Use semgrep instead.
+
+- **Install:** `pip install semgrep` or `brew install semgrep`
+- **Run:** `semgrep --config=auto --lang=ocaml .` or custom YAML rules
+- **Pass/fail:** Exit code 0 = no matches. Exit code 1 = findings (treat as violations). Other non-zero = config/runtime error; surface stderr and stop.
+
+### Layer 2: Validation
+
+#### Gospel + Ortac
+
+Gospel adds spec annotations to `.mli` files (`(*@ requires x > 0 *)`). Ortac generates QCheck tests from Gospel specs.
+
+- **Install:** `opam install gospel ortac-runtime ortac-qcheck-stm`
+- **Run:** Ortac-generated tests run via `dune runtest`
+- **Pass/fail:** Standard test exit codes.
+
+**Note:** Gospel/Ortac is still maturing. For simpler cases, manual validation with pattern matching is idiomatic OCaml.
+
+### Layer 3: PBT
+
+#### QCheck
+
+- **Install:** `opam install qcheck-core qcheck-alcotest`
+- **Dune:** Add `(libraries qcheck-core qcheck-alcotest alcotest)` to the test stanza.
+- **Run:** `dune runtest`
+- **Pass/fail:** Exit code 0 = pass. On failure, QCheck prints a shrunk counterexample to stderr.
+
+### Layer 4: Mutation Testing
+
+#### mutaml
+
+- **Install:** `opam install mutaml`
+- **Run:** `mutaml-runner dune runtest` then `mutaml-report`
+- **Pass/fail:** Report shows kill rate (%). Set your own threshold. Covers arithmetic, boolean, and pattern-match mutations.
+
+**Note:** Functional but niche. Only real option for OCaml mutation testing.
+
+---
+
+## Rust Toolchain
+
+### Layer 1: Lint
+
+#### clippy
+
+- **Run:** `cargo clippy --all-targets --all-features -- -D warnings`
+- **Pass/fail:** Exit code 0 = clean. Non-zero = warnings (treated as errors with `-D warnings`).
+
+#### ast-grep (structural lint)
+
+ast-grep supports Rust via tree-sitter-rust.
+
+- **Install:** `cargo install ast-grep`
+- **Run:** `sg scan` with YAML rules
+- **Pass/fail:** Exit code 0 = no matches. Treat rule matches as violations. If `sg scan` fails due to invalid rules/config or runtime errors, treat as execution failure and report distinctly.
+
+### Layer 2: Validation
+
+Rust's type system + `serde` handles most validation at compile time. For runtime constraints on external input:
+
+- **validator:** `cargo add validator --features derive` — derive macros for struct field validation (`#[validate(range(min = 1, max = 100))]`)
+- **garde:** newer alternative with similar derive-macro approach
+- **nutype:** newtype wrappers with built-in validation
+
+### Layer 3: PBT
+
+#### proptest
+
+- **Install:** Add `proptest = "1"` to `[dev-dependencies]` in `Cargo.toml`
+- **Run:** `cargo test` (proptest macros generate standard `#[test]` functions)
+- **Pass/fail:** Exit code 0 = pass. On failure, prints minimal shrunk counterexample. Seeds stored in `proptest-regressions/` for replay.
+
+### Layer 4: Mutation Testing
+
+#### cargo-mutants
+
+- **Install:** `cargo install cargo-mutants`
+- **Run:** `cargo mutants`
+- **Pass/fail:** Summary table with caught/missed/timeout/unviable counts. Mutation score = caught / (caught + missed). Results written to `mutants.out/`.
+
+---
+
+## Python Toolchain
+
+### Layer 1: Lint
+
+#### ruff
+
+- **Install:** `pip install ruff` or `uv tool install ruff`
+- **Run:** `ruff check .` (lint), `ruff format --check .` (format check)
+- **Pass/fail:** Exit code 0 = clean. Exit code 1 = violations. Use `--fix` for auto-fix.
+
+#### ast-grep (structural lint)
+
+ast-grep supports Python via tree-sitter-python.
+
+- **Install:** `brew install ast-grep`, `npm install --global @ast-grep/cli`, or download a release binary
+- **Run:** `sg scan` with YAML rules (`language: Python`)
+- **Pass/fail:** Exit code 0 = no matches. Treat rule matches as violations. If `sg scan` fails due to invalid rules/config or runtime errors, treat as execution failure and report distinctly.
+
+#### semgrep (structural lint, alternative)
+
+Larger rule library than ast-grep; Python-native.
+
+- **Install:** `pip install semgrep` or `brew install semgrep`
+- **Run:** `semgrep --config=auto .`
+- **Pass/fail:** Exit code 0 = no findings. Exit code 1 = findings (treat as violations). Other non-zero = config/runtime error; surface stderr and stop.
+
+### Layer 2: Validation
+
+#### pydantic (v2)
+
+- **Install:** `pip install pydantic`
+- **Run:** Run tests that exercise pydantic models at trust boundaries.
+- **Pass/fail:** Raises `ValidationError` with structured error details on bad input.
+
+### Layer 3: PBT
+
+#### Hypothesis
+
+- **Install:** `pip install hypothesis` or `uv add hypothesis`
+- **Run:** `pytest` (Hypothesis works as a pytest plugin automatically)
+- **Pass/fail:** Standard pytest exit codes. On failure, prints minimal counterexample. Flaky failures stored in `.hypothesis/` for deterministic replay.
+
+### Layer 4: Mutation Testing
+
+#### mutmut
+
+- **Install:** `pip install mutmut`
+- **Run:** `mutmut run --paths-to-mutate=src/` then `mutmut results`
+- **Pass/fail:** Reports survived/killed/total. Mutation score = killed/total. No built-in threshold flag; parse output or use `mutmut junitxml` for CI.
+
+---
+
+## Unlisted Languages
+
+If the detected language is not in this matrix, research the ecosystem's
+idiomatic tools for each layer before generating. Look for: a formatter/linter,
+a PBT library, and a mutation testing tool. Update this matrix with findings.

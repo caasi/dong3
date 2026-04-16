@@ -25,8 +25,7 @@ the judges.
    no examples = no enforcement
 5. Write the constraint to `constraints/<RULE_ID>-<slug>.md`
 6. Create the `constraints/` directory if it doesn't exist
-7. After writing, suggest:
-   "Constraint 已寫好。要我用 `/constraint-generate` 產生 test artifact 嗎？"
+7. After writing, suggest running `/constraint-generate` to produce test artifacts from the new constraint.
 
 ## Proactive Suggestion
 

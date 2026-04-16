@@ -60,8 +60,8 @@ The constraint body uses a legal/BDD hybrid structure. Each section maps directl
 | **When** | Triggering action | Test action (act) |
 | **Then** | Expected outcome | Test assertion (assert) |
 | **Unless** | Exception conditions + alternative outcomes | Additional test branches |
-| **Examples** | Concrete input/output table | Parameterized unit tests (`it.each` / `test.each`) |
-| **Properties** | Semi-formal universal properties | fast-check `fc.property()` tests |
+| **Examples** | Concrete input/output table | Parameterized unit tests (e.g. TS: `it.each`, Python: `@pytest.mark.parametrize`) |
+| **Properties** | Semi-formal universal properties | PBT tests (e.g. TS: fast-check, OCaml: QCheck, Rust: proptest, Python: Hypothesis) |
 
 All sections use `## Heading` level.
 
@@ -91,7 +91,7 @@ The Examples section **must** be a Markdown table with **at least 3 rows** of da
 
 > No concrete examples = no enforcement.
 
-The table maps directly to parameterized unit tests (`it.each` / `test.each`). Each row becomes one test case. Column headers become parameter names.
+The table maps directly to parameterized unit tests in the detected language (e.g. TS: `it.each`, Python: `@pytest.mark.parametrize`, OCaml: `Alcotest.test_case` list, Rust: `#[test]` with test cases). Each row becomes one test case. Column headers become parameter names.
 
 ### Properties Section
 
@@ -102,7 +102,7 @@ forall X where condition: property
 forall (X, Y): property
 ```
 
-The `where` clause is optional. When present, it becomes a filter or precondition. Each property maps to a `fc.property()` call in fast-check. The `forall` variables become arbitraries and the property expression becomes the assertion.
+The `where` clause is optional. When present, it becomes a filter or precondition. Each property maps to a PBT assertion in the detected language's library (e.g. `fc.property()` in fast-check, `QCheck.Test.make` in QCheck, `proptest!` in proptest, `@given` in Hypothesis). The `forall` variables become arbitraries and the property expression becomes the assertion.
 
 ## Complete Examples
 
@@ -160,18 +160,18 @@ enforce: ast-grep, pbt
 ---
 
 ## Given
-- 任何處理金額的程式碼
+- Any code that handles monetary amounts
 
 ## When
-- 宣告變數、函式參數、回傳值涉及金額
+- Declaring variables, function parameters, or return values involving money
 
 ## Then
-- 必須使用 Decimal 型別
-- 乘除運算必須指定 rounding mode
+- Must use Decimal type
+- Multiplication and division must specify rounding mode
 
 ## Unless
-- 顯示用途的格式化函式（toDisplayString）可回傳 string
-- 測試中的 fixture 資料可用 literal number
+- Display-only formatting functions (toDisplayString) may return string
+- Test fixture data may use literal numbers
 
 ## Examples
 | context | type used | valid |
