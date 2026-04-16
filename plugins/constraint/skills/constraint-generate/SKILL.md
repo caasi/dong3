@@ -37,5 +37,6 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
    - Re-running overwrites previously generated artifacts (idempotent).
 
 7. **Post-generate: verify and suggest** — after generating artifacts:
-   - **Run the generated tests immediately** to confirm they pass against the current code. If any test fails, fix the artifact before proceeding — never leave generated tests red.
-   - Suggest: "要我用 `/constraint-enforce` 跑完整的四層驗證嗎？"
+   - **Run the generated tests immediately** to verify the artifacts are valid. If a failure is caused by an artifact problem (compile error, wrong import, broken test harness, incorrect file placement), fix the artifact and re-run.
+   - If a failure appears to reflect a **real constraint violation in the current code**, do **not** weaken or remove the generated test to force green. Instead, report that the repository currently violates the constraint and keep the artifact faithful.
+   - Suggest: "目前產生的測試顯示 repo 可能違反此 constraint。要我用 `/constraint-enforce` 跑完整的四層驗證嗎？"
