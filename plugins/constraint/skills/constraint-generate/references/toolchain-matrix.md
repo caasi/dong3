@@ -147,7 +147,7 @@ ast-grep does not support OCaml. Use semgrep instead.
 
 - **Install:** `pip install semgrep` or `brew install semgrep`
 - **Run:** `semgrep --config=auto --lang=ocaml .` or custom YAML rules
-- **Pass/fail:** Exit code 0 = no matches. Non-zero = prohibited patterns found.
+- **Pass/fail:** Exit code 0 = no matches. Exit code 1 = findings (treat as violations). Other non-zero = config/runtime error; surface stderr and stop.
 
 ### Layer 2: Validation
 
@@ -197,7 +197,7 @@ ast-grep supports Rust via tree-sitter-rust.
 
 - **Install:** `cargo install ast-grep`
 - **Run:** `sg scan` with YAML rules
-- **Pass/fail:** Exit code 0 = no matches. Non-zero = prohibited patterns found.
+- **Pass/fail:** Exit code 0 = no matches. Treat rule matches as violations. If `sg scan` fails due to invalid rules/config or runtime errors, treat as execution failure and report distinctly.
 
 ### Layer 2: Validation
 
@@ -241,7 +241,7 @@ ast-grep supports Python via tree-sitter-python.
 
 - **Install:** `brew install ast-grep`, `npm install --global @ast-grep/cli`, or download a release binary
 - **Run:** `sg scan` with YAML rules (`language: Python`)
-- **Pass/fail:** Exit code 0 = no matches. Non-zero = prohibited patterns found.
+- **Pass/fail:** Exit code 0 = no matches. Treat rule matches as violations. If `sg scan` fails due to invalid rules/config or runtime errors, treat as execution failure and report distinctly.
 
 #### semgrep (structural lint, alternative)
 
@@ -249,7 +249,7 @@ Larger rule library than ast-grep; Python-native.
 
 - **Install:** `pip install semgrep` or `brew install semgrep`
 - **Run:** `semgrep --config=auto .`
-- **Pass/fail:** Exit code 0 = no findings. Non-zero = findings or errors.
+- **Pass/fail:** Exit code 0 = no findings. Exit code 1 = findings (treat as violations). Other non-zero = config/runtime error; surface stderr and stop.
 
 ### Layer 2: Validation
 
