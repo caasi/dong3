@@ -27,12 +27,13 @@ anti-patterns before any code runs.
 ### Expected output
 
 - Exit code `0` = clean, no violations.
-- Non-zero exit code = one or more violations.
+- Non-zero exit code = either violations found **or** a tool/config/runtime error. Distinguish the two: lint findings are constraint violations; tool errors (invalid config, missing binary, runtime crash) are execution failures — surface stderr and stop rather than reporting them as violations.
 
 ### On failure
 
-1. Collect every violation with **file path + line number**.
-2. Present violations grouped by rule.
+1. If tool error: report the error and stop. Do not proceed to Layer 2.
+2. If lint findings: collect every violation with **file path + line number**.
+3. Present violations grouped by rule.
 3. Suggest auto-fixable corrections where the tool supports it.
 4. Do **not** proceed to Layer 2 until all lint violations are resolved.
 
