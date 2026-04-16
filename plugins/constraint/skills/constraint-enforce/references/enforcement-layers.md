@@ -34,8 +34,8 @@ anti-patterns before any code runs.
 1. If tool error: report the error and stop. Do not proceed to Layer 2.
 2. If lint findings: collect every violation with **file path + line number**.
 3. Present violations grouped by rule.
-3. Suggest auto-fixable corrections where the tool supports it.
-4. Do **not** proceed to Layer 2 until all lint violations are resolved.
+4. Suggest auto-fixable corrections where the tool supports it.
+5. Do **not** proceed to Layer 2 until all lint violations are resolved.
 
 ---
 
