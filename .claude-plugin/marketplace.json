@@ -43,7 +43,7 @@
       "name": "constraint",
       "source": "./plugins/constraint",
       "description": "Natural language constraints → deterministic test artifacts. Write constraints in structured Markdown, generate unit tests / PBT / mutation tests, enforce with deterministic tools.",
-      "version": "0.2.0"
+      "version": "0.2.1"
     }
   ]
 }
