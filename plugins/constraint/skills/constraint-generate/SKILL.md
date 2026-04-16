@@ -25,7 +25,7 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
 
    | Section | Artifact (adapt to language) |
    |---|---|
-   | Examples table | Parameterized tests (TS: `it.each`, OCaml: `QCheck.Test.make` with concrete cases, Rust: `#[test]` with test cases, Python: `@pytest.mark.parametrize`) |
+   | Examples table | Parameterized tests (TS: `it.each`, OCaml: `Alcotest.test_case` with concrete cases, Rust: `#[test]` with test cases, Python: `@pytest.mark.parametrize`) |
    | Properties | PBT tests (TS: fast-check, OCaml: QCheck, Rust: proptest, Python: Hypothesis) |
    | Prohibition + structural lint | `.ast-grep/rules/*.yml` or semgrep rules (check language support in toolchain-matrix) |
    | Validation | Runtime validation at trust boundaries using the language's idiomatic library |
