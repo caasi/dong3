@@ -69,7 +69,7 @@ Skill 描述寫「only TypeScript is currently supported」，但實際使用時
 | 語言 | PBT 框架 | Test runner | 產出檔名慣例 |
 |------|---------|-------------|-------------|
 | TypeScript | fast-check | vitest/jest | `*.constraint.pbt.test.ts` |
-| OCaml | QCheck (qcheck-core + qcheck-alcotest) | alcotest | `test/test_properties.ml` |
+| OCaml | QCheck (qcheck-core + qcheck-alcotest) | alcotest | `test/test_<slug>_properties.ml` |
 
 ### constraint-generate: 不要建議不存在的 hook 事件
 

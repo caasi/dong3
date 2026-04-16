@@ -33,7 +33,7 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
 6. **File conventions:**
    - Header comment: `Generated from constraints/<RULE_ID>-<slug>.md — do not edit manually` (use the language's comment syntax)
    - Place artifacts in the repo's existing test directory structure.
-   - Follow the language's naming conventions (TS: `*.constraint.test.ts`, OCaml: `test_<slug>_properties.ml`, Rust: `tests/<slug>_constraint.rs`, Python: `test_<slug>_constraint.py`).
+   - Follow the language's naming conventions (TS: `*.constraint.test.ts`, OCaml: `test/test_<slug>_properties.ml`, Rust: `tests/<slug>_constraint.rs`, Python: `test_<slug>_constraint.py`).
    - Re-running overwrites previously generated artifacts (idempotent).
 
 7. **Post-generate: verify and suggest** — after generating artifacts:
