@@ -13,13 +13,14 @@ You run the deterministic enforcement pipeline on generated constraint artifacts
 
 ## Workflow
 
-1. Read `references/enforcement-layers.md` for the layer execution order
-2. Run layers in order: Lint → Validation → PBT → Mutation Testing
-3. Fail fast: fix issues at each layer before proceeding to the next
-4. For Layer 3+4 feedback loop: read `references/mutation-feedback-guide.md`
-5. Default mutation score target: 80%
-6. Max 3 feedback rounds
-7. Escalation: after 3 rounds or on unresolvable mutants, report to user with mutant summary table
+1. **Detect language** — check the repo's build files (`package.json`, `dune-project`, `Cargo.toml`, `pyproject.toml`, etc.) to determine the language. Use the toolchain matrix in `constraint-generate/references/toolchain-matrix.md` for the correct commands per layer per language.
+2. Read `references/enforcement-layers.md` for the layer execution order and semantics
+3. Run layers in order: Lint → Validation → PBT → Mutation Testing, using the detected language's tools
+4. Fail fast: fix issues at each layer before proceeding to the next
+5. For Layer 3+4 feedback loop: read `references/mutation-feedback-guide.md`
+6. Default mutation score target: 80%
+7. Max 3 feedback rounds
+8. Escalation: after 3 rounds or on unresolvable mutants, report to user with mutant summary table
 
 ## Final Report
 

@@ -17,36 +17,25 @@ You read constraint files from `constraints/*.md` and generate deterministic tes
 
 2. **Understand the format** — read `references/constraint-format.md` for the canonical constraint file structure.
 
-3. **Detect repo toolchain** — check for `package.json`, `tsconfig.json`, `dune-project`, `Cargo.toml`, `pyproject.toml`, etc. to determine language and available tooling. **If the detected language is not TypeScript**, inform the user that only TypeScript is currently supported and ask whether to proceed with TypeScript artifacts anyway or stop.
+3. **Detect repo toolchain** — check for `package.json`, `tsconfig.json`, `dune-project`, `Cargo.toml`, `pyproject.toml`, etc. to determine language and available tooling. Adapt all generated artifacts to the detected language — do not refuse non-TypeScript repos or force TypeScript output.
 
-4. **Select tools** — read `references/toolchain-matrix.md` to pick the correct test runner, linter, PBT library, and mutation tool for this repo. Only TypeScript tools are fully supported in v0.1.0.
+4. **Select tools** — read `references/toolchain-matrix.md` to pick the correct test runner, linter, PBT library, and mutation tool for the detected language. If the matrix has no entry for the detected language, research the ecosystem's idiomatic PBT and lint tools before generating.
 
-5. **Generate artifacts** — for each constraint file, produce the applicable artifacts:
+5. **Generate artifacts** — for each constraint file, produce the applicable artifacts using the detected language's idiomatic tools and file conventions:
 
-   | Section | Artifact |
+   | Section | Artifact (adapt to language) |
    |---|---|
-   | Examples table | `*.constraint.test.ts` — parameterized tests via `it.each` |
-   | Properties | `*.constraint.pbt.test.ts` — fast-check property-based tests |
-   | Prohibition + ast-grep | `.ast-grep/rules/*.yml` — structural lint rule |
-   | Validation | Runtime validation code at trust boundaries |
+   | Examples table | Parameterized tests (TS: `it.each`, OCaml: `QCheck.Test.make` with concrete cases, Rust: `#[test]` with test cases, Python: `@pytest.mark.parametrize`) |
+   | Properties | PBT tests (TS: fast-check, OCaml: QCheck, Rust: proptest, Python: Hypothesis) |
+   | Prohibition + structural lint | `.ast-grep/rules/*.yml` or semgrep rules (check language support in toolchain-matrix) |
+   | Validation | Runtime validation at trust boundaries using the language's idiomatic library |
 
 6. **File conventions:**
-   - Header: `// Generated from constraints/<RULE_ID>-<slug>.md — do not edit manually`
+   - Header comment: `Generated from constraints/<RULE_ID>-<slug>.md — do not edit manually` (use the language's comment syntax)
    - Place artifacts in the repo's existing test directory structure.
+   - Follow the language's naming conventions (TS: `*.constraint.test.ts`, OCaml: `test_<slug>_properties.ml`, Rust: `tests/<slug>_constraint.rs`, Python: `test_<slug>_constraint.py`).
    - Re-running overwrites previously generated artifacts (idempotent).
 
-7. **Post-generate suggestions** — after generating, suggest two things:
-   - "要我用 `/constraint-enforce` 跑驗證嗎？"
-   - If no constraint-related PreCommit hook is detected in `.claude/settings.json`, suggest adding one (see template below). **Do not auto-modify settings.**
-
-## Hook Suggestion Template
-
-```json
-{
-  "hooks": {
-    "PreCommit": [{ "matcher": "", "command": "npm test -- --grep constraint" }]
-  }
-}
-```
-
-Suggest this to the user — do not write it automatically.
+7. **Post-generate: verify and suggest** — after generating artifacts:
+   - **Run the generated tests immediately** to confirm they pass against the current code. If any test fails, fix the artifact before proceeding — never leave generated tests red.
+   - Suggest: "要我用 `/constraint-enforce` 跑完整的四層驗證嗎？"

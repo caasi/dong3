@@ -1,6 +1,8 @@
 # Property-Based Testing Patterns
 
-A catalog of common PBT patterns for writing the `Properties` section of constraint files. Each pattern includes a semi-formal template and a concrete TypeScript fast-check example.
+A catalog of common PBT patterns for writing the `Properties` section of constraint files. Each pattern includes a semi-formal template and a concrete code example.
+
+**The examples below use TypeScript + fast-check for illustration only.** The patterns themselves are language-independent. When generating artifacts, translate to the repo's actual language and PBT library (e.g. OCaml + QCheck, Rust + proptest, Python + Hypothesis). See `constraint-generate/references/toolchain-matrix.md` for the per-language PBT library.
 
 ## Roundtrip
 
@@ -195,7 +197,7 @@ A property that can never fail provides zero value. Watch for:
 
 Mutation testing (Layer 4 in the enforcement pipeline) systematically catches trivially true properties:
 
-1. Stryker introduces small code mutations (e.g., `+` to `-`, `>` to `>=`, remove a statement).
+1. The mutation tool (Stryker, mutaml, cargo-mutants, mutmut) introduces small code mutations (e.g., `+` to `-`, `>` to `>=`, remove a statement).
 2. If your property still passes after a mutation, the mutant **survives** — meaning your property did not detect the change.
 3. A surviving mutant signals either a **weak property** (strengthen the assertion) or a **missing property** (add a new one covering the mutated code path).
 
