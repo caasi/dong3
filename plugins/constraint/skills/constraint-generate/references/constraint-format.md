@@ -60,8 +60,8 @@ The constraint body uses a legal/BDD hybrid structure. Each section maps directl
 | **When** | Triggering action | Test action (act) |
 | **Then** | Expected outcome | Test assertion (assert) |
 | **Unless** | Exception conditions + alternative outcomes | Additional test branches |
-| **Examples** | Concrete input/output table | Parameterized unit tests (`it.each` / `test.each`) |
-| **Properties** | Semi-formal universal properties | fast-check `fc.property()` tests |
+| **Examples** | Concrete input/output table | Parameterized unit tests (e.g. TS: `it.each`, Python: `@pytest.mark.parametrize`) |
+| **Properties** | Semi-formal universal properties | PBT tests (e.g. TS: fast-check, OCaml: QCheck, Rust: proptest, Python: Hypothesis) |
 
 All sections use `## Heading` level.
 
@@ -102,7 +102,7 @@ forall X where condition: property
 forall (X, Y): property
 ```
 
-The `where` clause is optional. When present, it becomes a filter or precondition. Each property maps to a `fc.property()` call in fast-check. The `forall` variables become arbitraries and the property expression becomes the assertion.
+The `where` clause is optional. When present, it becomes a filter or precondition. Each property maps to a PBT assertion in the detected language's library (e.g. `fc.property()` in fast-check, `QCheck.Test.make` in QCheck, `proptest!` in proptest, `@given` in Hypothesis). The `forall` variables become arbitraries and the property expression becomes the assertion.
 
 ## Complete Examples
 
