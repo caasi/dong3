@@ -91,7 +91,7 @@ The Examples section **must** be a Markdown table with **at least 3 rows** of da
 
 > No concrete examples = no enforcement.
 
-The table maps directly to parameterized unit tests (`it.each` / `test.each`). Each row becomes one test case. Column headers become parameter names.
+The table maps directly to parameterized unit tests in the detected language (e.g. TS: `it.each`, Python: `@pytest.mark.parametrize`, OCaml: `Alcotest.test_case` list, Rust: `#[test]` with test cases). Each row becomes one test case. Column headers become parameter names.
 
 ### Properties Section
 
