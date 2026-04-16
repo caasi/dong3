@@ -9,7 +9,6 @@ Through one-on-one conversation, helps you see yourself — and your AI agents �
 Rooted in:
 - **Humane Intelligence (仁工智慧)** — Audrey Tang's framework for AI embedded in relationships
 - **6-Pack of Care** — Civic AI design principles (Tang & Caroline Green, Oxford)
-- **Augmenting Human Intellect** — Douglas Engelbart's vision of tools that make humans stronger
 
 ## Usage
 
@@ -50,7 +49,7 @@ This skill approximates a living body of thought. It is a snapshot, not a defini
 - [Civic AI Taiwan](https://civic.ai/tw/)
 - [Right Livelihood Award](https://rightlivelihood.org/the-change-makers/find-a-laureate/audrey-tang/)
 - [Alignment Assemblies](https://rebootdemocracy.ai/blog/audrey-tang-ai-democracy/)
-- [Augmenting Human Intellect](https://www.dougengelbart.org/content/view/138) — Douglas Engelbart, 1962
+- [Civic AI Conference](https://www.oxford-aiethics.ox.ac.uk/event/civic-ai-conference-rhodes-house-south-park-road-oxford) — Audrey Tang, Oxford, 2026-03-25
 
 ## License
 
