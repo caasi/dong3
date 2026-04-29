@@ -30,6 +30,6 @@ function CurrentUserBadge() {
 }
 ```
 
-The container component (`CurrentUserBadge`) is the only one that knows about the store. Replacing the store, or rendering `UserBadge` from a fixture in a test or storybook, costs nothing.
+The container component (`CurrentUserBadge`) is the only one that knows about the store. Replacing the store, or rendering `UserBadge` from a fixture in a test or component-demo page, costs nothing.
 
-Storybook is the concrete payoff: a pure leaf can be mounted with literal prop fixtures (`<UserBadge user={{ name: 'Ada' }} />`) and renders identically every time, with no provider tree, no mock store, no network shim. The moment a leaf reads from a store or context directly, every story now needs that surrounding world reconstructed — and the leaf has stopped being a leaf.
+Demoability is the concrete payoff: a pure leaf can be mounted with literal prop fixtures (`<UserBadge user={{ name: 'Ada' }} />`) and renders identically every time, with no provider tree, no mock store, no network shim. The leaf can be demoed alone — in a unit test, an isolated dev page, or a component-explorer tool. The packaging is a detail; the property that makes any of them work is leaf purity. The moment a leaf reads from a store or context directly, every demo now needs the surrounding world reconstructed, and the leaf has stopped being a leaf.
