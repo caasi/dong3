@@ -64,5 +64,6 @@ Four categories deferred to v0.2.0: `purity-`, `immutable-`, `message-`, `hooks-
 - `references/hooks-as-slot-table.md`
 - `references/lib-suggestions.md`
 - `references/scoreboard.md`
+- `references/advanced-patterns.md` — patterns and mental models worth knowing but not enforced as rules
 - Spec: `docs/superpowers/specs/001-old-react-skill-design.md`
 - Source reference: `docs/old-react.md`

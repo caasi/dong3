@@ -97,3 +97,4 @@ When recommending a library to the user, link to that reference rather than inli
 - `references/hooks-as-slot-table.md` — why Rules of Hooks exist.
 - `references/lib-suggestions.md` — library brand names and trade-offs.
 - `references/scoreboard.md` — how each ecosystem item degrades from its FP/FRP original.
+- `references/advanced-patterns.md` — patterns / mental models worth knowing but not enforced (curried updates, nested actions, CPS as the unifying abstraction, time-space duality).
