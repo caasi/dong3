@@ -71,8 +71,16 @@ plugins/old-react/
         hooks-as-slot-table.md
         lib-suggestions.md
         scoreboard.md
-      scripts/
-        validate-rules.sh         # shell-only frontmatter + section linter
+        advanced-patterns.md
+```
+
+Dev-time tooling lives **outside** the plugin so it does not ship to skill users via the marketplace install:
+
+```
+tools/old-react/
+  validate-rules.sh             # frontmatter + body structure linter (Bash)
+  test-validator.sh             # fixture-based test runner
+  fixtures/                     # bad-* and purity-* fixtures
 ```
 
 ## 5. Invocation surface
@@ -270,7 +278,7 @@ Bump marketplace `metadata.version` (per the project memory rule on adding plugi
 
 Doc-only plugin, no TS build.
 
-`scripts/validate-rules.sh` (Bash, `set -euo pipefail`):
+`tools/old-react/validate-rules.sh` (Bash, `set -euo pipefail`; lives at the repo root, **not** under `plugins/old-react/`, so the skill's marketplace install does not ship dev-time tooling to users):
 
 - For each `rules/*.md` not starting with `_`:
   - Frontmatter present with required keys: `title`, `slug`, `category`, `impact`, `tags`.
