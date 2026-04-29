@@ -26,4 +26,10 @@ if ! "$VALIDATOR" "$FIXTURES/purity-good-minimal.md" >/dev/null 2>&1; then
 fi
 pass "accepted purity-good-minimal"
 
+echo "Test 4: validator rejects file whose Correct section has no fenced block"
+if "$VALIDATOR" "$FIXTURES/purity-fence-only-under-incorrect.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-fence-only-under-incorrect.md (Correct has no fence)"
+fi
+pass "rejected fence-only-under-incorrect"
+
 echo "All validator tests passed."

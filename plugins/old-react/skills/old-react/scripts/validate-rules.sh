@@ -73,12 +73,27 @@ validate_file() {
   grep -q '\*\*Incorrect\*\*' "$file" || die "$file" "missing **Incorrect** marker"
   grep -q '\*\*Correct\*\*' "$file" || die "$file" "missing **Correct** marker"
 
-  # 9. Has at least two fenced code blocks (one per Incorrect/Correct)
-  local fence_count
-  fence_count="$(grep -c '^```' "$file" || true)"
-  if [ "$fence_count" -lt 4 ]; then
-    die "$file" "expected at least 2 fenced code blocks (4 fence lines), got $fence_count fence lines"
-  fi
+  # 9. At least one fenced code block under each marker section. A global
+  #    fence-count check would accept a file whose blocks all live under
+  #    **Incorrect**, leaving **Correct** without an example.
+  local section_counts inc_fences cor_fences
+  section_counts="$(awk '
+    BEGIN { state = "pre"; inc = 0; cor = 0; in_fence = 0 }
+    /\*\*Incorrect\*\*/ { state = "inc"; next }
+    /\*\*Correct\*\*/   { state = "cor"; next }
+    /^```/ {
+      in_fence = !in_fence
+      if (in_fence) {
+        if (state == "inc") inc++
+        else if (state == "cor") cor++
+      }
+    }
+    END { print inc, cor }
+  ' "$file")"
+  inc_fences="${section_counts% *}"
+  cor_fences="${section_counts#* }"
+  [ "$inc_fences" -ge 1 ] || die "$file" "no fenced code block under **Incorrect** section"
+  [ "$cor_fences" -ge 1 ] || die "$file" "no fenced code block under **Correct** section"
 
   echo "OK: $file"
 }
