@@ -269,7 +269,7 @@ Bump marketplace `metadata.version` (per the project memory rule on adding plugi
 
 Doc-only plugin, no TS build.
 
-`scripts/validate-rules.sh` (POSIX shell, `set -euo pipefail`):
+`scripts/validate-rules.sh` (Bash, `set -euo pipefail`):
 
 - For each `rules/*.md` not starting with `_`:
   - Frontmatter present with required keys: `title`, `slug`, `category`, `impact`, `tags`.

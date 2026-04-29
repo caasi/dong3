@@ -12,9 +12,9 @@
 
 **Goal:** Build the `old-react` plugin v0.1.0 — a doc-only Claude Code skill that reviews and refactors pre-RSC React code using FP-thinking rules grounded in render purity, immutable updates, and the Elm Architecture.
 
-**Architecture:** Single plugin at `plugins/old-react/` with one skill (`old-react`), one slash command (`/old-react`), rule files under `rules/`, 5 reference docs, and a POSIX-shell rule validator. No build system — pure Markdown + JSON + bash. Marketplace registers the plugin at v0.1.0; `metadata.version` bumps from `1.1.0` → `1.2.0`.
+**Architecture:** Single plugin at `plugins/old-react/` with one skill (`old-react`), one slash command (`/old-react`), rule files under `rules/`, 5 reference docs, and a Bash rule validator. No build system — pure Markdown + JSON + bash. Marketplace registers the plugin at v0.1.0; `metadata.version` bumps from `1.1.0` → `1.2.0`.
 
-**Tech Stack:** Markdown (rules, references, SKILL.md, README.md), JSON (plugin.json, marketplace.json), POSIX shell (validator).
+**Tech Stack:** Markdown (rules, references, SKILL.md, README.md), JSON (plugin.json, marketplace.json), Bash (validator with `set -euo pipefail`).
 
 **Spec:** `docs/superpowers/specs/001-old-react-skill-design.md`
 
