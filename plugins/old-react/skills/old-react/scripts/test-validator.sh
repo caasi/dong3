@@ -15,8 +15,8 @@ fi
 pass "rejected missing frontmatter"
 
 echo "Test 2: validator rejects file with missing Correct block"
-if "$VALIDATOR" "$FIXTURES/bad-missing-correct-block.md" >/dev/null 2>&1; then
-  fail "validator accepted bad-missing-correct-block.md"
+if "$VALIDATOR" "$FIXTURES/purity-missing-correct.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-missing-correct.md"
 fi
 pass "rejected missing Correct block"
 
