@@ -83,51 +83,55 @@ validate_file() {
   # 6. slug matches filename basename
   [ "$slug" = "$base" ] || die "$file" "slug '$slug' does not match filename basename '$base'"
 
-  # 7. Body has a real "## $title" H2 heading. grep -qF would also match
-  #    the literal string inside prose or code fences, producing false
-  #    passes. Require an actual heading line outside any fenced block.
+  # 7. Body has a real "## $title" H2 heading. Must be a heading line in
+  #    body (not in frontmatter, not inside a code fence).
   awk -v t="## $title" '
+    NR == 1 && /^---$/ { in_fm = 1; next }
+    in_fm && /^---$/ { in_fm = 0; next }
+    in_fm { next }
     /^```/ { in_fence = !in_fence; next }
     !in_fence && $0 == t { found = 1 }
     END { exit !found }
   ' "$file" || die "$file" "missing '## $title' heading in body (must be a real H2 outside fences)"
 
-  # 8. Has Incorrect and Correct markers
-  grep -q '\*\*Incorrect\*\*' "$file" || die "$file" "missing **Incorrect** marker"
-  grep -q '\*\*Correct\*\*' "$file" || die "$file" "missing **Correct** marker"
-
-  # 9. At least one *balanced* fenced code block under each marker section.
-  #    Counting only openers would accept (a) a file whose blocks all live
-  #    under **Incorrect** with **Correct** empty, or (b) a file with an
-  #    unclosed fence that the markdown renderer would treat as broken.
-  #    Count completed pairs per section (close ``` increments under the
-  #    section that opened it), and reject if any opener is left dangling.
-  local section_counts inc_fences cor_fences
-  section_counts="$(awk '
-    BEGIN { state = "pre"; inc = 0; cor = 0; in_fence = 0; opener_state = "" }
-    /\*\*Incorrect\*\*/ { state = "inc"; next }
-    /\*\*Correct\*\*/   { state = "cor"; next }
+  # 8 + 9. Markers + per-section fence balance, in a single awk pass.
+  #    Marker detection must skip both frontmatter and fenced code blocks,
+  #    otherwise a code block containing the literal string **Incorrect**
+  #    would be mistaken for a section marker. Fence balance must count
+  #    completed open/close pairs (mere opener counting accepts unclosed
+  #    fences and mis-attributes when a missing close happens to align with
+  #    the next section's opener).
+  local marker_check mi mc inc_fences cor_fences
+  marker_check="$(awk '
+    BEGIN { state = "pre"; opener_state = ""; in_fm = 0; in_fence = 0;
+            mi = 0; mc = 0; inc = 0; cor = 0 }
+    NR == 1 && /^---$/ { in_fm = 1; next }
+    in_fm && /^---$/ { in_fm = 0; next }
+    in_fm { next }
     /^```/ {
       if (in_fence) {
         if (opener_state == "inc") inc++
         else if (opener_state == "cor") cor++
-        in_fence = 0
-        opener_state = ""
+        in_fence = 0; opener_state = ""
       } else {
-        in_fence = 1
-        opener_state = state
+        in_fence = 1; opener_state = state
       }
+      next
     }
+    in_fence { next }
+    /\*\*Incorrect\*\*/ { mi = 1; state = "inc"; next }
+    /\*\*Correct\*\*/   { mc = 1; state = "cor"; next }
     END {
-      if (in_fence) print "unclosed"
-      else print inc, cor
+      if (in_fence) print "unclosed_fence"
+      else printf "%d %d %d %d\n", mi, mc, inc, cor
     }
   ' "$file")"
-  if [ "$section_counts" = "unclosed" ]; then
+  if [ "$marker_check" = "unclosed_fence" ]; then
     die "$file" "unclosed fenced code block (missing closing \`\`\`)"
   fi
-  inc_fences="${section_counts% *}"
-  cor_fences="${section_counts#* }"
+  read -r mi mc inc_fences cor_fences <<< "$marker_check"
+  [ "$mi" = "1" ] || die "$file" "missing **Incorrect** marker (must appear in body, outside fences)"
+  [ "$mc" = "1" ] || die "$file" "missing **Correct** marker (must appear in body, outside fences)"
   [ "$inc_fences" -ge 1 ] || die "$file" "no fenced code block under **Incorrect** section"
   [ "$cor_fences" -ge 1 ] || die "$file" "no fenced code block under **Correct** section"
 

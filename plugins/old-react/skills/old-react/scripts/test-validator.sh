@@ -56,4 +56,10 @@ if "$VALIDATOR" "$FIXTURES/purity-title-only-in-fence.md" >/dev/null 2>&1; then
 fi
 pass "rejected purity-title-only-in-fence"
 
+echo "Test 9: validator rejects file whose markers exist only inside a code fence"
+if "$VALIDATOR" "$FIXTURES/purity-markers-only-in-fence.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-markers-only-in-fence.md (markers not in body)"
+fi
+pass "rejected purity-markers-only-in-fence"
+
 echo "All validator tests passed."
