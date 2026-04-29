@@ -1,0 +1,21 @@
+{
+  "name": "old-react",
+  "description": "FP-thinking review and refactor rules for pre-RSC React projects",
+  "author": {
+    "name": "caasi"
+  },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "functional-programming",
+    "elm-architecture",
+    "redux",
+    "code-review",
+    "refactor",
+    "pre-rsc"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
