@@ -293,9 +293,9 @@ Optional later: build a small `rules/_index.json` consumed by SKILL.md's rule-in
 
 ## 14. Versioning
 
-- v0.1.0: skeleton plugin + 14 rules (2 per category) + 5 reference docs + slash command + validator.
-- v0.2.0: fill remaining 26 rules.
-- v0.3.0+: react to user feedback (which rules fire, false positives, missing patterns).
+- v0.1.0: skeleton plugin + 7 architectural rules (model 3, effect 2, compose 2) + 6 reference docs + slash command + validator (lives at repo-level `tools/old-react/`, not shipped to skill users). Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) and one `compose-` rule defer to existing tooling — see §9.
+- v0.2.0+: open backlog. Add a rule only when a recurring architectural failure surfaces in real review and is not already enforced by lint or types. The total rule count is open and may stay under 10. See §9 for the candidate list.
+- v0.x.x: react to user feedback (which rules fire, false positives, missing patterns).
 
 ## 15. Out-of-scope follow-ups (not implemented in v0.1.0)
 
