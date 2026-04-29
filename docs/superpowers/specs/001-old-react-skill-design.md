@@ -14,7 +14,7 @@ A Claude Code skill that teaches **FP thinking in React UI development** — rev
 
 The skill ships *only* the rules that the type system and existing linters cannot already enforce. `eslint-plugin-react-hooks` v5+ already covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, and exhaustive-deps via the `recommended-latest` preset (per `docs/old-react.md` §9); TypeScript discriminated unions cover the static shape of labeled transitions; `react/no-unstable-nested-components` covers nested-component instability. Where existing tooling speaks, the skill stays quiet. Where the gap is architectural — state ownership, effects-as-data, controlled-component shape, container/presenter splits — the skill names a principle and gives a concrete violation/fix pair.
 
-The total rule count is open. v0.1.0 ships 6 rules; v1.0 may ship under 10. The skill is judged by signal-to-noise, not by category coverage. See §9.
+The total rule count is open. v0.1.0 ships 7 rules; v1.0 may ship under 10. The skill is judged by signal-to-noise, not by category coverage. See §9.
 
 The skill is **library-agnostic** in the rule body — examples use raw React/JS only. A separate `references/lib-suggestions.md` maps user-chosen libraries (Redux Toolkit, MobX, TanStack Query, Reselect, Immer, XState, RxJS) to the FP principles they embody.
 
@@ -63,6 +63,7 @@ plugins/old-react/
         effect-emit-named-actions.md
         ...
         compose-leaf-purity.md
+        compose-effects-at-page-boundary.md
         ...
       references/
         fp-thinking.md
@@ -189,13 +190,13 @@ What we will do:
 
 ### v0.1.0 — what ships
 
-6 architectural rules in three categories:
+7 architectural rules in three categories:
 
 | Category | v0.1.0 slugs | Why it ships (linter/type-system gap) |
 |----------|--------------|----------------------------------------|
 | `model-` | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` | Architecture of state ownership. No linter reasons about whether two components mirror the same value, whether a derivation should be cached vs computed, or whether an input is controlled. |
 | `effect-` | `effect-emit-named-actions`, `effect-setup-cleanup-pair` | Whether a thunk emits a named action vs. mutates the store directly is an architectural choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
-| `compose-` | `compose-leaf-purity` | Presentational/container split is an architectural call about *what* a component reads, not its syntactic shape. |
+| `compose-` | `compose-leaf-purity`, `compose-effects-at-page-boundary` | Presentational/container split is an architectural call about *what* a component reads. The page-boundary rule captures the inverse — *where* effects live (Functional Core, Imperative Shell, modernised with hooks). Neither shape is a syntactic check. |
 
 ### v0.2.0+ — open backlog
 
