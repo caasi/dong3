@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "caasi's plugin collection for Claude Code",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -44,6 +44,12 @@
       "source": "./plugins/constraint",
       "description": "Natural language constraints → deterministic test artifacts. Write constraints in structured Markdown, generate unit tests / PBT / mutation tests, enforce with deterministic tools.",
       "version": "0.2.1"
+    },
+    {
+      "name": "old-react",
+      "source": "./plugins/old-react",
+      "description": "FP-thinking review and refactor rules for pre-RSC React projects",
+      "version": "0.1.0"
     }
   ]
 }
