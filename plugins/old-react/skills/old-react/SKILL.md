@@ -57,13 +57,13 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 
 | Prefix | Concern | v0.1.0 rules |
 |--------|---------|--------------|
-| `purity-` | Pure render and update | *(deferred to v0.2.0; covered by `react-hooks/purity`, `react-hooks/set-state-in-render`)* |
-| `immutable-` | Update mechanics | *(deferred to v0.2.0; covered by `react-hooks/immutability`)* |
+| `purity-` | Pure render and update | *(deferred to v0.2.0; covered by the `purity` and `set-state-in-render` diagnostics)* |
+| `immutable-` | Update mechanics | *(deferred to v0.2.0; covered by the `immutability` diagnostic)* |
 | `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` |
 | `message-` | Discrete labeled events | *(deferred to v0.2.0; TypeScript discriminated unions cover the type-level discipline)* |
 | `effect-` | Cmd/Sub-shaped effects | `effect-emit-named-actions`, `effect-setup-cleanup-pair` |
 | `hooks-` | React mechanism | *(deferred to v0.2.0; covered by `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`)* |
-| `compose-` | Composition | `compose-leaf-purity` *(`no-inline-components` covered by `react-hooks/static-components` and `react/no-unstable-nested-components`)* |
+| `compose-` | Composition | `compose-leaf-purity` *(`no-inline-components` covered by the `static-components` diagnostic and stable `react/no-unstable-nested-components`)* |
 
 Read individual rule files in `rules/<slug>.md` for the full why + Incorrect/Correct + deeper notes.
 

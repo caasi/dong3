@@ -180,7 +180,7 @@ The constraint is brand-name only. Pattern terms from TEA / Elm / functional voc
 What we will *not* do:
 - Reach for a fixed rule count.
 - Ship a rule because the category looks empty.
-- Duplicate `react-hooks/recommended-latest`, `react/no-unstable-nested-components`, or anything TypeScript discriminated unions already enforce.
+- Duplicate the `recommended-latest` preset (compiler-derived diagnostics: `purity`, `set-state-in-render`, `immutability`, `static-components`, etc.), `react/no-unstable-nested-components`, or anything TypeScript discriminated unions already enforce.
 
 What we will do:
 - Add a rule when a recurring architectural failure surfaces in real review and is not catchable by lint or types.
@@ -215,11 +215,11 @@ The list below is a working backlog of *candidate* rules. Each must justify itse
 
 | Skill rule | Covered by |
 |------------|------------|
-| `purity-no-nondeterminism-in-render` | `react-hooks/purity` (eslint-plugin-react-hooks v5+, `recommended-latest`) |
-| `purity-no-setstate-in-render` | `react-hooks/set-state-in-render` (same preset) |
-| `immutable-spread-not-mutate` | `react-hooks/immutability` (same preset) |
-| `immutable-no-array-index-mutation` | `react-hooks/immutability` (same preset) |
-| `compose-no-inline-components` | `react-hooks/static-components`; `react/no-unstable-nested-components` (eslint-plugin-react, stable) |
+| `purity-no-nondeterminism-in-render` | the `purity` diagnostic (eslint-plugin-react-hooks v5+, `recommended-latest` preset) |
+| `purity-no-setstate-in-render` | the `set-state-in-render` diagnostic (same preset) |
+| `immutable-spread-not-mutate` | the `immutability` diagnostic (same preset) |
+| `immutable-no-array-index-mutation` | the `immutability` diagnostic (same preset) |
+| `compose-no-inline-components` | the `static-components` diagnostic; `react/no-unstable-nested-components` (eslint-plugin-react, stable) |
 | `hooks-top-level-only` | `react-hooks/rules-of-hooks` |
 | `hooks-exhaustive-deps` | `react-hooks/exhaustive-deps` |
 | Most of `message-` (static shape) | TypeScript discriminated unions on hook/function return types |

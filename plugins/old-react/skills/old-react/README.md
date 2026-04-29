@@ -8,8 +8,8 @@ A Claude Code skill that distills a lineage-aware view of React (2014–2023) in
 
 Four categories are deferred to v0.2.0 because existing tooling already enforces the highest-impact rules in those categories:
 
-- `purity-` — `react-hooks/purity` and `react-hooks/set-state-in-render` (eslint-plugin-react-hooks v5+, `recommended-latest` preset).
-- `immutable-` — `react-hooks/immutability` (same preset).
+- `purity-` — the `purity` and `set-state-in-render` diagnostics (compiler-derived; `eslint-plugin-react-hooks` v5+, `recommended-latest` preset).
+- `immutable-` — the `immutability` diagnostic (same preset).
 - `message-` — TypeScript discriminated-union return types encode the type-level discipline.
 - `hooks-` — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`.
 
