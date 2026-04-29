@@ -50,4 +50,10 @@ if "$VALIDATOR" "$FIXTURES/purity-unclosed-fence.md" >/dev/null 2>&1; then
 fi
 pass "rejected purity-unclosed-fence"
 
+echo "Test 8: validator rejects file whose title heading exists only inside a code fence"
+if "$VALIDATOR" "$FIXTURES/purity-title-only-in-fence.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-title-only-in-fence.md (title not a real H2)"
+fi
+pass "rejected purity-title-only-in-fence"
+
 echo "All validator tests passed."

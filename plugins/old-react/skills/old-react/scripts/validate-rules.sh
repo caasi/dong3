@@ -79,8 +79,14 @@ validate_file() {
   # 6. slug matches filename basename
   [ "$slug" = "$base" ] || die "$file" "slug '$slug' does not match filename basename '$base'"
 
-  # 7. Body has the title heading
-  grep -qF "## $title" "$file" || die "$file" "missing '## $title' heading in body"
+  # 7. Body has a real "## $title" H2 heading. grep -qF would also match
+  #    the literal string inside prose or code fences, producing false
+  #    passes. Require an actual heading line outside any fenced block.
+  awk -v t="## $title" '
+    /^```/ { in_fence = !in_fence; next }
+    !in_fence && $0 == t { found = 1 }
+    END { exit !found }
+  ' "$file" || die "$file" "missing '## $title' heading in body (must be a real H2 outside fences)"
 
   # 8. Has Incorrect and Correct markers
   grep -q '\*\*Incorrect\*\*' "$file" || die "$file" "missing **Incorrect** marker"
