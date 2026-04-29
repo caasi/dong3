@@ -27,13 +27,13 @@ The shape is grounded in the Elm Architecture (TEA): `Model`, `Msg`, `update`, `
 
 In any conversation:
 
-```
+```text
 review this React file with old-react
 ```
 
 Or use the slash command:
 
-```
+```text
 /old-react review src/Foo.tsx
 /old-react refactor src/Foo.tsx
 ```

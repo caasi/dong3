@@ -4,7 +4,7 @@ The Elm Architecture (TEA) is the structural shape behind every category in this
 
 ## TEA, in one paragraph
 
-```
+```elm
 type Model     = ...
 type Msg       = ...
 update         : Msg -> Model -> (Model, Cmd Msg)

@@ -20,7 +20,7 @@ Review and refactor pre-RSC React code using FP-thinking rules.
 
 This skill activates only when the user explicitly asks for review or refactor of pre-RSC React code, or invokes `/old-react`. Do not auto-apply during unrelated work.
 
-The skill assumes the user is maintaining code written between roughly 2014 and 2023: classes, then hooks, with Redux, MobX, observables, RxJS, and Cycle.js orbiting around it. It deliberately excludes RSC, `use(promise)`, `'use client'`, and `'use server'`. See the **Scope check** section for how to handle files that mix the two eras.
+The skill assumes the user is maintaining code written between roughly 2014 and 2023: classes, then hooks, with Redux, MobX, observables, RxJS, and Cycle.js orbiting around it. See the **Scope check** section for how it handles files that mix the two eras.
 
 ## Core lens (FP thinking)
 
@@ -36,7 +36,7 @@ The Elm Architecture (TEA) is the shape behind all three. See `references/tea-as
 
 Read the code. Surface violations grouped by category (`purity-`, `immutable-`, `model-`, `message-`, `effect-`, `hooks-`, `compose-`), prioritized within each group by impact (CRITICAL → HIGH → MEDIUM → LOW). For each finding emit:
 
-```
+```text
 [<rule-slug>] (<impact>) <file>:<line>
   <one-sentence why>
   Before: <minimal snippet>
@@ -53,16 +53,7 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 
 ## Rule index
 
-Seven categories. **The skill exists to teach FP thinking in React UI development, not to maximise rule count.** A rule ships only when a recurring architectural failure surfaces in real review and is not already caught by lint or types. The total may stay under 10 rules.
-
-v0.1.0 ships 6 architectural rules across three categories. The remaining four categories defer because existing tooling already enforces their highest-impact rules:
-
-- `purity-` — `react-hooks/purity` and `react-hooks/set-state-in-render` (eslint-plugin-react-hooks v6+, `recommended` preset).
-- `immutable-` — `react-hooks/immutability` (same preset).
-- `message-` — TypeScript discriminated-union return types encode the type-level discipline.
-- `hooks-` — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`.
-
-A category will only get a v0.2.0+ rule when a specific failure mode shows up that lint/types miss. The skill stays small on purpose.
+**The skill exists to teach FP thinking in React UI development, not to maximise rule count.** A rule ships only when a recurring architectural failure surfaces in real review and is not already caught by lint or types. The total may stay under 10 rules. Categories without v0.1.0 rules are not abandoned — they defer to existing tooling and add a rule only when a specific gap surfaces.
 
 | Prefix | Concern | v0.1.0 rules |
 |--------|---------|--------------|
