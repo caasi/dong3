@@ -74,4 +74,10 @@ if "$VALIDATOR" "$FIXTURES/purity-too-few-tags.md" >/dev/null 2>&1; then
 fi
 pass "rejected purity-too-few-tags"
 
+echo "Test 12: validator rejects unclosed frontmatter when body contains a Markdown horizontal rule"
+if "$VALIDATOR" "$FIXTURES/purity-frontmatter-body-hr.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-frontmatter-body-hr.md (body --- is not the frontmatter close)"
+fi
+pass "rejected purity-frontmatter-body-hr"
+
 echo "All validator tests passed."

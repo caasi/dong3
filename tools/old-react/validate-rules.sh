@@ -48,16 +48,29 @@ validate_file() {
   local base
   base="$(basename "$file" .md)"
 
-  # 0. File exists and is readable. Without this, head/awk would fail under
-  #    `set -e` with a generic system message instead of a structured FAIL.
+  # 0. File exists and is readable. Without these, head/awk would fail
+  #    under `set -e` with a generic system message instead of a
+  #    structured FAIL.
   [ -f "$file" ] || die "$file" "file not found"
+  [ -r "$file" ] || die "$file" "file is not readable"
 
   # 1. Has frontmatter — opens with `---` on line 1 and closes with another
-  #    `---` later. Without the close, extract_frontmatter_value would scan
-  #    body lines as candidate keys and produce false passes.
+  #    `---` before any body content. Without the close, extract_frontmatter_value
+  #    would scan body lines as candidate keys and produce false passes.
+  #    The close detector also rejects "the body has a `---` horizontal
+  #    rule but YAML frontmatter never closed": within the frontmatter
+  #    span, only blank lines, YAML comments, and `key:` lines are tolerated;
+  #    anything else (including a body H2) means frontmatter was unclosed.
   head -1 "$file" | grep -q '^---$' || die "$file" "missing frontmatter (no leading ---)"
-  awk 'NR == 1 && /^---$/ { next } /^---$/ { found = 1; exit } END { exit !found }' "$file" \
-    || die "$file" "missing frontmatter close (no second '---')"
+  awk '
+    NR == 1 && /^---$/ { in_fm = 1; next }
+    in_fm && /^---$/   { found = 1; exit }
+    in_fm && /^[[:space:]]*$/ { next }
+    in_fm && /^[[:space:]]*#/ { next }
+    in_fm && /^[a-zA-Z_-]+:/  { next }
+    in_fm { exit }
+    END { exit !found }
+  ' "$file" || die "$file" "missing frontmatter close (no second '---' before body content)"
 
   # 2. Required keys — extract each once; absent values fail fast.
   local title slug category impact tags
