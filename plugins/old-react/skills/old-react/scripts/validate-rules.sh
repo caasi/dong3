@@ -44,6 +44,10 @@ validate_file() {
   local base
   base="$(basename "$file" .md)"
 
+  # 0. File exists and is readable. Without this, head/awk would fail under
+  #    `set -e` with a generic system message instead of a structured FAIL.
+  [ -f "$file" ] || die "$file" "file not found"
+
   # 1. Has frontmatter — opens with `---` on line 1 and closes with another
   #    `---` later. Without the close, extract_frontmatter_value would scan
   #    body lines as candidate keys and produce false passes.
@@ -132,6 +136,7 @@ validate_file() {
 
 if [ "${1:-}" = "--all" ]; then
   rules_dir="${2:?--all requires a rules directory argument}"
+  [ -d "$rules_dir" ] || die "$rules_dir" "rules directory not found (or not a directory)"
   found_any=0
   for f in "$rules_dir"/*.md; do
     [ -e "$f" ] || continue
