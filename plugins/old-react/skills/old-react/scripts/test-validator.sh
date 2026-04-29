@@ -32,4 +32,10 @@ if "$VALIDATOR" "$FIXTURES/purity-fence-only-under-incorrect.md" >/dev/null 2>&1
 fi
 pass "rejected fence-only-under-incorrect"
 
+echo "Test 5: validator accepts frontmatter with YAML inline comments"
+if ! "$VALIDATOR" "$FIXTURES/purity-good-inline-comment.md" >/dev/null 2>&1; then
+  fail "validator rejected purity-good-inline-comment.md (inline comment not stripped)"
+fi
+pass "accepted purity-good-inline-comment"
+
 echo "All validator tests passed."

@@ -19,14 +19,22 @@ ALLOWED_IMPACTS="CRITICAL HIGH MEDIUM LOW"
 die() { echo "FAIL: $1: $2" >&2; exit 1; }
 
 # Extract a single YAML scalar (e.g. `slug: foo`) from a file's leading frontmatter.
-# Prints the value to stdout (empty if the key is absent).
+# Prints the value to stdout (empty if the key is absent). Trailing YAML inline
+# comments (whitespace then `#` to end of line) are stripped, matching the YAML
+# 1.2 rule that `#` introduces a comment only when preceded by whitespace.
+# Limitation: does not understand quoted strings — a `#` after whitespace inside
+# `"foo # bar"` would still be treated as a comment.
 extract_frontmatter_value() {
   local file="$1" key="$2"
   awk -v k="$key" '
     BEGIN { in_fm = 0 }
     NR == 1 && /^---$/ { in_fm = 1; next }
     in_fm && /^---$/ { in_fm = 0; exit }
-    in_fm && $1 == k":" { sub(/^[^:]+:[[:space:]]*/, ""); print; exit }
+    in_fm && $1 == k":" {
+      sub(/^[^:]+:[[:space:]]*/, "")
+      sub(/[[:space:]]+#.*$/, "")
+      print; exit
+    }
   ' "$file"
 }
 
