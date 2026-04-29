@@ -25,7 +25,7 @@ The skill distills §9 + §10 into operational rules that an agent can apply dur
 The historical chain that motivates the SSOT + time-travel framing:
 
 1. **Feb 2012** — Bret Victor, *"Inventing on Principle"*. Live coding demos. Principle: *"creators need an immediate connection to what they're creating."* Time-scrubbing UI = the motivating image.
-2. **2013** — Laszlo Pandy, Elm time-travelling debugger (Elm Workshop 2013). First production-grade implementation. Depends on **immutability + purity + TEA shape**.
+2. **Late 2013 → April 2014** — Laszlo Pandy and Evan Czaplicki, Elm time-travelling debugger. Public release and announcement April 2014 (`elm-lang.org/news/time-travel-made-easy`; Wadler's blog post May 2014). First production-grade implementation. Depends on **immutability + purity + TEA shape**.
 3. **Mid-2015** — Dan Abramov, Redux. TEA ported to JS with weaker types. `(state, action) → state` is Elm's `update : Msg → Model → Model` minus `Cmd`. Time-travel via Redux DevTools.
 
 The chain is causal, not coincidental. Each step preserves the substrate that makes time-travel possible: pure functions, immutable state, discrete labeled events. Drop any one and time-travel breaks.
@@ -111,7 +111,13 @@ Body sections, in order:
 4. **Mode: refactor** — propose minimal-diff transformations; one rule per commit-sized change; show before/after.
 5. **Rule index** — 7 categories table (prefix → category → impact range → rule count); list rule slugs grouped by category.
 6. **Output protocol** — review = grouped findings, each citing `<rule-slug>` + impact + before/after; refactor = unified diff per rule applied, with rationale.
-7. **Scope check** — if file contains `use(promise)`, `'use client'`, `'use server'`, or `async` server components, the skill states the limit and reviews only the parts in scope.
+7. **Scope check (concrete heuristic)** — applied per file before review:
+   - **File-level directives.** If line 1 of the file (after optional comments) is `'use client'` or `'use server'`, **skip the whole file** and report "out of scope: directive `'use <…>'` at line 1".
+   - **Async function components.** If a top-level component declaration is `async function` or `export default async function`, **skip the function body** but still review same-file pure helper functions and pure components that don't reference its result.
+   - **`use(promise)` / `use(context)` calls.** Skip the enclosing component body. Annotate the skipped span with line numbers in the review output.
+   - **Server actions** (functions starting with `'use server'` directive on line 1 of the function body): skip the function. Surrounding pure utilities still in scope.
+   - **Mixed file** (some functions in scope, some not): review only the in-scope functions; emit a "Skipped" section listing each out-of-scope span with file:line.
+   - **Refactor mode** never modifies skipped spans, even when other rules might apply tangentially.
 
 ## 7. Rule taxonomy
 
@@ -159,7 +165,18 @@ tags: [render, idempotence, ...]
 <optional 1–2 paragraph deeper context, may link to references/*.md>
 ```
 
-**No library names in the rule body.** Examples are raw React/JS only. Library hooks (e.g. "if you use Redux Toolkit, see `references/lib-suggestions.md#redux`") go at the end.
+**No library brand names in the rule body.** Library hooks (e.g. "if you use Redux Toolkit, see `references/lib-suggestions.md#redux`") go at the end of the rule file.
+
+**Allowed vocabulary** (FP/TEA pattern terms, not library brand names):
+`reducer`, `action`, `dispatch`, `store`, `message` / `Msg`, `command` / `Cmd`, `subscription` / `Sub`, `selector`, `state machine`, `observable` (as a concept), `tagged union`, `effect handler`.
+
+**Disallowed in rule body** (move to `references/lib-suggestions.md`):
+`Redux`, `Redux Toolkit`, `MobX`, `RxJS`, `TanStack Query`, `SWR`, `Reselect`, `Immer`, `XState`, `Cycle.js`, `Recoil`, `Jotai`, `Zustand`, `redux-saga`, `redux-observable`, `redux-thunk`.
+
+**Tag vocabulary** (closed set; add new tags via spec amendment, not ad hoc):
+`render`, `idempotence`, `update`, `state`, `mutation`, `derivation`, `events`, `effects`, `subscriptions`, `deps`, `composition`, `lifecycles`, `replay`, `ssot`, `purity`, `keys`, `refs`, `reducer`, `memoization`.
+
+The constraint is brand-name only. Pattern terms from TEA / Elm / functional vocabulary are the *intended* language of rule bodies.
 
 ## 9. Rule budget
 
@@ -175,8 +192,19 @@ tags: [render, idempotence, ...]
 | `hooks-` | 5 | `top-level-only`, `exhaustive-deps`, `custom-hook-extract`, `no-defensive-memo`, `prefer-reducer` |
 | `compose-` | 5 | `function-over-hoc-pyramid`, `no-inline-components`, `leaf-purity`, `custom-hooks-not-render-props`, `slot-pattern-for-layout` |
 
-**v0.1.0 release:** ships ~14 rules (2 per category, highest-impact pick).
-**v0.2.0:** fills remaining ~26.
+**v0.1.0 release ships exactly 14 rules** (two highest-impact per category):
+
+| Category | v0.1.0 slugs |
+|----------|--------------|
+| `purity-` | `purity-no-nondeterminism-in-render`, `purity-no-setstate-in-render` |
+| `immutable-` | `immutable-spread-not-mutate`, `immutable-no-array-index-mutation` |
+| `model-` | `model-single-source-of-truth`, `model-derive-dont-store` |
+| `message-` | `message-transitions-as-events`, `message-reducer-for-correlated` |
+| `effect-` | `effect-as-description-not-thunk`, `effect-setup-cleanup-pair` |
+| `hooks-` | `hooks-top-level-only`, `hooks-exhaustive-deps` |
+| `compose-` | `compose-no-inline-components`, `compose-leaf-purity` |
+
+**v0.2.0:** fills the remaining 26 rules from §9.
 
 ## 10. Reference docs
 
