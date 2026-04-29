@@ -180,6 +180,8 @@ tags: [render, idempotence, ...]
 **Tag vocabulary** (closed set; add new tags via spec amendment, not ad hoc):
 `render`, `idempotence`, `update`, `state`, `mutation`, `derivation`, `events`, `effects`, `subscriptions`, `deps`, `composition`, `lifecycles`, `replay`, `ssot`, `purity`, `keys`, `refs`, `reducer`, `memoization`.
 
+**Tag count:** each rule's `tags` list must contain **two to four** entries from the closed set above. Two enforces "name at least two cross-cutting concerns this rule touches"; four caps the visual noise. The validator (`tools/old-react/validate-rules.sh`) enforces both the closed set membership and the `2..4` count.
+
 The constraint is brand-name only. Pattern terms from TEA / Elm / functional vocabulary are the *intended* language of rule bodies.
 
 ## 9. Rule scope
