@@ -8,7 +8,7 @@ A Claude Code skill that distills a lineage-aware view of React (2014–2023) in
 
 Four categories are deferred to v0.2.0 because existing tooling already enforces the highest-impact rules in those categories:
 
-- `purity-` — `react-hooks/purity` and `react-hooks/set-state-in-render` (eslint-plugin-react-hooks v6+, `recommended` preset).
+- `purity-` — `react-hooks/purity` and `react-hooks/set-state-in-render` (eslint-plugin-react-hooks v5+, `recommended-latest` preset).
 - `immutable-` — `react-hooks/immutability` (same preset).
 - `message-` — TypeScript discriminated-union return types encode the type-level discipline.
 - `hooks-` — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`.
@@ -54,7 +54,7 @@ Four categories deferred to v0.2.0: `purity-`, `immutable-`, `message-`, `hooks-
 
 ## Versioning
 
-- v0.1.0 — 6 architectural rules (model 3, effect 2, compose 1), 5 reference docs, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred; their highest-impact rules are already enforced by `eslint-plugin-react-hooks` v6+ (`react-hooks/recommended`).
+- v0.1.0 — 6 architectural rules (model 3, effect 2, compose 1), 5 reference docs, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred; their highest-impact rules are already enforced by `eslint-plugin-react-hooks` v5+ (`react-hooks/recommended-latest`).
 - **v0.2.0 and beyond — open backlog, not a fixed roadmap.** The point of the skill is FP thinking in React UI development, not rule count. A rule ships only when (a) a recurring architectural failure surfaces in real review and (b) the failure is *not* already caught by an existing linter or by TypeScript. The total may stay under 10 rules forever. See spec §9 for the candidate backlog.
 
 ## See also

@@ -12,7 +12,7 @@ A Claude Code skill that teaches **FP thinking in React UI development** — rev
 2. **Immutable updates** — never mutate state; structural sharing.
 3. **The Elm Architecture (TEA) as backbone** — Single Source of Truth (SSOT), discrete labeled messages, effects as descriptions, controlled components as continuations. This is the substrate that makes time-travel debugging possible.
 
-The skill ships *only* the rules that the type system and existing linters cannot already enforce. `eslint-plugin-react-hooks` v6+ already covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, and exhaustive-deps; TypeScript discriminated unions cover the static shape of labeled transitions; `react/no-unstable-nested-components` covers nested-component instability. Where existing tooling speaks, the skill stays quiet. Where the gap is architectural — state ownership, effects-as-data, controlled-component shape, container/presenter splits — the skill names a principle and gives a concrete violation/fix pair.
+The skill ships *only* the rules that the type system and existing linters cannot already enforce. `eslint-plugin-react-hooks` v5+ already covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, and exhaustive-deps via the `recommended-latest` preset (per `docs/old-react.md` §9); TypeScript discriminated unions cover the static shape of labeled transitions; `react/no-unstable-nested-components` covers nested-component instability. Where existing tooling speaks, the skill stays quiet. Where the gap is architectural — state ownership, effects-as-data, controlled-component shape, container/presenter splits — the skill names a principle and gives a concrete violation/fix pair.
 
 The total rule count is open. v0.1.0 ships 6 rules; v1.0 may ship under 10. The skill is judged by signal-to-noise, not by category coverage. See §9.
 
@@ -180,7 +180,7 @@ The constraint is brand-name only. Pattern terms from TEA / Elm / functional voc
 What we will *not* do:
 - Reach for a fixed rule count.
 - Ship a rule because the category looks empty.
-- Duplicate `react-hooks/recommended`, `react/no-unstable-nested-components`, or anything TypeScript discriminated unions already enforce.
+- Duplicate `react-hooks/recommended-latest`, `react/no-unstable-nested-components`, or anything TypeScript discriminated unions already enforce.
 
 What we will do:
 - Add a rule when a recurring architectural failure surfaces in real review and is not catchable by lint or types.
@@ -215,7 +215,7 @@ The list below is a working backlog of *candidate* rules. Each must justify itse
 
 | Skill rule | Covered by |
 |------------|------------|
-| `purity-no-nondeterminism-in-render` | `react-hooks/purity` (eslint-plugin-react-hooks v6+, `recommended`) |
+| `purity-no-nondeterminism-in-render` | `react-hooks/purity` (eslint-plugin-react-hooks v5+, `recommended-latest`) |
 | `purity-no-setstate-in-render` | `react-hooks/set-state-in-render` (same preset) |
 | `immutable-spread-not-mutate` | `react-hooks/immutability` (same preset) |
 | `immutable-no-array-index-mutation` | `react-hooks/immutability` (same preset) |
