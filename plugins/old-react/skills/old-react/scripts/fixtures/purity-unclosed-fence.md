@@ -3,7 +3,7 @@ title: Unclosed fence
 slug: purity-unclosed-fence
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Unclosed fence

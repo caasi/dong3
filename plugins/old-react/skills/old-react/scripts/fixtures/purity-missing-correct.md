@@ -3,7 +3,7 @@ title: Missing Correct
 slug: purity-missing-correct
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Missing Correct

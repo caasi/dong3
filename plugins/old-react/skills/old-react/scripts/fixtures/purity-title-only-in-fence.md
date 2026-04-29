@@ -3,7 +3,7 @@ title: Heading lives only in a code fence
 slug: purity-title-only-in-fence
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 This file's body never declares a real `## Heading lives only in a code

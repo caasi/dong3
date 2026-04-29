@@ -3,7 +3,7 @@ title: Good with inline comment # smoke test for comment stripping
 slug: purity-good-inline-comment
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Good with inline comment

@@ -3,7 +3,7 @@ title: Both blocks under Incorrect
 slug: purity-fence-only-under-incorrect
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Both blocks under Incorrect

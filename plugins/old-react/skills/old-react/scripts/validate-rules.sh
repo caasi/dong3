@@ -16,6 +16,10 @@ set -euo pipefail
 
 ALLOWED_CATEGORIES="purity immutable model message effect hooks compose"
 ALLOWED_IMPACTS="CRITICAL HIGH MEDIUM LOW"
+# Closed tag set, per spec section 8. Add new tags via spec amendment, not ad hoc.
+ALLOWED_TAGS="render idempotence update state mutation derivation events effects subscriptions deps composition lifecycles replay ssot purity keys refs reducer memoization"
+TAGS_MIN=2
+TAGS_MAX=4
 
 die() { echo "FAIL: $1: $2" >&2; exit 1; }
 
@@ -82,6 +86,29 @@ validate_file() {
 
   # 6. slug matches filename basename
   [ "$slug" = "$base" ] || die "$file" "slug '$slug' does not match filename basename '$base'"
+
+  # 6a. tags shape: bracketed list of $TAGS_MIN..$TAGS_MAX entries from the
+  #     closed set (spec section 8). Strip brackets, split on comma, trim
+  #     surrounding whitespace, then check count and membership.
+  case "$tags" in
+    \[*\]) ;;
+    *) die "$file" "tags '$tags' must be a bracketed list, e.g. [render, state]" ;;
+  esac
+  local tag_inner tag_count tag
+  tag_inner="${tags#\[}"; tag_inner="${tag_inner%\]}"
+  tag_count=0
+  IFS=',' read -ra _tag_arr <<< "$tag_inner"
+  for tag in "${_tag_arr[@]}"; do
+    tag="${tag#"${tag%%[![:space:]]*}"}"   # ltrim
+    tag="${tag%"${tag##*[![:space:]]}"}"   # rtrim
+    [ -n "$tag" ] || continue
+    tag_count=$((tag_count + 1))
+    echo "$ALLOWED_TAGS" | tr ' ' '\n' | grep -qx "$tag" \
+      || die "$file" "tag '$tag' not in closed set: $ALLOWED_TAGS"
+  done
+  if [ "$tag_count" -lt "$TAGS_MIN" ] || [ "$tag_count" -gt "$TAGS_MAX" ]; then
+    die "$file" "tags has $tag_count entries; spec requires $TAGS_MIN..$TAGS_MAX"
+  fi
 
   # 7. Body has a real "## $title" H2 heading. Must be a heading line in
   #    body (not in frontmatter, not inside a code fence).

@@ -3,7 +3,7 @@ title: Good Minimal
 slug: purity-good-minimal
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Good Minimal

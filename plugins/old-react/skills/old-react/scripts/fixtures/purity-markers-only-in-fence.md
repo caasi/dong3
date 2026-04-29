@@ -3,7 +3,7 @@ title: Markers only in fence
 slug: purity-markers-only-in-fence
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 ---
 
 ## Markers only in fence

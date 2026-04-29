@@ -3,7 +3,7 @@ title: Unclosed frontmatter
 slug: purity-unclosed-frontmatter
 category: purity
 impact: HIGH
-tags: [render]
+tags: [render, state]
 
 ## Unclosed frontmatter
 

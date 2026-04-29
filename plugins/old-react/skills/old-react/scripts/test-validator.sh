@@ -62,4 +62,16 @@ if "$VALIDATOR" "$FIXTURES/purity-markers-only-in-fence.md" >/dev/null 2>&1; the
 fi
 pass "rejected purity-markers-only-in-fence"
 
+echo "Test 10: validator rejects file with a tag not in the closed set"
+if "$VALIDATOR" "$FIXTURES/purity-bad-tag.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-bad-tag.md (tag 'foobar' is not in the closed set)"
+fi
+pass "rejected purity-bad-tag"
+
+echo "Test 11: validator rejects file whose tags array is too short"
+if "$VALIDATOR" "$FIXTURES/purity-too-few-tags.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-too-few-tags.md (only one tag, spec requires 2-4)"
+fi
+pass "rejected purity-too-few-tags"
+
 echo "All validator tests passed."
