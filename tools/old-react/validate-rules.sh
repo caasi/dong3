@@ -108,6 +108,7 @@ validate_file() {
     *) die "$file" "tags '$tags' must be a bracketed list, e.g. [render, state]" ;;
   esac
   local tag_inner tag_count tag
+  local -a _tag_arr
   tag_inner="${tags#\[}"; tag_inner="${tag_inner%\]}"
   tag_count=0
   IFS=',' read -ra _tag_arr <<< "$tag_inner"
