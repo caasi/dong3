@@ -43,8 +43,12 @@ validate_file() {
   local base
   base="$(basename "$file" .md)"
 
-  # 1. Has frontmatter
+  # 1. Has frontmatter — opens with `---` on line 1 and closes with another
+  #    `---` later. Without the close, extract_frontmatter_value would scan
+  #    body lines as candidate keys and produce false passes.
   head -1 "$file" | grep -q '^---$' || die "$file" "missing frontmatter (no leading ---)"
+  awk 'NR == 1 && /^---$/ { next } /^---$/ { found = 1; exit } END { exit !found }' "$file" \
+    || die "$file" "missing frontmatter close (no second '---')"
 
   # 2. Required keys — extract each once; absent values fail fast.
   local title slug category impact tags

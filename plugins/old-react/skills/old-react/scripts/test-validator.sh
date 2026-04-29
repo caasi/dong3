@@ -38,4 +38,10 @@ if ! "$VALIDATOR" "$FIXTURES/purity-good-inline-comment.md" >/dev/null 2>&1; the
 fi
 pass "accepted purity-good-inline-comment"
 
+echo "Test 6: validator rejects file with unclosed frontmatter"
+if "$VALIDATOR" "$FIXTURES/purity-unclosed-frontmatter.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-unclosed-frontmatter.md"
+fi
+pass "rejected purity-unclosed-frontmatter"
+
 echo "All validator tests passed."
