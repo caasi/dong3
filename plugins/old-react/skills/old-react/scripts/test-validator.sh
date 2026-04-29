@@ -44,4 +44,10 @@ if "$VALIDATOR" "$FIXTURES/purity-unclosed-frontmatter.md" >/dev/null 2>&1; then
 fi
 pass "rejected purity-unclosed-frontmatter"
 
+echo "Test 7: validator rejects file with an unclosed fenced code block"
+if "$VALIDATOR" "$FIXTURES/purity-unclosed-fence.md" >/dev/null 2>&1; then
+  fail "validator accepted purity-unclosed-fence.md"
+fi
+pass "rejected purity-unclosed-fence"
+
 echo "All validator tests passed."

@@ -7,7 +7,8 @@ set -euo pipefail
 #   - slug starts with category prefix and matches the filename basename
 #   - body has the "## <title>" heading
 #   - body has both **Incorrect** and **Correct** markers
-#   - body has at least one fenced code block per marker (>= 4 fence lines)
+#   - body has at least one balanced (open + close) fenced code block under
+#     each of the **Incorrect** and **Correct** markers
 #
 # Usage:
 #   validate-rules.sh <file.md>           # validate a single file
@@ -85,23 +86,36 @@ validate_file() {
   grep -q '\*\*Incorrect\*\*' "$file" || die "$file" "missing **Incorrect** marker"
   grep -q '\*\*Correct\*\*' "$file" || die "$file" "missing **Correct** marker"
 
-  # 9. At least one fenced code block under each marker section. A global
-  #    fence-count check would accept a file whose blocks all live under
-  #    **Incorrect**, leaving **Correct** without an example.
+  # 9. At least one *balanced* fenced code block under each marker section.
+  #    Counting only openers would accept (a) a file whose blocks all live
+  #    under **Incorrect** with **Correct** empty, or (b) a file with an
+  #    unclosed fence that the markdown renderer would treat as broken.
+  #    Count completed pairs per section (close ``` increments under the
+  #    section that opened it), and reject if any opener is left dangling.
   local section_counts inc_fences cor_fences
   section_counts="$(awk '
-    BEGIN { state = "pre"; inc = 0; cor = 0; in_fence = 0 }
+    BEGIN { state = "pre"; inc = 0; cor = 0; in_fence = 0; opener_state = "" }
     /\*\*Incorrect\*\*/ { state = "inc"; next }
     /\*\*Correct\*\*/   { state = "cor"; next }
     /^```/ {
-      in_fence = !in_fence
       if (in_fence) {
-        if (state == "inc") inc++
-        else if (state == "cor") cor++
+        if (opener_state == "inc") inc++
+        else if (opener_state == "cor") cor++
+        in_fence = 0
+        opener_state = ""
+      } else {
+        in_fence = 1
+        opener_state = state
       }
     }
-    END { print inc, cor }
+    END {
+      if (in_fence) print "unclosed"
+      else print inc, cor
+    }
   ' "$file")"
+  if [ "$section_counts" = "unclosed" ]; then
+    die "$file" "unclosed fenced code block (missing closing \`\`\`)"
+  fi
   inc_fences="${section_counts% *}"
   cor_fences="${section_counts#* }"
   [ "$inc_fences" -ge 1 ] || die "$file" "no fenced code block under **Incorrect** section"
