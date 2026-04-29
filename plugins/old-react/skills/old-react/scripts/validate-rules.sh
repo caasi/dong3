@@ -2,13 +2,12 @@
 set -euo pipefail
 
 # validate-rules.sh — verifies a rule file (or all rule files in rules/) has:
-#   1. YAML frontmatter with required keys: title, slug, category, impact, tags
-#   2. category in the closed set
-#   3. impact in the closed set
-#   4. slug starts with category prefix and matches filename basename
-#   5. body has "## <title>" heading
-#   6. body has both **Incorrect** and **Correct** markers
-#   7. body has at least one fenced code block after each marker
+#   - YAML frontmatter with required keys: title, slug, category, impact, tags
+#   - category in the closed set; impact in the closed set
+#   - slug starts with category prefix and matches the filename basename
+#   - body has the "## <title>" heading
+#   - body has both **Incorrect** and **Correct** markers
+#   - body has at least one fenced code block per marker (>= 4 fence lines)
 #
 # Usage:
 #   validate-rules.sh <file.md>           # validate a single file
@@ -19,6 +18,8 @@ ALLOWED_IMPACTS="CRITICAL HIGH MEDIUM LOW"
 
 die() { echo "FAIL: $1: $2" >&2; exit 1; }
 
+# Extract a single YAML scalar (e.g. `slug: foo`) from a file's leading frontmatter.
+# Prints the value to stdout (empty if the key is absent).
 extract_frontmatter_value() {
   local file="$1" key="$2"
   awk -v k="$key" '
@@ -37,18 +38,16 @@ validate_file() {
   # 1. Has frontmatter
   head -1 "$file" | grep -q '^---$' || die "$file" "missing frontmatter (no leading ---)"
 
-  # 2. Required keys
-  for key in title slug category impact tags; do
-    local value
-    value="$(extract_frontmatter_value "$file" "$key")"
-    [ -n "$value" ] || die "$file" "missing frontmatter key '$key'"
-  done
-
-  local title slug category impact
+  # 2. Required keys — extract each once; absent values fail fast.
+  local title slug category impact tags
   title="$(extract_frontmatter_value "$file" title)"
   slug="$(extract_frontmatter_value "$file" slug)"
   category="$(extract_frontmatter_value "$file" category)"
   impact="$(extract_frontmatter_value "$file" impact)"
+  tags="$(extract_frontmatter_value "$file" tags)"
+  for key_value in "title:$title" "slug:$slug" "category:$category" "impact:$impact" "tags:$tags"; do
+    [ -n "${key_value#*:}" ] || die "$file" "missing frontmatter key '${key_value%%:*}'"
+  done
 
   # 3. category in allowed set
   echo "$ALLOWED_CATEGORIES" | tr ' ' '\n' | grep -qx "$category" \
