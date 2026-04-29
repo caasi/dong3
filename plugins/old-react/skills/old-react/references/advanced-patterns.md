@@ -1,10 +1,10 @@
-## Advanced patterns and hints
+# Advanced patterns and hints
 
 Patterns and mental models worth knowing but **not** enforced as rules. Use them as inspiration when the v0.1.0 rules feel constraining, when designing v0.2.0 candidates, or when explaining the FP-thinking lens to a teammate. None of these belong in `rules/` until they earn their slot through real review experience.
 
 > Where existing tooling already encodes a pattern, the skill prefers to point at the tooling rather than restate it. The notes below call out which Redux ecosystem features cover the same ground.
 
-### Curried updates: object-as-last-parameter
+## Curried updates: object-as-last-parameter
 
 A small ergonomic trick from FP languages. Define update functions as `update(value)(target) -> target'`, with the target as the last parameter. The same function then composes across contexts:
 
@@ -25,7 +25,7 @@ Already covered by Redux: **Redux Toolkit's `createAction`** generates static ac
 
 Source: [COSCUP 2022 — FP frontend (caasih)](https://hackmd.io/@caasih/coscup-2022-fp-frontend-full).
 
-### Nested and composable actions
+## Nested and composable actions
 
 A root reducer handles the outer state envelope (loading / ok / error) and delegates inner actions to a domain-specific reducer:
 
@@ -61,7 +61,7 @@ Already covered by Redux: **`combineReducers`** is the canonical reducer-composi
 
 Source: same article.
 
-### CPS as the unifying React abstraction
+## CPS as the unifying React abstraction
 
 `Promise<T>`, `Observable<T>`, hooks (`useState`, `useEffect`), and `async/await` are all CPS transformations bridging "callback shape" and "linear-syntax shape". Modern front-ends "rush to implement what programming languages should do" — async/await is JS's CPS-to-direct-style transform; React Hooks are the UI-library version of the same:
 
@@ -83,7 +83,7 @@ This framing makes the entire async story (Hooks, Suspense, `use(promise)`) legi
 
 Source: same article.
 
-### Time and space duality
+## Time and space duality
 
 `useState` projects values across *time* — each render reads the latest. A complementary `useSpace` collects past renders into a *spatial* array, exposing the entire change history within a single render:
 
@@ -99,7 +99,7 @@ The author labels this 無用 (useless) because standard React APIs already solv
 
 Source: [無測無用 (caasih)](https://caasih.net/playground/useless).
 
-### When to reach for these
+## When to reach for these
 
 | Situation | Pattern |
 |-----------|---------|
