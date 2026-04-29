@@ -2,9 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the `old-react` plugin v0.1.0 — a doc-only Claude Code skill that reviews and refactors pre-RSC React code using 14 FP-thinking rules grounded in render purity, immutable updates, and the Elm Architecture.
+> **Post-execution amendment (2026-04-29).** This plan was executed task-by-task as written; the result was a 14-rule plugin. A subsequent rule-by-rule review changed the rule set. The remainder of this document describes the original 14-rule plan; reading it as historical record is fine, but the *current* rule set lives in `plugins/old-react/skills/old-react/rules/` and the spec at `docs/superpowers/specs/001-old-react-skill-design.md`. Net change: −9 (removed) +1 (added) = 6 rules across three categories (model, effect, compose). See git log on `feat/old-react-skill` for the full sequence.
+>
+> **Why fewer rules:** four categories (`purity-`, `immutable-`, `message-`, `hooks-`) and one rule (`compose-no-inline-components`) defer to existing tooling — `eslint-plugin-react-hooks` v6+ (`react-hooks/recommended` covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, exhaustive-deps), `eslint-plugin-react` (`react/no-unstable-nested-components`), and TypeScript discriminated unions (handle the static shape of labeled transitions). v0.1.0 ships only architectural rules where neither the type system nor existing linters provide equivalent coverage.
+>
+> **Added during review:** `model-controlled-by-default` — controlled component as `view : Model → Html Msg` made literal, with the continuation framing the user identified as core to the FP-thinking pitch.
+>
+> **Philosophy update.** The original "40 rules total, 14 in v0.1.0, 26 in v0.2.0" framing was a sketch of the design space, not a budget. The skill is judged by **signal-to-noise** for FP thinking in React UI development, not by category coverage. The total rule count is open: v1.0 may ship under 10 rules. v0.2.0 will add a rule only when a recurring architectural failure surfaces in real review and is not already enforced by lint or types — see spec §9 for the candidate backlog (working list, not a roadmap). Everything in this plan that talks about specific rule counts ("ships exactly 14 rules", "fills the remaining 26 rules") is superseded by the spec.
 
-**Architecture:** Single plugin at `plugins/old-react/` with one skill (`old-react`), one slash command (`/old-react`), 14 rule files (2 per category × 7 categories), 5 reference docs, and a POSIX-shell rule validator. No build system — pure Markdown + JSON + bash. Marketplace registers the plugin at v0.1.0; `metadata.version` bumps from `1.1.0` → `1.2.0`.
+**Goal:** Build the `old-react` plugin v0.1.0 — a doc-only Claude Code skill that reviews and refactors pre-RSC React code using FP-thinking rules grounded in render purity, immutable updates, and the Elm Architecture.
+
+**Architecture:** Single plugin at `plugins/old-react/` with one skill (`old-react`), one slash command (`/old-react`), rule files under `rules/`, 5 reference docs, and a POSIX-shell rule validator. No build system — pure Markdown + JSON + bash. Marketplace registers the plugin at v0.1.0; `metadata.version` bumps from `1.1.0` → `1.2.0`.
 
 **Tech Stack:** Markdown (rules, references, SKILL.md, README.md), JSON (plugin.json, marketplace.json), POSIX shell (validator).
 

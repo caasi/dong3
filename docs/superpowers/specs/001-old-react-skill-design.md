@@ -6,11 +6,15 @@
 
 ## 1. Purpose
 
-A Claude Code skill that reviews and refactors React code in pre-RSC projects (classes, hooks, Redux/MobX/observable, Reselect, Immer) using **FP-thinking rules** grounded in:
+A Claude Code skill that teaches **FP thinking in React UI development** — reviewing and refactoring pre-RSC React code (classes, hooks, Redux/MobX/observable, Reselect, Immer) through the lens of:
 
 1. **Render purity** — `view = f(model)`, no side effects in render.
 2. **Immutable updates** — never mutate state; structural sharing.
-3. **The Elm Architecture (TEA) as backbone** — Single Source of Truth (SSOT), discrete labeled messages, effects as descriptions. This is the substrate that makes time-travel debugging possible.
+3. **The Elm Architecture (TEA) as backbone** — Single Source of Truth (SSOT), discrete labeled messages, effects as descriptions, controlled components as continuations. This is the substrate that makes time-travel debugging possible.
+
+The skill ships *only* the rules that the type system and existing linters cannot already enforce. `eslint-plugin-react-hooks` v6+ already covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, and exhaustive-deps; TypeScript discriminated unions cover the static shape of labeled transitions; `react/no-unstable-nested-components` covers nested-component instability. Where existing tooling speaks, the skill stays quiet. Where the gap is architectural — state ownership, effects-as-data, controlled-component shape, container/presenter splits — the skill names a principle and gives a concrete violation/fix pair.
+
+The total rule count is open. v0.1.0 ships 6 rules; v1.0 may ship under 10. The skill is judged by signal-to-noise, not by category coverage. See §9.
 
 The skill is **library-agnostic** in the rule body — examples use raw React/JS only. A separate `references/lib-suggestions.md` maps user-chosen libraries (Redux Toolkit, MobX, TanStack Query, Reselect, Immer, XState, RxJS) to the FP principles they embody.
 
@@ -54,20 +58,11 @@ plugins/old-react/
       rules/
         _template.md              # rule file template (excluded from build)
         _sections.md              # category metadata (excluded)
-        purity-no-nondeterminism-in-render.md
-        purity-no-setstate-in-render.md
-        ...
-        immutable-spread-not-mutate.md
-        ...
         model-single-source-of-truth.md
-        ...
-        message-transitions-as-events.md
         ...
         effect-as-description-not-thunk.md
         ...
-        hooks-top-level-only.md
-        ...
-        compose-no-inline-components.md
+        compose-leaf-purity.md
         ...
       references/
         fp-thinking.md
@@ -178,33 +173,56 @@ tags: [render, idempotence, ...]
 
 The constraint is brand-name only. Pattern terms from TEA / Elm / functional vocabulary are the *intended* language of rule bodies.
 
-## 9. Rule budget
+## 9. Rule scope
 
-40 rules total, distributed:
+**The point of this skill is FP thinking in React UI development — TEA shape, pure render, immutable updates, effects-as-data, controlled components as continuations. Rules exist only where existing tooling does not already encode that lens. The total rule count is open: we add a rule when we find a recurring failure mode the type system and linters cannot catch, and we drop a rule the moment a linter ships an equivalent. Anything under ten rules is fine; under five is fine. The earlier "40 rules" target was a rough sketch of the design space, not a budget.**
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| `purity-` | 6 | `no-nondeterminism-in-render`, `no-setstate-in-render`, `no-ref-read-in-render`, `idempotent-derivations`, `pure-update-functions`, `deterministic-keys` |
-| `immutable-` | 5 | `spread-not-mutate`, `no-array-index-mutation`, `immer-shape-for-deep`, `stable-refs-via-memo`, `copy-on-write` |
-| `model-` | 7 | `single-source-of-truth`, `push-down-default`, `lift-to-lca`, `derive-dont-store`, `normalize-collections`, `no-parallel-state`, `server-vs-client-state` |
-| `message-` | 5 | `transitions-as-events`, `reducer-for-correlated`, `action-shape-tagged-union`, `exhaustive-handling`, `replayable-from-log` |
-| `effect-` | 7 | `as-description-not-thunk`, `setup-cleanup-pair`, `deps-honest`, `separate-render-from-effect`, `event-vs-effect`, `async-state-machine`, `no-imperative-subscription` |
-| `hooks-` | 5 | `top-level-only`, `exhaustive-deps`, `custom-hook-extract`, `no-defensive-memo`, `prefer-reducer` |
-| `compose-` | 5 | `function-over-hoc-pyramid`, `no-inline-components`, `leaf-purity`, `custom-hooks-not-render-props`, `slot-pattern-for-layout` |
+What we will *not* do:
+- Reach for a fixed rule count.
+- Ship a rule because the category looks empty.
+- Duplicate `react-hooks/recommended`, `react/no-unstable-nested-components`, or anything TypeScript discriminated unions already enforce.
 
-**v0.1.0 release ships exactly 14 rules** (two highest-impact per category):
+What we will do:
+- Add a rule when a recurring architectural failure surfaces in real review and is not catchable by lint or types.
+- Phrase rules as principles (with concrete violation/fix examples), not as procedural checks.
+- Cite the linter or type-level mechanism that *does* cover any adjacent surface, so readers know the boundary.
 
-| Category | v0.1.0 slugs |
-|----------|--------------|
-| `purity-` | `purity-no-nondeterminism-in-render`, `purity-no-setstate-in-render` |
-| `immutable-` | `immutable-spread-not-mutate`, `immutable-no-array-index-mutation` |
-| `model-` | `model-single-source-of-truth`, `model-derive-dont-store` |
-| `message-` | `message-transitions-as-events`, `message-reducer-for-correlated` |
-| `effect-` | `effect-as-description-not-thunk`, `effect-setup-cleanup-pair` |
-| `hooks-` | `hooks-top-level-only`, `hooks-exhaustive-deps` |
-| `compose-` | `compose-no-inline-components`, `compose-leaf-purity` |
+### v0.1.0 — what ships
 
-**v0.2.0:** fills the remaining 26 rules from §9.
+6 architectural rules in three categories:
+
+| Category | v0.1.0 slugs | Why it ships (linter/type-system gap) |
+|----------|--------------|----------------------------------------|
+| `model-` | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` | Architecture of state ownership. No linter reasons about whether two components mirror the same value, whether a derivation should be cached vs computed, or whether an input is controlled. |
+| `effect-` | `effect-as-description-not-thunk`, `effect-setup-cleanup-pair` | Effect-as-data is a design choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
+| `compose-` | `compose-leaf-purity` | Presentational/container split is an architectural call about *what* a component reads, not its syntactic shape. |
+
+### v0.2.0+ — open backlog
+
+The list below is a working backlog of *candidate* rules. Each must justify itself against the FP-thinking lens and against existing tooling at the time of authoring. Many of these may turn out to be unnecessary in practice — if a rule does not fire in real reviews, it does not ship. The skill should stay small.
+
+| Category | Candidate slugs (not commitments) |
+|----------|------------------------------------|
+| `purity-` | `no-ref-read-in-render`, `idempotent-derivations`, `pure-update-functions`, `deterministic-keys` |
+| `immutable-` | `immer-shape-for-deep`, `stable-refs-via-memo`, `copy-on-write` |
+| `model-` | `push-down-default`, `lift-to-lca`, `normalize-collections`, `no-parallel-state`, `server-vs-client-state` |
+| `message-` | `transitions-as-events`, `reducer-for-correlated`, `action-shape-tagged-union`, `exhaustive-handling`, `replayable-from-log` |
+| `effect-` | `deps-honest`, `separate-render-from-effect`, `event-vs-effect`, `async-state-machine`, `no-imperative-subscription` |
+| `hooks-` | `custom-hook-extract`, `no-defensive-memo`, `prefer-reducer` |
+| `compose-` | `function-over-hoc-pyramid`, `custom-hooks-not-render-props`, `slot-pattern-for-layout` |
+
+### Already covered (will not ship as skill rules)
+
+| Skill rule | Covered by |
+|------------|------------|
+| `purity-no-nondeterminism-in-render` | `react-hooks/purity` (eslint-plugin-react-hooks v6+, `recommended`) |
+| `purity-no-setstate-in-render` | `react-hooks/set-state-in-render` (same preset) |
+| `immutable-spread-not-mutate` | `react-hooks/immutability` (same preset) |
+| `immutable-no-array-index-mutation` | `react-hooks/immutability` (same preset) |
+| `compose-no-inline-components` | `react-hooks/static-components`; `react/no-unstable-nested-components` (eslint-plugin-react, stable) |
+| `hooks-top-level-only` | `react-hooks/rules-of-hooks` |
+| `hooks-exhaustive-deps` | `react-hooks/exhaustive-deps` |
+| Most of `message-` (static shape) | TypeScript discriminated unions on hook/function return types |
 
 ## 10. Reference docs
 
