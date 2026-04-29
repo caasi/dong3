@@ -60,7 +60,7 @@ plugins/old-react/
         _sections.md              # category metadata (excluded)
         model-single-source-of-truth.md
         ...
-        effect-as-description-not-thunk.md
+        effect-emit-named-actions.md
         ...
         compose-leaf-purity.md
         ...
@@ -194,7 +194,7 @@ What we will do:
 | Category | v0.1.0 slugs | Why it ships (linter/type-system gap) |
 |----------|--------------|----------------------------------------|
 | `model-` | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` | Architecture of state ownership. No linter reasons about whether two components mirror the same value, whether a derivation should be cached vs computed, or whether an input is controlled. |
-| `effect-` | `effect-as-description-not-thunk`, `effect-setup-cleanup-pair` | Effect-as-data is a design choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
+| `effect-` | `effect-emit-named-actions`, `effect-setup-cleanup-pair` | Whether a thunk emits a named action vs. mutates the store directly is an architectural choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
 | `compose-` | `compose-leaf-purity` | Presentational/container split is an architectural call about *what* a component reads, not its syntactic shape. |
 
 ### v0.2.0+ — open backlog

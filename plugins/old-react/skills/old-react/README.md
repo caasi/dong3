@@ -4,7 +4,7 @@ Review and refactor pre-RSC React code with FP-thinking rules. Library-agnostic 
 
 ## What this is
 
-A Claude Code skill that distills a lineage-aware view of React (2014–2023) into 6 actionable rules across three v0.1.0 categories: model architecture (Single Source of Truth, derive-don't-store, controlled-by-default), effects-as-data (effect-as-description, setup-cleanup-pair), and composition (leaf-purity).
+A Claude Code skill that distills a lineage-aware view of React (2014–2023) into 6 actionable rules across three v0.1.0 categories: model architecture (Single Source of Truth, derive-don't-store, controlled-by-default), effects (emit-named-actions, setup-cleanup-pair), and composition (leaf-purity).
 
 Four categories are deferred to v0.2.0 because existing tooling already enforces the highest-impact rules in those categories:
 
