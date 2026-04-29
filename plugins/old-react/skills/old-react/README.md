@@ -54,7 +54,7 @@ Four categories deferred to v0.2.0: `purity-`, `immutable-`, `message-`, `hooks-
 
 ## Versioning
 
-- v0.1.0 — 6 architectural rules (model 3, effect 2, compose 1), 5 reference docs, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred; their highest-impact rules are already enforced by `eslint-plugin-react-hooks` v5+ (`react-hooks/recommended-latest`).
+- v0.1.0 — 6 architectural rules (model 3, effect 2, compose 1), 5 reference docs, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred; their highest-impact rules are already enforced by `eslint-plugin-react-hooks` v5+ (the `recommended-latest` preset).
 - **v0.2.0 and beyond — open backlog, not a fixed roadmap.** The point of the skill is FP thinking in React UI development, not rule count. A rule ships only when (a) a recurring architectural failure surfaces in real review and (b) the failure is *not* already caught by an existing linter or by TypeScript. The total may stay under 10 rules forever. See spec §9 for the candidate backlog.
 
 ## See also
