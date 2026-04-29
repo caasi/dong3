@@ -36,6 +36,12 @@ Reflect on human-AI stewardship through Socratic dialogue. A mirror, not a check
 
 See [plugins/kami/skills/kami/README.md](plugins/kami/skills/kami/README.md) for full documentation.
 
+### old-react
+
+FP-thinking review and refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships only architectural rules where neither TypeScript nor `eslint-plugin-react-hooks` already enforces the principle: state ownership (SSOT for remote state, derive-don't-store, controlled-by-default), effects-as-data (emit named actions, setup/cleanup pairing), and composition (leaf purity, effects at the page boundary — i.e. Functional Core / Imperative Shell). One slash command: `/old-react [review|refactor] [path]`.
+
+See [plugins/old-react/skills/old-react/README.md](plugins/old-react/skills/old-react/README.md) for full documentation.
+
 ### owasp
 
 Security review using OWASP frameworks with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index.

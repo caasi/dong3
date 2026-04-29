@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing six independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing seven independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -18,7 +18,10 @@ plugins/
   constraint/                     # NL constraints → deterministic test artifacts
   fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
+  old-react/                      # FP-thinking review/refactor for pre-RSC React
   owasp/                          # OWASP security review with offline references
+tools/                            # Repo-level dev tooling (NOT shipped to skill users)
+  old-react/                      # Validator + fixtures for old-react rule files
 docs/superpowers/                 # Design specs and implementation plans
 ```
 
@@ -48,6 +51,8 @@ plugins/<name>/
 
 **constraint:** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for language-agnostic artifact generation (see `references/toolchain-matrix.md`; TS is the primary reference, OCaml verified), `constraint-enforce` for running the enforcement pipeline.
 
+**old-react:** FP-thinking review/refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships **architectural** rules only — categories that the React-Compiler diagnostics in `eslint-plugin-react-hooks` v5+ (`recommended-latest`) and TypeScript discriminated unions already cover are deferred. v0.1.0 ships 7 rules across 3 categories (model 3, effect 2, compose 2): SSOT for remote state, derive-don't-store, controlled-by-default (continuation lens), effects emit named actions, setup/cleanup pairing, leaf purity, effects at the page boundary (Functional Core / Imperative Shell). Brand names live in `references/lib-suggestions.md`; rule bodies use FP/TEA pattern terms only. Rule scope is open (the skill stays small; under 10 rules is fine). One slash command: `/old-react [review|refactor] [path]`. Spec: `docs/superpowers/specs/001-old-react-skill-design.md`. Lineage source: `docs/old-react.md`.
+
 ## Versioning
 
 - Plugin versions live in `.claude-plugin/marketplace.json`.
@@ -61,6 +66,10 @@ plugins/<name>/
 - SKILL.md files are system prompts read by Claude — they define trigger conditions and agent behavior. README.md files are user-facing docs.
 
 ## Skill-Authoring Principles
+
+### Dev tooling stays out of `plugins/<name>/`
+
+A plugin's directory boundary is its install boundary — anything inside `plugins/<name>/` reaches the user's disk via the marketplace install. Test fixtures, validators, CI helpers, and other dev-time tooling belong outside that boundary. Convention: repo-level `tools/<plugin>/` (e.g. `tools/old-react/` for the rule-file validator + fixtures + test runner). The `compose` plugin is the deliberate exception — its `scripts/install.sh` is a *user-facing* installer, so it ships intentionally.
 
 ### constraint-generate 已驗證的非 TypeScript 語言對照
 
