@@ -46,6 +46,10 @@ A genuine FRP-shaped library, used both standalone and via `redux-observable`. W
 
 Operator names (`switchMap`, `mergeMap`, `debounceTime`, `combineLatest`, …) are RxJS-specific brand vocabulary; rule bodies in this skill do not name them. They belong here.
 
+## Status modelling and state machines
+
+When a plain tagged union is enough — three to five states, no legal-transition enforcement needed — no library is required; a plain TypeScript discriminated union with `useState` or a reducer covers the pattern from `model-status-as-tagged-union`. When the status graph grows (branching flows, parallel regions, history, delays), a dedicated state-machine library encodes guards and transitions as data instead of ad-hoc conditionals. Options include XState (rich FSM/statechart model, effect integration via actors), `robot` (small FSM with a functional API), and `zag` (UI-component-oriented machines). None is recommended over another; choose based on graph complexity and team familiarity.
+
 ## Notes for rule authors
 
 - The rule body talks about *patterns*: reducer, action, dispatch, store, message, command, subscription, selector, state machine, observable as a concept.
