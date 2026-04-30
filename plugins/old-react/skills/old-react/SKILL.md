@@ -57,7 +57,7 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 
 | Prefix | Concern | v0.1.0 rules |
 |--------|---------|--------------|
-| `purity-` | Pure render and update | *(deferred to v0.2.0; covered by the `purity` and `set-state-in-render` diagnostics)* |
+| `purity-` | Pure render and update | `purity-no-effect-in-derivation` |
 | `immutable-` | Update mechanics | *(deferred to v0.2.0; covered by the `immutability` diagnostic)* |
 | `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` |
 | `message-` | Discrete labeled events | *(deferred to v0.2.0; TypeScript discriminated unions cover the type-level discipline)* |
