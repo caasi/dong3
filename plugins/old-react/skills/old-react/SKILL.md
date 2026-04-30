@@ -63,7 +63,7 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 | `message-` | Discrete labeled events | *(deferred to v0.2.0; TypeScript discriminated unions cover the type-level discipline)* |
 | `effect-` | Cmd/Sub-shaped effects | `effect-emit-named-actions`, `effect-setup-cleanup-pair` |
 | `hooks-` | React mechanism | *(deferred to v0.2.0; covered by `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`)* |
-| `compose-` | Composition | `compose-leaf-purity`, `compose-effects-at-page-boundary` *(`no-inline-components` covered by the `static-components` diagnostic and stable `react/no-unstable-nested-components`)* |
+| `compose-` | Composition | `compose-leaf-purity`, `compose-effects-at-page-boundary`, `compose-optional-callbacks` *(`no-inline-components` covered by the `static-components` diagnostic and stable `react/no-unstable-nested-components`)* |
 
 Read individual rule files in `rules/<slug>.md` for the full why + Incorrect/Correct + deeper notes.
 
