@@ -24,7 +24,7 @@ function SaveButton({ onSave }: SaveButtonProps) {
 <SaveButton onSave={() => {}} />
 ```
 
-**Correct** (callback is optional; component supplies a safe default):
+**Correct** (callback is optional; an omitted prop is a natural no-op):
 ```tsx
 type SaveButtonProps = {
   onSave?: () => void; // optional — callers wire it up only when they care
