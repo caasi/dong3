@@ -102,7 +102,7 @@ This rule does **not** ban currying. It bans **unstable identity per (input → 
 
 **Pattern A — Drop currying at the consumer seam.** Flatten to two arguments at the React boundary; keep currying inside. For selectors: `(s, id) => s.byId[id]`. For callbacks: accept `(id: Id)` as the prop and call it from inside the child component.
 
-**Pattern B — Per-key memoized factory.** Cache by argument so each input maps to one stable output — `Map`, `WeakMap`, or a bounded LRU (see `references/lib-suggestions.md`). This keeps the curried shape and adds identity stability. Avoid unbounded caches that grow without bound.
+**Pattern B — Per-key memoized factory.** Cache by argument so each input maps to one stable output — `Map`, `WeakMap`, or a bounded LRU (see `references/lib-suggestions.md`). This keeps the curried shape and adds identity stability. Avoid unbounded caches.
 
 **Pattern C — `useMemo` / `useCallback` at the call site.** `const sel = useMemo(() => selectById(id), [id])` for selectors; `useCallback` for callbacks; `useMemo` for component factories. Component-local; requires no changes to the curried function itself.
 
