@@ -40,6 +40,19 @@ If you keep server state in Redux, you will rebuild a worse version of TanStack 
 | **Immer** | Copy-on-write with mutation-shaped syntax. The right answer for 95% of "I want immutability without ceremony" cases. |
 | **Immutable.js** | Persistent data structures (Map/List/Set/OrderedMap/Record). Strong theory, parallel API breaks JS interop. |
 
+## Stable derivation identity — prior art
+
+Prior art for the `model-stable-derivation-identity` rule. All are library-specific treatments of the same principle: a derivation must return a stable reference when its inputs have not changed.
+
+| Source | What it covers |
+|--------|---------------|
+| [Reselect FAQ — factory functions for per-instance memoization](https://reselect.js.org/faq/) | Explains why a parametrised selector factory must be memoized per instance, not recreated per call. |
+| [Redux — Deriving Data with Selectors](https://redux.js.org/usage/deriving-data-selectors) | Canonical Redux guidance on selector composition, memoization, and the failure mode of fresh-object selectors. |
+| [Redux Toolkit — createSelector](https://redux-toolkit.js.org/api/createSelector) | API docs for the built-in memoized selector factory; covers the `inputSelectors` / `resultFunc` split that stabilises identity. |
+| [LogRocket — re-reselect: Better Memoization and Cache Management](https://blog.logrocket.com/react-re-reselect-better-memoization-cache-management/) | Describes a per-key selector cache that maps each argument to one stable selector — Pattern B in the rule. |
+| [Mat Brown — useCallback to preserve identity of partially-applied callbacks in collections](https://medium.com/@0utoftime/using-reacts-usecallback-hook-to-preserve-identity-of-partially-applied-callbacks-in-collections-3dbac35371ea) | Demonstrates Pattern A and Pattern C for curried callbacks in list renders. |
+| [Dev.to — You should not use lodash for memoization](https://dev.to/nioufe/you-should-not-use-lodash-for-memoization-3441) | Explains why a single-arg-keyed unbounded cache is the wrong shape for parametrised selectors; use `Map` or a bounded LRU instead. |
+
 ## RxJS
 
 A genuine FRP-shaped library, used both standalone and via `redux-observable`. When you need cancellation, debouncing, racing, or switching, RxJS expresses each as one operator.

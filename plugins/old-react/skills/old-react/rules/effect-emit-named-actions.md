@@ -56,3 +56,5 @@ Two honest limitations to keep in mind:
 - **Replay is partial.** Re-issuing the action log does not reissue the I/O — you get the *trace* of what happened, not a re-runnable proof.
 
 The rule's principle is the same whichever effect mechanism you reach for: outcomes are named, the timeline is legible, business logic composes through return values.
+
+Defunctionalization — replacing a closure with a tagged data carrier — is also the mechanism behind Pattern D in `model-stable-derivation-identity`: identity is carried by data, not by closure, making it equally available as a strategy for stable selector and callback identity.
