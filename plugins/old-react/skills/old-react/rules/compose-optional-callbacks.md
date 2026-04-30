@@ -43,7 +43,7 @@ function SaveButton({ onSave }: SaveButtonProps) {
 
 A callback should be required only when the component cannot function correctly without it — for example, a controlled input where `onChange` is the only channel back to the state owner (see `model-controlled-by-default`), or a form whose submission is meaningless without a handler. Treat required callbacks as a deliberate constraint documented at the type level, not as the default.
 
-When a callback is genuinely optional, prefer leaving the type as `(() => void) | undefined` and letting the browser handle the absent prop naturally (e.g. passing `undefined` to an `onClick` attribute is a valid no-op). Avoid redundant explicit `() => {}` defaults in the destructuring: they hide the "nothing will happen" case at the call site and make the absence of intent harder to grep for.
+When a callback is genuinely optional, prefer the idiomatic optional prop form `onSave?: () => void` and let callers omit it; the browser handles the absent prop naturally (e.g. passing `undefined` to an `onClick` attribute is a valid no-op). Avoid an explicit `(() => void) | undefined` union unless you specifically intend to allow callers to pass `undefined` — under `exactOptionalPropertyTypes` the two forms are not equivalent. Also avoid redundant `() => {}` defaults in the destructuring: they hide the "nothing will happen" case at the call site and make the absence of intent harder to grep for.
 
 <!--
 Author notes:
