@@ -8,7 +8,7 @@ tags: [composition, events]
 
 ## Prefer optional event handler props
 
-A required `onXxx` prop couples the component to every call site: callers must supply a handler even when they have no meaningful response to the event. Making callbacks optional — defaulting to a no-op or `undefined` — lets the component be moved, reused, or composed in new contexts without forcing that coupling on callers that don't need it. This is the component's API applying the same "open for extension, closed for modification" property that pure functions achieve at the function level.
+A required `onXxx` prop couples the component to every call site: callers must supply a handler even when they have no meaningful response to the event. Making callbacks optional — so callers omit the prop and the absent handler is a natural no-op — lets the component be moved, reused, or composed in new contexts without forcing that coupling on callers that don't need it. This is the component's API applying the same "open for extension, closed for modification" property that pure functions achieve at the function level.
 
 **Incorrect** (caller is forced to supply a handler it may not need):
 ```tsx
