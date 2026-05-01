@@ -59,7 +59,7 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 |--------|---------|---------------|
 | `purity-` | Pure render and update | `purity-no-effect-in-derivation` |
 | `immutable-` | Update mechanics | *(deferred; covered by the `immutability` diagnostic)* |
-| `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default`, `model-status-as-tagged-union`, `model-narrow-selector-shape` |
+| `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default`, `model-status-as-tagged-union`, `model-narrow-selector-shape`, `model-stable-derivation-identity` |
 | `message-` | Discrete labeled events | *(deferred; TypeScript discriminated unions cover the type-level discipline)* |
 | `effect-` | Cmd/Sub-shaped effects | `effect-emit-named-actions`, `effect-setup-cleanup-pair` |
 | `hooks-` | React mechanism | `hooks-class-fallback-when-needed` *(hook correctness — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps` — remains deferred; this rule governs hook **applicability**, not correctness)* |
