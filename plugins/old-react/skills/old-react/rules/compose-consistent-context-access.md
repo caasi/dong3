@@ -8,7 +8,7 @@ tags: [composition, deps, subscriptions]
 
 ## Consistent context access
 
-A HOC chain (`A(B(C(Component)))`) is left-to-right function composition written out-of-line: each step injects props the inner component depends on, and the dataflow is invisible at the call site. Hooks invert this — the component reads the same context-bound values from inside, where the dataflow is local and typed. The real failure this rule targets is **mixed convention**: when one part of the codebase reads a context via HOC and another reads the same context via hook, every reader pays the cognitive cost of reconstructing which path applies. Consistency is the signal, not orthodoxy.
+A HOC chain (`A(B(C(Component)))`) is nested function application written out-of-line: the innermost wrapper runs first, then outer wrappers layer around it, injecting props the inner component depends on, and the dataflow is invisible at the call site. Hooks invert this — the component reads the same context-bound values from inside, where the dataflow is local and typed. The real failure this rule targets is **mixed convention**: when one part of the codebase reads a context via HOC and another reads the same context via hook, every reader pays the cognitive cost of reconstructing which path applies. Consistency is the signal, not orthodoxy.
 
 **Incorrect** (HOC chain; hook equivalents already used elsewhere in the same project):
 
