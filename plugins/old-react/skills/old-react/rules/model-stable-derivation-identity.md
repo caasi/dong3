@@ -36,7 +36,7 @@ A selector factory that mints a fresh selector on every call makes per-call memo
 const selectById = (id: Id) => (s: State) => s.byId[id];
 ```
 
-**Correct** (factory caches by key; each id maps to one stable selector):
+**Correct** (factory caches by key; each id maps to one stable selector). The plain `Map` below assumes a **bounded keyspace** (e.g. a finite set of known entity ids). For unbounded or attacker-controlled keys, use `WeakMap` or a bounded LRU instead — see Pattern B below and the prior-art table in `references/lib-suggestions.md`.
 ```ts
 const _cache = new Map<Id, (s: State) => Item | undefined>();
 const selectById = (id: Id) => {
