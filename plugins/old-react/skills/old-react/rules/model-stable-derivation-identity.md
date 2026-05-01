@@ -37,7 +37,7 @@ A selector factory that mints a fresh selector on every call makes per-call memo
 const selectById = (id: Id) => (s: State) => s.byId[id];
 ```
 
-**Correct** (one stable selector; pass `id` at the call site as a second argument). Identity is stable because the function is defined once at module scope; parametrisation rides on the argument list, not on closure capture. Reselect's `createSelector` accepts the same shape — `(state, id)` — and this is its recommended pattern in preference to per-id factories (see `references/lib-suggestions.md`).
+**Correct** (one stable selector; pass `id` at the call site as a second argument). Identity is stable because the function is defined once at module scope; parameterization rides on the argument list, not on closure capture. Reselect's `createSelector` accepts the same shape — `(state, id)` — and this is its recommended pattern in preference to per-id factories (see `references/lib-suggestions.md`).
 ```ts
 const selectById = (s: State, id: Id) => s.byId[id];
 // Consumer: const item = selectById(state, id);
@@ -107,8 +107,8 @@ This rule does **not** ban currying. It bans **unstable identity per (input → 
 
 **Pattern D — Defunctionalization.** Replace `f(arg)` with a tagged carrier `{ tag: '...', arg }` interpreted by one stable function. Identity is carried by data, not by closure — the same principle that motivates `effect-emit-named-actions`.
 
-**Pattern E — Modern memoization libraries.** Cache-size > 1 and weak-map-style memoization handle parametrised calls natively. See `references/lib-suggestions.md` for library-specific guidance.
+**Pattern E — Modern memoization libraries.** Cache-size > 1 and weak-map-style memoization handle parameterized calls natively. See `references/lib-suggestions.md` for library-specific guidance.
 
-**Pattern F — Auto-memoizing compilers.** When the runtime auto-stabilises identity, the tension dissolves. Frame as a future direction, not a migration blocker for existing code.
+**Pattern F — Auto-memoizing compilers.** When the runtime auto-stabilizes identity, the tension dissolves. Frame as a future direction, not a migration blocker for existing code.
 
 Prior art and library-specific implementations are in `references/lib-suggestions.md`.

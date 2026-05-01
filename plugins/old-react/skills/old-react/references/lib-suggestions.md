@@ -46,9 +46,9 @@ Prior art for the `model-stable-derivation-identity` rule. All are library-speci
 
 | Source | What it covers |
 |--------|---------------|
-| [Reselect FAQ — factory functions for per-instance memoization](https://reselect.js.org/faq/) | Explains why a parametrised selector factory must be memoized per instance, not recreated per call. |
+| [Reselect FAQ — factory functions for per-instance memoization](https://reselect.js.org/faq/) | Explains why a parameterized selector factory must be memoized per instance, not recreated per call. |
 | [Redux — Deriving Data with Selectors](https://redux.js.org/usage/deriving-data-selectors) | Canonical Redux guidance on selector composition, memoization, and the failure mode of fresh-object selectors. |
-| [Redux Toolkit — createSelector](https://redux-toolkit.js.org/api/createSelector) | API docs for the built-in memoized selector factory; covers the `inputSelectors` / `resultFunc` split that stabilises identity. |
+| [Redux Toolkit — createSelector](https://redux-toolkit.js.org/api/createSelector) | API docs for the built-in memoized selector factory; covers the `inputSelectors` / `resultFunc` split that stabilizes identity. |
 | [LogRocket — re-reselect: Better Memoization and Cache Management](https://blog.logrocket.com/react-re-reselect-better-memoization-cache-management/) | Describes a per-key selector cache that maps each argument to one stable selector — Pattern B in the rule. |
 | [Mat Brown — useCallback to preserve identity of partially-applied callbacks in collections](https://medium.com/@0utoftime/using-reacts-usecallback-hook-to-preserve-identity-of-partially-applied-callbacks-in-collections-3dbac35371ea) | Demonstrates Pattern A and Pattern C for curried callbacks in list renders. |
 | [Dev.to — You should not use lodash for memoization](https://dev.to/nioufe/you-should-not-use-lodash-for-memoization-3441) | Explains why a single-arg-keyed unbounded cache is the wrong shape for parameterized selectors; use `Map` or a bounded LRU instead. |
