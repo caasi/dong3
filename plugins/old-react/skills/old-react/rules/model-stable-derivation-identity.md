@@ -36,15 +36,13 @@ A selector factory that mints a fresh selector on every call makes per-call memo
 const selectById = (id: Id) => (s: State) => s.byId[id];
 ```
 
-**Correct** (factory caches by key; each id maps to one stable selector). The plain `Map` below assumes a **bounded keyspace** (e.g. a finite set of known entity ids). For unbounded or attacker-controlled keys, use `WeakMap` or a bounded LRU instead — see Pattern B below and the prior-art table in `references/lib-suggestions.md`.
+**Correct** (one stable selector; pass `id` at the call site as a second argument). Identity is stable because the function is defined once at module scope; parametrisation rides on the argument list, not on closure capture. Reselect's `createSelector` accepts the same shape — `(state, id)` — and this is its recommended pattern in preference to per-id factories (see `references/lib-suggestions.md`).
 ```ts
-const _cache = new Map<Id, (s: State) => Item | undefined>();
-const selectById = (id: Id) => {
-  let sel = _cache.get(id);
-  if (!sel) { sel = (s) => s.byId[id]; _cache.set(id, sel); }
-  return sel;
-};
+const selectById = (s: State, id: Id) => s.byId[id];
+// Consumer: const item = selectById(state, id);
 ```
+
+When the curried *shape* must be preserved (e.g. integrating with a library API that expects `(s) => v`), keep the factory but cache by key so each id maps to one stable output — see Pattern B below. The plain `Map` example in Pattern B assumes a bounded keyspace; for unbounded or attacker-controlled keys, use `WeakMap` (object keys) or a bounded LRU.
 
 ### Surface 2 — derived callback (curried event handler in a list)
 
