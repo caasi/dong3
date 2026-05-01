@@ -53,14 +53,14 @@ Never modify code in a span flagged by **Scope check** as out of scope.
 
 ## Rule index
 
-**The skill exists to teach FP thinking in React UI development, not to maximise rule count.** A rule ships only when a recurring architectural failure surfaces in real review and is not already caught by lint or types. The total may stay under 10 rules. Categories without v0.1.0 rules are not abandoned — they defer to existing tooling and add a rule only when a specific gap surfaces.
+**The skill exists to teach FP thinking in React UI development, not to maximise rule count.** A rule ships only when a recurring architectural failure surfaces in real review and is not already caught by lint or types. Categories without rules below are not abandoned — they defer to existing tooling and add a rule only when a specific gap surfaces.
 
-| Prefix | Concern | v0.1.0 rules |
-|--------|---------|--------------|
+| Prefix | Concern | Current rules |
+|--------|---------|---------------|
 | `purity-` | Pure render and update | `purity-no-effect-in-derivation` |
-| `immutable-` | Update mechanics | *(deferred to v0.2.0; covered by the `immutability` diagnostic)* |
-| `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` |
-| `message-` | Discrete labeled events | *(deferred to v0.2.0; TypeScript discriminated unions cover the type-level discipline)* |
+| `immutable-` | Update mechanics | *(deferred; covered by the `immutability` diagnostic)* |
+| `model-` | State architecture (SSOT) | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default`, `model-status-as-tagged-union`, `model-narrow-selector-shape` |
+| `message-` | Discrete labeled events | *(deferred; TypeScript discriminated unions cover the type-level discipline)* |
 | `effect-` | Cmd/Sub-shaped effects | `effect-emit-named-actions`, `effect-setup-cleanup-pair` |
 | `hooks-` | React mechanism | `hooks-class-fallback-when-needed` *(hook correctness — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps` — remains deferred; this rule governs hook **applicability**, not correctness)* |
 | `compose-` | Composition | `compose-leaf-purity`, `compose-effects-at-page-boundary`, `compose-optional-callbacks`, `compose-consistent-context-access` *(`no-inline-components` covered by the `static-components` diagnostic and stable `react/no-unstable-nested-components`)* |

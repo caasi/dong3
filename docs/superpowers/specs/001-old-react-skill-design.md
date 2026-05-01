@@ -14,7 +14,7 @@ A Claude Code skill that teaches **FP thinking in React UI development** — rev
 
 The skill ships *only* the rules that the type system and existing linters cannot already enforce. `eslint-plugin-react-hooks` v5+ already covers purity, immutability, set-state-in-render, static-components, rules-of-hooks, and exhaustive-deps via the `recommended-latest` preset (per `docs/old-react.md` §9); TypeScript discriminated unions cover the static shape of labeled transitions; `react/no-unstable-nested-components` covers nested-component instability. Where existing tooling speaks, the skill stays quiet. Where the gap is architectural — state ownership, effects-as-data, controlled-component shape, container/presenter splits — the skill names a principle and gives a concrete violation/fix pair.
 
-The total rule count is open. v0.1.0 ships 7 rules; v1.0 may ship under 10. The skill is judged by signal-to-noise, not by category coverage. See §9.
+The total rule count is open. The skill shipped 7 rules at v0.1.0; subsequent additions under the v0.1.x marketplace label have grown the set incrementally as new architectural failures surfaced in real review. The current canonical rule list lives in `SKILL.md`. The skill is judged by signal-to-noise, not by category coverage. See §9.
 
 The skill is **library-agnostic** in the rule body — examples use raw React/JS only. A separate `references/lib-suggestions.md` maps user-chosen libraries (Redux Toolkit, MobX, TanStack Query, Reselect, Immer, XState, RxJS) to the FP principles they embody.
 
@@ -198,7 +198,7 @@ What we will do:
 - Phrase rules as principles (with concrete violation/fix examples), not as procedural checks.
 - Cite the linter or type-level mechanism that *does* cover any adjacent surface, so readers know the boundary.
 
-### v0.1.0 — what ships
+### v0.1.0 — initial ship
 
 7 architectural rules in three categories:
 
@@ -207,6 +207,21 @@ What we will do:
 | `model-` | `model-single-source-of-truth`, `model-derive-dont-store`, `model-controlled-by-default` | Architecture of state ownership. No linter reasons about whether two components mirror the same value, whether a derivation should be cached vs computed, or whether an input is controlled. |
 | `effect-` | `effect-emit-named-actions`, `effect-setup-cleanup-pair` | Whether a thunk emits a named action vs. mutates the store directly is an architectural choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
 | `compose-` | `compose-leaf-purity`, `compose-effects-at-page-boundary` | Presentational/container split is an architectural call about *what* a component reads. The page-boundary rule captures the inverse — *where* effects live (Functional Core, Imperative Shell, modernised with hooks). Neither shape is a syntactic check. |
+
+### v0.1.x — added since
+
+Subsequent rule additions under the same marketplace label, each promoted from §v0.2.0+ backlog after surfacing in real review. The marketplace version bump is deferred until the in-flight set stabilises.
+
+| Category | Slug | Origin |
+|----------|------|--------|
+| `compose-` | `compose-optional-callbacks` | optional-callback prop pattern (anti-no-op default). |
+| `compose-` | `compose-consistent-context-access` | mixed HOC + hook access for the same context. |
+| `purity-` | `purity-no-effect-in-derivation` | promoted from §v0.2.0 backlog (`pure-update-functions` family) once the gap surfaced concretely. |
+| `model-` | `model-status-as-tagged-union` | promoted from §v0.2.0 backlog (`action-shape-tagged-union` applied to status states). |
+| `model-` | `model-narrow-selector-shape` | new addition; selector-shape narrowing. |
+| `hooks-` | `hooks-class-fallback-when-needed` | hook **applicability** (orthogonal to the deferred hook-correctness checks). |
+
+The canonical, always-up-to-date list lives in `plugins/old-react/skills/old-react/SKILL.md`. Cross-check that file rather than this section if the two ever diverge.
 
 ### v0.2.0+ — open backlog
 
@@ -296,7 +311,9 @@ Optional later: build a small `rules/_index.json` consumed by SKILL.md's rule-in
 ## 14. Versioning
 
 - v0.1.0: skeleton plugin + 7 architectural rules (model 3, effect 2, compose 2) + 6 reference docs + slash command + validator (lives at repo-level `tools/old-react/`, not shipped to skill users). Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) and one `compose-` rule defer to existing tooling — see §9.
-- v0.2.0+: open backlog. Add a rule only when a recurring architectural failure surfaces in real review and is not already enforced by lint or types. The total rule count is open and may stay under 10. See §9 for the candidate list.
+- v0.1.x (post-ship): additional rules added as architectural failures surfaced in real review (see §9 "v0.1.x — added since"). Two categories (`immutable-`, `message-`) remain deferred. Marketplace version stays at `0.1.0` until the in-flight set stabilises; the canonical rule list lives in `SKILL.md`.
+- next bump: ship together with whatever round of rule additions is currently in flight; pin a coherent rule set to a numbered release rather than bumping per-rule.
+- v0.2.0+: open backlog. Add a rule only when a recurring architectural failure surfaces in real review and is not already enforced by lint or types. The total rule count is open. See §9 for the candidate list.
 - v0.x.x: react to user feedback (which rules fire, false positives, missing patterns).
 
 ## 15. Out-of-scope follow-ups (not implemented in v0.1.0)

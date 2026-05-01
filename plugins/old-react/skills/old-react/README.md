@@ -4,16 +4,14 @@ Review and refactor pre-RSC React code with FP-thinking rules. Library-agnostic 
 
 ## What this is
 
-A Claude Code skill that distills a lineage-aware view of React (2014–2023) into 7 actionable rules across three v0.1.0 categories: model architecture (Single Source of Truth, derive-don't-store, controlled-by-default), effects (emit-named-actions, setup-cleanup-pair), and composition (leaf-purity, effects-at-page-boundary).
+A Claude Code skill that distills a lineage-aware view of React (2014–2023) into actionable architectural rules across five active categories: state architecture (`model-`), effects (`effect-`), composition (`compose-`), render purity (`purity-`), and hook applicability (`hooks-`). The full set is listed in `SKILL.md`.
 
-Four categories are deferred to v0.2.0 because existing tooling already enforces the highest-impact rules in those categories:
+Two categories remain deferred because existing tooling already enforces the highest-impact rules in them:
 
-- `purity-` — the `purity` and `set-state-in-render` diagnostics (compiler-derived; `eslint-plugin-react-hooks` v5+, `recommended-latest` preset).
-- `immutable-` — the `immutability` diagnostic (same preset).
+- `immutable-` — the `immutability` diagnostic (`eslint-plugin-react-hooks` v5+, `recommended-latest` preset).
 - `message-` — TypeScript discriminated-union return types encode the type-level discipline.
-- `hooks-` — `react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`.
 
-v0.1.0 focuses on architectural rules where neither the type system nor existing linters provide equivalent coverage.
+The skill focuses on architectural rules where neither the type system nor existing linters provide equivalent coverage. Hook-correctness checks (`react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`) and the React-Compiler-derived `purity` / `set-state-in-render` / `static-components` diagnostics remain deferred to those tools; the `hooks-` and `purity-` rules listed in `SKILL.md` cover orthogonal architectural concerns.
 
 The shape is grounded in the Elm Architecture (TEA): `Model`, `Msg`, `update`, `view`, `Cmd`, `Sub`. The closer your React code sits to TEA shape, the more you get for free — Single Source of Truth, time-travel debugging, hot-reloadable logic. The lineage Bret Victor → Elm → Redux is documented in `references/tea-as-backbone.md`.
 
@@ -42,19 +40,21 @@ The skill emits grouped findings (review) or unified diffs (refactor), each citi
 
 ## Categories
 
-v0.1.0 ships these three:
+Five active categories (see `SKILL.md` for the canonical rule list):
 
 | Prefix | Concern |
 |--------|---------|
-| `model-` | State architecture (SSOT, controlled-by-default) |
+| `model-` | State architecture (SSOT, derive-don't-store, controlled-by-default, tagged-union status, narrow selectors) |
 | `effect-` | Cmd/Sub-shaped effects |
-| `compose-` | Composition (leaf purity, effects at page boundary) |
+| `compose-` | Composition (leaf purity, effects at page boundary, optional callbacks, consistent context access) |
+| `purity-` | Render-phase purity (no effect in derivation) |
+| `hooks-` | Hook applicability (class-fallback when hooks cannot express the lifecycle) |
 
-Four categories deferred to v0.2.0: `purity-`, `immutable-`, `message-`, `hooks-` (each covered by existing lint or type-level checks; see above).
+Two categories remain deferred: `immutable-` and `message-` (each covered by existing lint or type-level checks; see above).
 
 ## Versioning
 
-- v0.1.0 — 7 architectural rules (model 3, effect 2, compose 2), 5 reference docs + an advanced-patterns reference, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred; their highest-impact rules are already enforced by `eslint-plugin-react-hooks` v5+ (the `recommended-latest` preset).
+- v0.1.x — initial architectural rules across `model-`, `effect-`, `compose-` plus seed `purity-` and `hooks-` rules added incrementally. 5 reference docs + an advanced-patterns reference, slash command, validator. Two categories (`immutable-`, `message-`) remain deferred to existing tooling. The current rule set lives in `SKILL.md`; the marketplace version will be bumped past `0.1.0` once the in-flight rule additions stabilise.
 - **v0.2.0 and beyond — open backlog, not a fixed roadmap.** The point of the skill is FP thinking in React UI development, not rule count. A rule ships only when (a) a recurring architectural failure surfaces in real review and (b) the failure is *not* already caught by an existing linter or by TypeScript. The total may stay under 10 rules forever. See spec §9 for the candidate backlog.
 
 ## See also
