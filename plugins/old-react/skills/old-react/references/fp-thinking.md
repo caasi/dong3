@@ -14,6 +14,10 @@ This reference defines the lens that the rules in this skill apply. It is short 
 
 A new state is a new value. Reference equality on persistent data is what selectors, reconcilers, and time-travel use to know that something changed. In-place mutation makes "before" and "after" indistinguishable.
 
+**Why immutability is affordable.** Persistent data structures share unchanged subtrees across versions: an "update" allocates O(log n) new nodes and reuses the rest by reference. Chris Okasaki's *Purely Functional Data Structures* (CMU PhD thesis, 1996; Cambridge book, 1998) showed this discipline preserves the asymptotic complexity of mutable equivalents — and that lazy evaluation is what keeps amortized bounds intact under arbitrary version reuse. React's reconciler, Redux's selectors, Immer's drafts, and Immutable.js / RRB-tree libraries are practitioner instantiations of this result. The structural-sharing contract is also what makes `model-stable-derivation-identity` more than a memoization hack: preserving identity on unchanged input *is* preserving the persistent-data-structures invariant at the derivation layer.
+
+The lineage Okasaki → Elm → Redux is the *data-side* prefix to the Bret Victor → Elm → Redux *interaction-side* lineage in `tea-as-backbone.md`. Time-travel debugging needs both: structural sharing so old versions remain O(1) accessible, and TEA shape so transitions are replayable.
+
 ### 3. Effects at the edges
 
 Effects are descriptions interpreted by a runtime, not callbacks invoked from inside business logic. The reducer is pure; the world is not; the boundary between them is explicit.

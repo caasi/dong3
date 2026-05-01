@@ -10,6 +10,8 @@ tags: [derivation, memoization, render, state]
 
 Derivations only memoize when their **output identity** is stable across calls with equal inputs. This is the dual of the immutability rule: just as an update must produce a *new* reference when state changes, a derivation must produce the *same* reference when state does *not* change. A derivation that mints a fresh value — object literal, function closure, array, or component type — on every call silently defeats every consumer downstream: memoized subtrees re-render, dependency arrays fire spuriously, and reference-equality store comparisons always fail.
 
+The deeper framing: identity-on-unchanged-input is the persistent-data-structures discipline (structural sharing) applied at the *derivation* layer. The same invariant that makes immutable updates affordable — share the unchanged subtree by reference — must hold for the values your selectors and components produce. See `references/fp-thinking.md` ("Why immutability is affordable") for the technical lineage.
+
 The anti-pattern bites at three surfaces.
 
 ### Surface 1 — derived value (selector or computed field)
