@@ -80,7 +80,7 @@ function Page() {
 }
 ```
 
-**Correct** (factory applied once at module scope, or stabilised with `useMemo`):
+**Correct** (factory applied once at module scope, or stabilized with `useMemo`):
 ```tsx
 const Wrapped = withProps({ theme: 'dark' })(InnerComponent);
 function Page() { return <Wrapped />; }
