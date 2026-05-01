@@ -38,9 +38,9 @@ See [plugins/kami/skills/kami/README.md](plugins/kami/skills/kami/README.md) for
 
 ### old-react
 
-FP-thinking review and refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships only architectural rules where neither TypeScript nor `eslint-plugin-react-hooks` already enforces the principle: state ownership (SSOT for remote state, derive-don't-store, controlled-by-default), effects-as-data (emit named actions, setup/cleanup pairing), and composition (leaf purity, effects at the page boundary — i.e. Functional Core / Imperative Shell). One slash command: `/old-react [review|refactor] [path]`.
+FP-thinking review and refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships only architectural rules where neither TypeScript nor `eslint-plugin-react-hooks` already enforces the principle. Five active categories: state architecture (`model-`), effects (`effect-`), composition (`compose-`), render purity (`purity-`), and hook applicability (`hooks-`). Two categories (`immutable-`, `message-`) defer to existing tooling. One slash command: `/old-react [review|refactor] [path]`.
 
-See [plugins/old-react/skills/old-react/README.md](plugins/old-react/skills/old-react/README.md) for full documentation.
+See [plugins/old-react/skills/old-react/README.md](plugins/old-react/skills/old-react/README.md) and [SKILL.md](plugins/old-react/skills/old-react/SKILL.md) for the canonical rule list.
 
 ### owasp
 
