@@ -22,12 +22,13 @@ const selectFirst = (s: State) =>
   s.list.length === 0 ? {} : s.list[0];
 ```
 
-**Correct** (stable sentinel for the fallback path):
+**Correct** (let the return type carry the absence; `undefined` is itself a stable singleton):
 ```ts
-const EMPTY = Object.freeze({} as Item);
-const selectFirst = (s: State) =>
-  s.list.length === 0 ? EMPTY : s.list[0];
+const selectFirst = (s: State): Item | undefined =>
+  s.list.length === 0 ? undefined : s.list[0];
 ```
+
+`undefined` has stable identity by definition — no allocation, no type lie, no frozen sentinel. The return type widens to `Item | undefined`, which forces consumers to handle the empty case explicitly. When the consumer needs a typed Item-shaped fallback (e.g. for default rendering without conditional checks), define a real `EMPTY_ITEM` that conforms to `Item` and freeze that — never cast `{}` through `as Item`.
 
 A selector factory that mints a fresh selector on every call makes per-call memoization impossible.
 
