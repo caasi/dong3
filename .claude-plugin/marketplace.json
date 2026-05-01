@@ -49,7 +49,7 @@
       "name": "old-react",
       "source": "./plugins/old-react",
       "description": "FP-thinking review and refactor rules for pre-RSC React projects",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

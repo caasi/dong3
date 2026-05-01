@@ -208,34 +208,34 @@ What we will do:
 | `effect-` | `effect-emit-named-actions`, `effect-setup-cleanup-pair` | Whether a thunk emits a named action vs. mutates the store directly is an architectural choice, not a lint check. Setup-cleanup pairing is enforceable conceptually but no linter catches "missing cleanup whose absence will leak". |
 | `compose-` | `compose-leaf-purity`, `compose-effects-at-page-boundary` | Presentational/container split is an architectural call about *what* a component reads. The page-boundary rule captures the inverse — *where* effects live (Functional Core, Imperative Shell, modernised with hooks). Neither shape is a syntactic check. |
 
-### v0.1.x — added since
+### v0.1.x — added before v0.2.0 release
 
-Subsequent rule additions under the same marketplace label, each promoted from §v0.2.0+ backlog after surfacing in real review. The marketplace version bump is deferred until the in-flight set stabilises.
+Rules added between the v0.1.0 ship and the v0.2.0 release, each prompted by a concrete failure surfacing in real review.
 
 | Category | Slug | Origin |
 |----------|------|--------|
 | `compose-` | `compose-optional-callbacks` | optional-callback prop pattern (anti-no-op default). |
 | `compose-` | `compose-consistent-context-access` | mixed HOC + hook access for the same context. |
-| `purity-` | `purity-no-effect-in-derivation` | promoted from §v0.2.0 backlog (`pure-update-functions` family) once the gap surfaced concretely. |
-| `model-` | `model-status-as-tagged-union` | promoted from §v0.2.0 backlog (`action-shape-tagged-union` applied to status states). |
-| `model-` | `model-narrow-selector-shape` | new addition; selector-shape narrowing. |
-| `hooks-` | `hooks-class-fallback-when-needed` | hook **applicability** (orthogonal to the deferred hook-correctness checks). |
+| `purity-` | `purity-no-effect-in-derivation` | render-phase side effects in derivations (e.g. `useMemo` factories). |
+| `model-` | `model-status-as-tagged-union` | impossible state combinations from non-discriminated status fields. |
+| `model-` | `model-narrow-selector-shape` | overly broad selectors causing redundant re-renders. |
+| `model-` | `model-stable-derivation-identity` | derivations producing fresh references defeating memoization (three surfaces: value / callback / component). |
+| `hooks-` | `hooks-class-fallback-when-needed` | hook **applicability** — when a class is the right tool because hooks cannot faithfully express a lifecycle. |
 
 The canonical, always-up-to-date list lives in `plugins/old-react/skills/old-react/SKILL.md`. Cross-check that file rather than this section if the two ever diverge.
 
-### v0.2.0+ — open backlog
+### Adding rules — real-example-driven
 
-The list below is a working backlog of *candidate* rules. Each must justify itself against the FP-thinking lens and against existing tooling at the time of authoring. Many of these may turn out to be unnecessary in practice — if a rule does not fire in real reviews, it does not ship. The skill should stay small.
+There is no fixed roadmap of pending rules. The skill is judged by signal-to-noise, not by category coverage; many concerns "could" become a rule but won't unless a real review forces the question.
 
-| Category | Candidate slugs (not commitments) |
-|----------|------------------------------------|
-| `purity-` | `no-ref-read-in-render`, `idempotent-derivations`, `pure-update-functions`, `deterministic-keys` |
-| `immutable-` | `immer-shape-for-deep`, `stable-refs-via-memo`, `copy-on-write` |
-| `model-` | `push-down-default`, `lift-to-lca`, `normalize-collections`, `no-parallel-state`, `server-vs-client-state` |
-| `message-` | `transitions-as-events`, `reducer-for-correlated`, `action-shape-tagged-union`, `exhaustive-handling`, `replayable-from-log` |
-| `effect-` | `deps-honest`, `separate-render-from-effect`, `event-vs-effect`, `async-state-machine`, `no-imperative-subscription` |
-| `hooks-` | `custom-hook-extract`, `no-defensive-memo`, `prefer-reducer` |
-| `compose-` | `function-over-hoc-pyramid`, `custom-hooks-not-render-props`, `slot-pattern-for-layout` |
+A new rule ships when **all** of the following hold:
+
+1. A specific failure surfaced during real review (not hypothetically).
+2. The failure is **not** already caught by `eslint-plugin-react-hooks`, the React Compiler, `react/no-unstable-nested-components`, or TypeScript discriminated unions / type narrowing.
+3. There is at least one Incorrect example drawn from real code (or a faithful reduction) and one Correct example demonstrating the FP-thinking move that fixes it.
+4. The principle is articulable in two or three sentences without library brand names (those live in `references/lib-suggestions.md`).
+
+Categories without rules (`immutable-`, `message-`) are not abandoned — they defer to existing tooling and add a rule only when a specific gap surfaces. Earlier drafts of this spec listed candidate slugs as a working backlog; that list is no longer authoritative. Real examples > planned coverage.
 
 ### Already covered (will not ship as skill rules)
 
@@ -311,9 +311,8 @@ Optional later: build a small `rules/_index.json` consumed by SKILL.md's rule-in
 ## 14. Versioning
 
 - v0.1.0: skeleton plugin + 7 architectural rules (model 3, effect 2, compose 2) + 6 reference docs + slash command + validator (lives at repo-level `tools/old-react/`, not shipped to skill users). Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) and one `compose-` rule defer to existing tooling — see §9.
-- v0.1.x (post-ship): additional rules added as architectural failures surfaced in real review (see §9 "v0.1.x — added since"). Two categories (`immutable-`, `message-`) remain deferred. Marketplace version stays at `0.1.0` until the in-flight set stabilises; the canonical rule list lives in `SKILL.md`.
-- next bump: ship together with whatever round of rule additions is currently in flight; pin a coherent rule set to a numbered release rather than bumping per-rule.
-- v0.2.0+: open backlog. Add a rule only when a recurring architectural failure surfaces in real review and is not already enforced by lint or types. The total rule count is open. See §9 for the candidate list.
+- v0.2.0: shipped 14 rules across 5 active categories (model 6, compose 4, effect 2, purity 1, hooks 1). Two categories (`immutable-`, `message-`) remain deferred to existing tooling. References gained an `advanced-patterns.md` document and a "Stable derivation identity — prior art" table in `lib-suggestions.md`. `references/fp-thinking.md` now anchors pillar 2 to Okasaki's persistent-data-structures result. Per-rule origins listed in §9 "v0.1.x — added before v0.2.0 release".
+- v0.2.x and beyond: real-example-driven (see §9 "Adding rules"). No fixed roadmap; the skill stays small. Total rule count is open.
 - v0.x.x: react to user feedback (which rules fire, false positives, missing patterns).
 
 ## 15. Out-of-scope follow-ups (not implemented in v0.1.0)

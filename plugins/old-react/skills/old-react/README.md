@@ -54,8 +54,9 @@ Two categories remain deferred: `immutable-` and `message-` (each covered by exi
 
 ## Versioning
 
-- v0.1.x — initial architectural rules across `model-`, `effect-`, `compose-` plus seed `purity-` and `hooks-` rules added incrementally. 5 reference docs + an advanced-patterns reference, slash command, validator. Two categories (`immutable-`, `message-`) remain deferred to existing tooling. The current rule set lives in `SKILL.md`; the marketplace version will be bumped past `0.1.0` once the in-flight rule additions stabilise.
-- **v0.2.0 and beyond — open backlog, not a fixed roadmap.** The point of the skill is FP thinking in React UI development, not rule count. A rule ships only when (a) a recurring architectural failure surfaces in real review and (b) the failure is *not* already caught by an existing linter or by TypeScript. The total may stay under 10 rules forever. See spec §9 for the candidate backlog.
+- v0.1.0 — initial release: 7 architectural rules (model 3, effect 2, compose 2), 5 reference docs + an advanced-patterns reference, slash command, validator. Four categories (`purity-`, `immutable-`, `message-`, `hooks-`) deferred at ship.
+- v0.2.0 — current release: 14 rules across 5 active categories (model 6, compose 4, effect 2, purity 1, hooks 1). Two categories (`immutable-`, `message-`) remain deferred to existing tooling. References gained an advanced-patterns doc and a prior-art table in `lib-suggestions.md`; `fp-thinking.md` anchors immutability to Okasaki's persistent-data-structures result. The canonical rule set lives in `SKILL.md`.
+- **No fixed roadmap.** A rule ships only when a real review surfaces a concrete failure not already caught by lint or types, with at least one Incorrect / Correct example pair. See spec §9 "Adding rules — real-example-driven" for the criteria.
 
 ## See also
 
