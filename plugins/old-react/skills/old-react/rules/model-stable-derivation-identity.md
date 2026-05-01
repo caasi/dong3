@@ -42,7 +42,7 @@ const selectById = (s: State, id: Id) => s.byId[id];
 // Consumer: const item = selectById(state, id);
 ```
 
-When the curried *shape* must be preserved (e.g. integrating with a library API that expects `(s) => v`), keep the factory but cache by key so each id maps to one stable output — see Pattern B below. The plain `Map` example in Pattern B assumes a bounded keyspace; for unbounded or attacker-controlled keys, use `WeakMap` (object keys) or a bounded LRU.
+When the curried *shape* must be preserved (e.g. integrating with a library API that expects `(s) => v`), keep the factory but cache by key so each id maps to one stable output — see Pattern B below. The plain `Map` example in Pattern B assumes a bounded keyspace; for unbounded keys, use a bounded LRU. `WeakMap` is only an option when the key is itself an object (entity reference, DOM node, etc.) — primitive ids (`string` / `number`) cannot key a `WeakMap`, so an LRU or similar evicting cache is the correct choice for that case.
 
 ### Surface 2 — derived callback (curried event handler in a list)
 
