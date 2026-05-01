@@ -38,7 +38,7 @@ This rule fires only when all three gating conditions hold:
 
 If condition 1 or 2 fails: emit no finding. If only condition 3 fails: emit an info-level note, not a violation.
 
-Detection heuristic: for each HOC chain, identify the context keys each HOC injects (store, route, theme, i18n, …). For each key, check whether a hook-form access to that key exists anywhere in `src/**`. If it does and the gating conditions pass, report a violation citing the example file where the hook form is already used.
+Detection heuristic: for each HOC chain, identify the context keys each HOC injects (store, route, theme, i18n, …). For each key, check whether a hook-form access to that key exists anywhere in the project's source roots (for example `src/**`, `app/**`, `client/**`, or package roots in a monorepo). If it does and the gating conditions pass, report a violation citing the example file where the hook form is already used.
 
 ## Not a violation when
 
