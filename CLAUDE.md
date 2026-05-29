@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing seven independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing eight independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -20,6 +20,7 @@ plugins/
   kami/                           # Socratic dialogue on human-AI stewardship
   old-react/                      # FP-thinking review/refactor for pre-RSC React
   owasp/                          # OWASP security review with offline references
+  review-loop/                    # Assisted multi-reviewer loop (Claude + Codex → Copilot), never auto-merges
 tools/                            # Repo-level dev tooling (NOT shipped to skill users)
   old-react/                      # Validator + fixtures for old-react rule files
 docs/superpowers/                 # Design specs and implementation plans
@@ -52,6 +53,8 @@ plugins/<name>/
 **constraint:** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for language-agnostic artifact generation (see `references/toolchain-matrix.md`; TS is the primary reference, OCaml verified), `constraint-enforce` for running the enforcement pipeline.
 
 **old-react:** FP-thinking review/refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships **architectural** rules only — categories already covered by the React-Compiler diagnostics in `eslint-plugin-react-hooks` v5+ (`recommended-latest`) and TypeScript discriminated unions are deferred. Five active categories: `model-`, `effect-`, `compose-`, `purity-`, `hooks-`. Two deferred: `immutable-`, `message-`. Canonical rule list lives in `plugins/old-react/skills/old-react/SKILL.md` (don't duplicate counts here — they drift). Rule bodies use FP/TEA pattern terms only; brand names live in `references/lib-suggestions.md`. Rules ship from real review examples, not a planned list (see spec §9 "Adding rules — real-example-driven"). One slash command: `/old-react [review|refactor] [path]`. Spec: `docs/superpowers/specs/001-old-react-skill-design.md`. Lineage source: `docs/old-react.md`.
+
+**review-loop:** Assisted, not autonomous, multi-reviewer convergence loop. Local reviewers run first — a Claude subagent always, plus Codex in a `tmux` pane when available — then GitHub Copilot for PR targets. Helper scripts in `skills/review-loop/scripts/` (`codex-pane.sh`, `copilot.sh`, `pr-comments.sh`) are referenced via `${CLAUDE_PLUGIN_ROOT}`. Target scope is any changed artifact: code or design artifacts (specs, plans, docs). One slash command: `/review-loop [PR# | branch | blank]`. Spec: `docs/superpowers/specs/002-review-loop-plugin-design.md`.
 
 ## Versioning
 
