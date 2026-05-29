@@ -3,13 +3,13 @@
 #
 # Subcommands:
 #   status <pr>      print who is requested vs who has reviewed (JSON)
-#   request <pr>     add Copilot as a reviewer via REST (see the first-time note below)
+#   request <pr>     add Copilot as a reviewer via `gh pr edit --add-reviewer` (see the first-time note below)
 #   rerequest <pr>   force a fresh Copilot review via the GraphQL requestReviews mutation
 #
 # First-time requests: the GraphQL re-request needs Copilot's bot node id, which is only
-# discoverable from an EXISTING review by Copilot. So on repos where REST returns 422 for the
-# bot, the very first Copilot review must be requested once through the GitHub UI (or wherever
-# REST is accepted). After Copilot has reviewed once, `rerequest` works for every later round.
+# discoverable from an EXISTING review by Copilot. So on repos where `gh pr edit --add-reviewer`
+# returns 422 for the bot, the very first Copilot review must be requested once through the
+# GitHub UI. After Copilot has reviewed once, `rerequest` works for every later round.
 #
 # Requires: the `gh` CLI, authenticated. Repo (owner/name) is inferred from the current directory.
 set -euo pipefail
