@@ -1,0 +1,31 @@
+---
+description: Run the assisted multi-reviewer review loop (local Claude + Codex gate, then Copilot for PRs)
+argument-hint: "[PR-number | branch | (blank = current branch vs base)]"
+---
+
+# /review-loop
+
+Run the `review-loop` skill against a target.
+
+**Usage:**
+
+- `/review-loop` — review the current branch versus its base (local diff target).
+- `/review-loop <branch>` — review the given branch versus its base.
+- `/review-loop <PR-number>` — review an open GitHub PR (adds the Copilot phase).
+
+**Target:**
+
+The change under review may be code or design artifacts (specs, plans, docs). For
+document targets the loop reviews clarity, consistency, structure, and factual
+accuracy; TDD / one-commit-per-item discipline applies only to executable changes.
+
+**Behavior:**
+
+Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
+
+- **Local gate first** — a Claude subagent always reviews; Codex (in a tmux pane)
+  joins when `$TMUX` is set and `codex` is on `PATH`, otherwise it is skipped
+  silently. The local gate must be clean before any GitHub PR is opened.
+- **Copilot is GitHub-only** — requested only for PR targets, after the local gate.
+- **Never merges autonomously** — the author decides T2/T3 fixes and the final
+  merge. Default to a merge commit to preserve history.
