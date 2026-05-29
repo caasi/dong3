@@ -13,8 +13,11 @@
 # Requires: the `gh` CLI (authenticated) and `jq`.
 set -euo pipefail
 
-# Copilot prints this sentence when it reviewed and found nothing to flag.
-CLEAN_SIGNAL='and generated no new comments.'
+# Copilot prints this when it reviewed and found nothing to flag. A first review says
+# "generated no comments."; a re-review says "generated no new comments." — match both.
+CLEAN_SIGNAL_RE='generated no (new )?comments\.'
+# The REST API returns the bot login WITH a "[bot]" suffix (copilot-pull-request-reviewer[bot]),
+# unlike `gh pr view` which drops it — so match by prefix to accept either form.
 BOT_LOGIN='copilot-pull-request-reviewer'
 
 require_pr_number() {
@@ -46,11 +49,11 @@ clean_pass() {
   body="$(gh api --paginate "repos/${owner}/${name}/pulls/${pr}/reviews" \
     | jq -r -s --arg login "${BOT_LOGIN}" '
         (add // [])
-        | map(select(.user.login == $login))
+        | map(select(.user.login | startswith($login)))
         | sort_by(.submitted_at)
         | last
         | .body // ""')"
-  printf '%s' "${body}" | grep -F "${CLEAN_SIGNAL}" > /dev/null
+  printf '%s' "${body}" | grep -Eq "${CLEAN_SIGNAL_RE}"
 }
 
 usage() { echo "usage: pr-comments.sh {fetch <pr> | clean-pass <pr>}" >&2; exit 2; }
