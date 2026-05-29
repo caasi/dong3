@@ -181,13 +181,17 @@ sed -i '' 's#scripts/#${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/#g' \
 
 - [ ] **Step 3: Verify no bare `scripts/` paths remain and the count is right**
 
-Run:
+Run (robust check: every `scripts/` must be part of `review-loop/scripts/` — do NOT
+use `grep -E '(^|[^/])scripts/'`; the `^`-inside-a-group anchor is non-portable on
+BSD/macOS grep and matched inconsistently):
 ```bash
-grep -c 'scripts/' plugins/review-loop/skills/review-loop/SKILL.md       # context occurrences
-grep -c '\${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/' plugins/review-loop/skills/review-loop/SKILL.md
-grep -nE '(^|[^/])\bscripts/' plugins/review-loop/skills/review-loop/SKILL.md | grep -v 'CLAUDE_PLUGIN_ROOT' || echo "no bare scripts/ paths"
+F=plugins/review-loop/skills/review-loop/SKILL.md
+total=$(grep -o 'scripts/' "$F" | wc -l | tr -d ' ')
+rooted=$(grep -o 'review-loop/scripts/' "$F" | wc -l | tr -d ' ')
+echo "total=$total rooted=$rooted"
+[ "$total" = "$rooted" ] && [ "$total" = "14" ] && echo "clean: all 14 rooted" || echo "BARE PATH OR WRONG COUNT"
 ```
-Expected: the rooted count is **14**; the final grep prints `no bare scripts/ paths`.
+Expected: `total=14 rooted=14` and `clean: all 14 rooted`.
 
 - [ ] **Step 4: Framing edit F1 — frontmatter `description`**
 
@@ -468,10 +472,12 @@ for f in codex-pane.sh copilot.sh pr-comments.sh; do
   test -x plugins/review-loop/skills/review-loop/scripts/$f
   diff -q ~/.claude/skills/review-loop/scripts/$f plugins/review-loop/skills/review-loop/scripts/$f
 done
-# SKILL.md: frontmatter + no bare scripts/ paths
-grep -q '^name: review-loop' plugins/review-loop/skills/review-loop/SKILL.md
-grep -q '^description:' plugins/review-loop/skills/review-loop/SKILL.md
-! grep -nE '(^|[^/])scripts/' plugins/review-loop/skills/review-loop/SKILL.md | grep -qv 'CLAUDE_PLUGIN_ROOT'
+# SKILL.md: frontmatter + every scripts/ rooted (robust; avoid the non-portable
+# '(^|[^/])scripts/' BSD-grep anchor)
+SK=plugins/review-loop/skills/review-loop/SKILL.md
+grep -q '^name: review-loop' "$SK"
+grep -q '^description:' "$SK"
+[ "$(grep -o 'scripts/' "$SK" | wc -l)" = "$(grep -o 'review-loop/scripts/' "$SK" | wc -l)" ]
 echo "ALL STRUCTURAL CHECKS PASSED"
 ```
 Expected: `ALL STRUCTURAL CHECKS PASSED`. Fix any failing check before proceeding.

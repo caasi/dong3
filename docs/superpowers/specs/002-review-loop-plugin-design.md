@@ -198,8 +198,12 @@ and against every kind of artifact it now claims to cover.
   reflect the broadened target scope (§ "Target scope").
 - SKILL.md references all three scripts via `${CLAUDE_PLUGIN_ROOT}/...`; no bare
   relative `scripts/` paths remain.
-- The three scripts are unchanged from the local originals (diff-clean except for
-  location).
+- The three scripts stay byte-identical to the local source. They were vendored
+  unchanged; the dogfooding pass then found a real `clean-pass` bug in
+  `pr-comments.sh` (Copilot's REST login carries a `[bot]` suffix, and a first
+  review says "no comments." not "no new comments."), and the fix was applied
+  identically to both the vendored copy and the local source — so the two remain
+  diff-clean against each other.
 - marketplace.json lists `review-loop` and `metadata.version` is `1.3.0`; the file
   is valid JSON.
 - Project CLAUDE.md reflects eight plugins including `review-loop`.
