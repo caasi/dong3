@@ -1,0 +1,20 @@
+{
+  "name": "review-loop",
+  "description": "Assisted multi-reviewer convergence loop — local Claude + Codex gate first, then GitHub Copilot for PRs; tiers comments, auto-fixes mechanical ones, never merges autonomously",
+  "author": {
+    "name": "caasi"
+  },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": [
+    "code-review",
+    "pull-request",
+    "copilot",
+    "codex",
+    "review-loop",
+    "tmux"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
