@@ -19,14 +19,14 @@ Claude and Codex reviewing **together** produces noticeably better output than e
 - **Codex reviewer (optional):** a `tmux` session (`$TMUX` set) and the `codex` CLI on `PATH`. Absent either, the Codex step is skipped silently.
 - **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
 
-The helper scripts use POSIX-friendly options and resolve `codex`/`gh` from `PATH`, so the skill is self-contained and portable across machines.
+The helper scripts use POSIX-friendly options and resolve their CLI dependencies (`codex`, `tmux`, `gh`, `jq`) from `PATH`, so the skill is self-contained and portable across machines.
 
 ## Inputs
 
 - **Target** — one of:
   - a **local diff/branch** (default: current branch vs its base), or
   - a **GitHub PR number** (or a branch that already has an open PR → treat as GitHub target).
-  - The diff may contain code, design docs (specs/plans), or both — the loop reviews whatever changed.
+  - The diff may contain code, design artifacts (specs, plans, docs), or both — the loop reviews whatever changed.
 - Repo / base branch inferred from the current working directory.
 
 ## Reviewer roster & priority
