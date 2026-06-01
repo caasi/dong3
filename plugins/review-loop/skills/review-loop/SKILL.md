@@ -125,7 +125,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 - **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
 
-**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped only when the `codex` CLI is absent, or stopped at its usage limit, counts as done). Only then proceed.
+**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available*. "Done" for Codex means any of: clean review, **or** Codex was unavailable this run — the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (§4 "Codex failed": surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on Claude alone; only an *available, not-yet-clean* Codex blocks. Only then proceed.
 
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
