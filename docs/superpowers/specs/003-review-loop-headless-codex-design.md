@@ -181,14 +181,17 @@ The channel is *always* `codex exec`. tmux is a pure observability add-on:
   is cumulative across rounds; `$err` is overwritten per attempt (§4 only inspects
   the current round's stderr). Stdout is appended, not piped through `tee`, so
   Codex's own exit status survives (§1).
-- **If `$TMUX` is set**, on the *first* Codex round only, spawn one read-only
-  spectator pane that follows the per-run log:
+- **If `$TMUX` is set**, spawn one read-only spectator pane **before the first
+  `codex exec` call** (right after the per-run log setup), so it covers round 1.
+  The pane follows the per-run log — for round 1 that log is a JSON event stream;
+  the human's authoritative summary is still Claude's relayed tier list, the pane
+  is a raw-feed spectator aid:
   ```bash
   [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
     -F '#{session_name}:#{window_index}.#{pane_index}' \
     "tail -f /tmp/review-loop-codex.<runid>.log")
   ```
-  The agent **never reads from this pane** — it reads `codex exec`'s stdout. Later
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All
   rounds append to the same log, so the single spectator pane keeps showing them.
 - **Teardown:** when the loop ends (clean, usage-limit fallback, or abort), close
   the spectator pane (`tmux kill-pane -t "$watch_pane"`) so it doesn't linger as an

@@ -68,6 +68,13 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   : >"$log"   # stdout is appended (>>) per round → cumulative; $err is overwritten per attempt
   ```
 
+- **Optional tmux live-watch (spectating only, not the channel) — spawn it now, before the first `codex` call, so it covers round 1.** The channel is *always* `codex exec`. If `$TMUX` is set, spawn one read-only spectator pane that follows the per-run `$log` (for round 1 that `$log` is a JSON event stream — the human's authoritative summary is still Claude's relayed tier list; the pane is a raw-feed spectator aid):
+  ```bash
+  [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
+    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f $log")
+  ```
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
+
 - **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
   codex exec --json --sandbox read-only review --base "$base"  >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
@@ -103,13 +110,6 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 - **Loop Codex until clean or its usage limit:** each round classify its findings into tiers, resolve picks, fix, then `resume` for re-review. Repeat until **either** Codex reports no remaining problems (Codex gate clean) **or** it hits the usage-limit outcome above.
 
 - **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
-
-- **Optional tmux live-watch (spectating only, not the channel).** The channel is *always* `codex exec`. If `$TMUX` is set, on the **first** Codex round only, spawn one read-only spectator pane that follows the per-run log:
-  ```bash
-  [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
-    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f $log")
-  ```
-  The agent **never reads from this pane** — it reads `codex exec`'s stdout. Later rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
 **A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped only when the `codex` CLI is absent, or stopped at its usage limit, counts as done). Only then proceed.
 
