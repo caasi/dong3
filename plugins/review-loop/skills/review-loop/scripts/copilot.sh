@@ -42,8 +42,8 @@ status() {
   pull="$(gh api "repos/${owner}/${name}/pulls/${pr}")"
   reviews="$(gh api --paginate "repos/${owner}/${name}/pulls/${pr}/reviews" | jq -s 'add // []')"
   jq -n --argjson pull "$pull" --argjson reviews "$reviews" '{
-    requested: [ $pull.requested_reviewers[]? | (.login // .name // empty),
-                 $pull.requested_teams[]?     | (.slug  // .name // empty) ],
+    requested: [ ($pull.requested_reviewers[]? | (.login // .name // empty)),
+                 ($pull.requested_teams[]?     | (.slug  // .name // empty)) ],
     reviewed:  [ $reviews[]? | (.user.login // empty) ] | unique
   }'
 }
@@ -80,7 +80,8 @@ rerequest() {
     | jq -r -s --arg login "${BOT_LOGIN}" '
         (add // [])
         | map(select((.user.login // "") | startswith($login)) | .user.node_id)
-        | last // ""')"
+        | last // ""')" \
+    || { echo "Could not fetch reviews for PR #${pr} (auth/network?) — see the error above." >&2; return 1; }
 
   if [ -z "${pr_id}" ]; then
     echo "Could not resolve the PR node id for #${pr}." >&2
