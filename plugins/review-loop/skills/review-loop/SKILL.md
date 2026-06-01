@@ -1,13 +1,13 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + Codex in a tmux pane) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + headless Codex via `codex exec review`) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
 
 Assisted, not autonomous. Preserves the author's architectural voice and learning across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
-**Local reviewers are preferred and run first.** A Claude subagent and Codex (via the `codex` CLI in a tmux pane) cost nothing extra and are fast, so they are the first gate. GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
+**Local reviewers are preferred and run first.** A Claude subagent and Codex (headless, via `codex exec review`) cost nothing extra and are fast, so they are the first gate. Codex runs wherever the `codex` CLI is on `PATH` — no tmux needed; tmux is only an optional live-watch layer for a human to spectate the review. GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
 
 ## Why this loop exists
 
@@ -16,10 +16,10 @@ Claude and Codex reviewing **together** produces noticeably better output than e
 ## Requirements
 
 - **Always usable:** the Claude subagent reviewer needs nothing extra.
-- **Codex reviewer (optional):** a `tmux` session (`$TMUX` set) and the `codex` CLI on `PATH`. Absent either, the Codex step is skipped silently.
+- **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. `jq` is used to capture the resume `thread_id` from `codex`'s `--json` stream — without `jq`, resume just falls back to `--last` (§ Convergence rounds). (tmux is **not** required — it only adds an optional live-watch pane; see A2.)
 - **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
 
-The helper scripts use POSIX-friendly options and resolve their CLI dependencies (`codex`, `tmux`, `gh`, `jq`) from `PATH`, so the skill is self-contained and portable across machines.
+The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`, plus `tmux` only for the optional live-watch pane) from `PATH`, so the skill is self-contained and portable across machines.
 
 ## Inputs
 
@@ -32,14 +32,13 @@ The helper scripts use POSIX-friendly options and resolve their CLI dependencies
 ## Reviewer roster & priority
 
 1. **Local Claude subagent** — always. Dispatch a subagent (Task tool) to do the review.
-2. **Local Codex** (tmux pane) — when `$TMUX` is set and `codex` is on `PATH`. See A2.
+2. **Local Codex** (headless `codex exec review`) — when `codex` is on `PATH`. tmux is not required; if `$TMUX` is set it only adds an optional live-watch pane. See A2.
 3. **GitHub Copilot** — only for GitHub PR targets, after the PR is open.
 
 ## Helper scripts
 
 Prebuilt so you don't re-derive the same commands each run. All in `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/`, executable:
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh {find | ensure | send <pane> <message> | capture <pane> | usage-limited <pane>}` — manage the Codex tmux pane. `ensure` finds-or-creates (splits the current window) and prints the pane id; its **exit code** matters: `0` ready, `10` a trust/onboarding prompt is showing (you must approve it), `1` Codex failed to start. `send` pastes a possibly multi-line message faithfully and submits it. `usage-limited` exits 0 when the pane shows a rate/usage-limit message.
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh {status <pr> | request <pr> | rerequest <pr>}` — manage the Copilot reviewer. `request` uses `gh pr edit --add-reviewer`; `rerequest` uses the GraphQL `requestReviews` mutation. Note: the first-ever Copilot review may need a one-time request through the GitHub UI (see B1).
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh {fetch <pr> | clean-pass <pr>}` — paginated fetch of reviews + inline comments; `clean-pass` exits 0 when Copilot's newest review is a clean pass.
 
@@ -61,25 +60,76 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 **A1. Claude subagent review** — dispatch a subagent to review the diff. Classify findings into T1/T2/T3, post the grouped list, resolve T2/T3 picks, then apply fixes (per *Tiers*). Commit fixes; push only if a remote/PR branch exists, otherwise commit locally.
 
-**A2. Codex review** (only if `$TMUX` is set and `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it):
-- **Find or open the Codex pane** (capture the exit code safely — a bare `rc=$?` after a `set -e` command substitution can abort before you read it):
-  ```bash
-  if pane=$(${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh ensure); then rc=0; else rc=$?; fi
-  ```
-  Splitting the current window is intentional: the Codex pane sits beside the working pane so the interaction is visible. Accept the narrower pane as the trade-off.
-  - `rc == 10` → Codex is showing a **trust/onboarding prompt**. Do **not** auto-approve it. Pause and tell the author: "Codex needs you to approve the folder-trust prompt in pane `$pane`, then say continue." Resume the Codex step once they confirm.
-  - `rc == 1` → Codex couldn't start; skip the Codex step (fall back to Claude-only) and note it.
-  - `rc == 0` → ready.
-- **Send the work and read the reply:**
-  ```bash
-  ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh send "$pane" 'Please review this change: <paste diff or summary>'
-  ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh capture "$pane"      # read Codex's reply
-  ```
-- **Loop Codex until clean or its usage limit:** classify its findings into tiers, resolve picks, fix, then re-send for re-review. Check `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh usage-limited "$pane"` (exit 0 = limited) each round. Repeat until **either**:
-  - Codex reports no remaining problems → Codex gate clean, **or**
-  - it hits a **usage / rate-limit** message. On detection: **stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
+**A2. Codex review** (only if `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it). Codex runs **headless** via `codex exec review` — no tmux, no pane, runs wherever `codex` is on `PATH`. The `review` subcommand is read-only by construction; Codex *finds* issues, Claude applies fixes (Codex never edits the tree).
 
-**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped for no-tmux/no-CLI, or stopped at its usage limit, counts as done). Only then proceed.
+- **Set up logs (once, at loop start):** pick a `<runid>` (PR number, branch slug, or `mktemp` suffix). `$log` is the **cumulative** feed for the optional watch pane *only*; each round also writes its own `$round` file, which is what Claude actually reads (so old rounds' findings are never replayed):
+  ```bash
+  log="/tmp/review-loop-codex.<runid>.log"; err="/tmp/review-loop-codex.<runid>.err"
+  : >"$log"   # cumulative across rounds — for the tail -f watch pane only
+  ```
+  Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only):
+  ```bash
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"   # template form: portable on BSD/macOS too
+  rc=0
+  <codex exec …> >"$round" 2>"$err" || rc=$?   # rc=0; … || rc=$? so it survives `set -e`; NEVER `| tee` (masks Codex's rc)
+  cat "$round" >>"$log"                       # feed the cumulative watch pane
+  # Claude reads "$round" (only this round); parse thread_id from "$round" too
+  ```
+
+- **Optional tmux live-watch (spectating only, not the channel) — spawn it now, before the first `codex` call, so it covers round 1.** The channel is *always* `codex exec`. If `$TMUX` is set, spawn one read-only spectator pane that follows the per-run `$log` (for round 1 that `$log` is a JSON event stream — the human's authoritative summary is still Claude's relayed tier list; the pane is a raw-feed spectator aid):
+  ```bash
+  [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
+    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f '$log'" 2>/dev/null) || true
+  ```
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan — guard it so an unset/failed pane doesn't abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
+
+- **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree); for a `<PR-number>` target, `gh pr checkout <num>` first. Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checkout isn't possible, **don't** pipe `gh pr diff` into `review -` — `review`'s stdin is *instructions*, not the diff, so it would still review the current checkout. Use the plain-exec fallback below with the diff embedded in the prompt: `codex exec --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
+
+- **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
+  ```bash
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+  rc=0
+  codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err" || rc=$?   # branch vs base (default)
+  # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
+  cat "$round" >>"$log"   # feed the watch pane
+  [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
+  ```
+  With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$round` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
+  For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
+  ```bash
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+  rc=0
+  printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
+    | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
+  cat "$round" >>"$log"
+  [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
+  ```
+  Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
+
+- **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to the per-round `$round` file and stderr to `$err`, capturing the code set-e-safely (`rc=0; … || rc=$?`, never a bare `; rc=$?`), then `cat "$round" >>"$log"` for the watch and read `$round` for classification.
+
+- **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop.
+
+- **Three outcomes** after each call — branch on `rc`:
+  - **`rc == 0` → read the review (NL judgment).** Read **this round's `$round`** (not the cumulative `$log`, which replays earlier rounds) — a JSON event stream on the first round (read the review text from the assistant/agent-message events), plain text on `resume` rounds. Either way Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. (Only `thread_id` is parsed out of the JSON; the review itself is read, not grepped.)
+  - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
+  - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
+
+- **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
+  ```bash
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+  rc=0
+  printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
+    | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
+  cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
+  ```
+  **Fallbacks, in order:** no id captured (e.g. `jq` absent — the `thread_id` parse needs it) → `resume --last` (caveat: `--last` is cwd-scoped, so an unrelated `codex` session started in this repo mid-loop becomes the new "last"); `resume` fails (session expired/missing) → a **fresh** `codex exec --sandbox read-only review -` (freeform, no target flag) with the prior findings restated, so a round never silently loses the review.
+
+- **Loop Codex until clean or its usage limit:** each round classify its findings into tiers, resolve picks, fix, then `resume` for re-review. Repeat until **either** Codex reports no remaining problems (Codex gate clean) **or** it hits the usage-limit outcome above.
+
+- **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
+
+**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available*. "Done" for Codex means any of: clean review, **or** Codex was unavailable this run — the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (§4 "Codex failed": surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on Claude alone; only an *available, not-yet-clean* Codex blocks. Only then proceed.
 
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
@@ -94,7 +144,7 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 
 **B2. Pre-scan** — `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>` (paginated reviews + inline comments). Group unresolved comments into tiers, then handle them per *Tiers*.
 
-**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If a Codex pane is reachable, have Codex review the new commits **before** re-requesting Copilot (local gate first).
+**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If `codex` is on `PATH`, have Codex review the new commits headlessly (`codex exec --sandbox read-only review --base "$base"`, or `resume "$thread_id" -` to continue the session) **before** re-requesting Copilot (local gate first).
 
 **B4. Poll** — `/loop 3m` re-run `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>`. New comments → re-classify → B2.
 - **Copilot clean-pass stop signal:** when `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh clean-pass <num>` exits 0 (newest Copilot review matches `generated no (new )?comments.` — "generated no comments." on a first review, "generated no new comments." on a re-review), **STOP immediately** — cancel the cron/`/loop` job, do not schedule another poll. Post: "Copilot review is clean — no new comments. Stopping the loop; your call on what's next (review / merge / more work)." Then wait.

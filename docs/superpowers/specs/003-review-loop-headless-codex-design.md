@@ -58,6 +58,9 @@ tmux was only ever required for a human to *watch*; the channel never needed it.
   frontmatter line — *all* currently assert the tmux gate. Document the
   `codex exec review` invocations **inline** (no Codex helper script).
 - **Delete `scripts/codex-pane.sh`** entirely.
+- **`commands/review-loop.md`** — overlooked consumer: its "Local gate first"
+  invariant also asserts the `$TMUX`/tmux-pane gate; drop it to match (Codex gates
+  on `codex` on `PATH`, tmux is optional live-watch).
 - **`README.md`** — update reviewer-roster / requirements prose (Codex needs only
   `codex` on `PATH`; tmux is optional live-watch).
 - **`.claude-plugin/marketplace.json`** — bump the `review-loop` plugin version.
@@ -83,37 +86,61 @@ subcommand is read-only by construction; for safety the examples still pin
 subcommand). Codex's job is to *find* issues; Claude applies fixes (TDD, one commit
 per item, author decides T2/T3) — Codex never edits the tree.
 
-**First round — map the loop's target to a `review` invocation:**
+**First round — map the loop's target to a `review` invocation.** The target flag
+and a `[PROMPT]` are **mutually exclusive** (`codex exec review --uncommitted -`
+errors: *"the argument '--uncommitted' cannot be used with '[PROMPT]'"*, rc=2).
+So there are two modes:
+
+*Targeted (primary) — explicit diff, built-in review behavior, no custom prompt.*
+The first round runs with `--json` because it is the round whose session id the
+loop needs for resume (§5): `--json` makes stdout a JSON **event stream**, from
+which Claude reads the review text (assistant/agent-message events) to classify
+into T1/T2/T3 **and** parses `thread_id`. The human still gets the findings via
+Claude's relayed tier list (Claude relays regardless), so JSON-on-stdout costs the
+author nothing.
 
 ```bash
-# working tree (uncommitted spec/plan/code, no branch yet)
-codex exec --sandbox read-only review --uncommitted -
-
 # branch vs its base (the loop's default target)
-codex exec --sandbox read-only review --base "$base" -
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+rc=0   # rc=0; … || rc=$? so it survives `set -e`
+codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
+cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
+[ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
 
-# a single commit
-codex exec --sandbox read-only review --commit "$sha" -
+# other targets:
+#   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
+#   review --commit "$sha"   # a single commit
 ```
 
-The trailing `-` reads **custom review instructions from stdin**, so the loop can
-add focus (e.g. "design artifact — judge clarity/consistency/factual accuracy, not
-tests" for a doc target):
+The built-in review reviews the selected diff for correctness/design/risk and
+handles a Markdown/doc diff sensibly on its own (verified) — no steering needed for
+the common case.
+
+*Freeform (to add focus) — Codex infers the diff itself; no target flag:*
 
 ```bash
-printf '%s\n' "Review as a design artifact: clarity, consistency, factual
-accuracy, gaps. No tests here." \
-  | codex exec --sandbox read-only review --uncommitted - \
-      >>"$log" 2>"$err"; rc=$?    # append stdout (cumulative log); capture rc (see below)
-cat "$log"                        # ... then surface it; tail -f also shows it
+# e.g. steer a doc-artifact review; name the target in prose since no flag is allowed.
+# Keep --json so a focused first round still captures thread_id for resume (§5).
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+rc=0
+printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
+  | codex exec --json --sandbox read-only review - \
+      >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
+cat "$round" >>"$log"
+[ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
 ```
+
+Use the targeted form by default; reach for the freeform form only when custom
+focus is worth giving up the explicit target flag.
 
 **Capture the exit status, don't pipe it away.** Piping `codex … | tee` would make
 `$?` reflect `tee`, not Codex — and §4's three-way outcome split depends on Codex's
-real exit code. So the loop **redirects** Codex's stdout to the per-run log
-(`$log` = `/tmp/review-loop-codex.<runid>.log`) and stderr to `$err`, captures
-`rc=$?` immediately, then displays the log. The optional `tail -f` spectator pane
-(§3) already follows `$log`, so nothing extra is needed to show it live.
+real exit code. So the loop **redirects** Codex's stdout to a fresh per-round
+`$round` file and stderr to `$err`, captures the code set-e-safely
+(`rc=0; … || rc=$?`, never a bare `; rc=$?`), then appends
+`$round` to the cumulative `$log` (`/tmp/review-loop-codex.<runid>.log`) for the
+`tail -f` spectator pane (§3). Claude classifies from **`$round`** (this round
+only) — never the cumulative `$log`, which would replay earlier rounds' findings.
 
 **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no
 reasoning-effort override**. `codex exec review` honors the user's
@@ -126,11 +153,12 @@ user's own review config. If the author names a model for the session
 **Convergence rounds — resume the same session (§5):**
 
 ```bash
-printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
-resolved? Any new concerns?" \
-  | codex exec --sandbox read-only resume "$session_id" - \
-      >>"$log" 2>"$err"; rc=$?    # same safe-capture pattern as the first round
-cat "$log"
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
+rc=0
+printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
+  | codex exec --sandbox read-only resume "$thread_id" - \
+      >"$round" 2>"$err" || rc=$?   # per-round file; same safe-capture pattern
+cat "$round" >>"$log"             # feed the watch; Claude reads "$round" (this round only)
 ```
 
 First round uses `review`; later rounds `resume` the captured session so Codex
@@ -158,22 +186,28 @@ The channel is *always* `codex exec`. tmux is a pure observability add-on:
 - Each loop run uses a **per-run** log/err path (`<runid>` = e.g. PR number, branch
   slug, or `mktemp` suffix), truncated/created at loop start — so concurrent or
   back-to-back runs never read each other's stale findings.
-- Each invocation **appends** its stdout to that per-run `$log` (`>>`), so the log
-  is cumulative across rounds; `$err` is overwritten per attempt (§4 only inspects
-  the current round's stderr). Stdout is appended, not piped through `tee`, so
-  Codex's own exit status survives (§1).
-- **If `$TMUX` is set**, on the *first* Codex round only, spawn one read-only
-  spectator pane that follows the per-run log:
+- Each round writes Codex's stdout to a fresh **per-round** `$round` file (read by
+  Claude for classification, so earlier rounds' fixed findings are never replayed),
+  then appends `$round` to the cumulative `$log` for the watch pane. `$err` is
+  overwritten per attempt (§4 only inspects the current round's stderr). Stdout is
+  redirected, not piped through `tee`, so Codex's own exit status survives (§1).
+- **If `$TMUX` is set**, spawn one read-only spectator pane **before the first
+  `codex exec` call** (right after the per-run log setup), so it covers round 1.
+  The pane follows the per-run log — for round 1 that log is a JSON event stream;
+  the human's authoritative summary is still Claude's relayed tier list, the pane
+  is a raw-feed spectator aid:
   ```bash
   [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
     -F '#{session_name}:#{window_index}.#{pane_index}' \
-    "tail -f /tmp/review-loop-codex.<runid>.log")
+    "tail -f /tmp/review-loop-codex.<runid>.log" 2>/dev/null) || true
   ```
-  The agent **never reads from this pane** — it reads `codex exec`'s stdout. Later
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All
   rounds append to the same log, so the single spectator pane keeps showing them.
+  Both the spawn and teardown are guarded (`… || true`, and `[ -n "${watch_pane:-}" ] && …`)
+  so a tmux failure or an unset pane never aborts a `set -e` loop.
 - **Teardown:** when the loop ends (clean, usage-limit fallback, or abort), close
-  the spectator pane (`tmux kill-pane -t "$watch_pane"`) so it doesn't linger as an
-  orphan (per the project's no-orphan-process rule).
+  the spectator pane (`[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`)
+  so it doesn't linger as an orphan (per the project's no-orphan-process rule).
 - **No tmux?** Codex still runs (the key win). The human sees Codex's findings
   relayed in Claude's own grouped tier list, exactly as for the Claude subagent
   reviewer.
@@ -189,10 +223,13 @@ No more TUI scraping. After each `codex exec` call, branch on the result:
   `usage limit|rate limit|quota|too many requests|try again later` set) → **usage
   limited.** Stop the Codex sub-loop, note the fallback to Claude-only local review
   (+ Copilot for GitHub targets), continue.
-- **Non-zero exit *without* a limit match → Codex failed** (bad flag, no git repo,
-  invalid base branch, auth failure, untrusted dir, …). Do **not** silently fold
-  this into the usage-limit fallback — surface it to the author with the stderr
-  summary, then degrade to Claude-only per the existing policy.
+- **Non-zero exit *without* a limit match → Codex failed** (bad flag — e.g. the
+  `--uncommitted -` conflict rc=2; no git repo; invalid base branch; auth failure).
+  Do **not** silently fold this into the usage-limit fallback — surface it to the
+  author with the stderr summary, then degrade to Claude-only per the existing
+  policy. (A read-only review in an untrusted/first-run dir was verified to
+  *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; should a
+  future codex add a trust gate, its non-zero exit lands here.)
 
 **Future option (not shipped now):** `codex exec --output-schema <file>` can
 constrain the final response to a JSON verdict+severity+issue list for a
@@ -204,14 +241,18 @@ above ships first (keeps the skill file-light, matching the subagent path).
 `codex exec resume [SESSION_ID]` accepts a UUID or thread name, so id-based resume
 is the **normal design**, not best-effort:
 
-- **Capture round 1's session id.** The plan verifies the exact mechanism (e.g.
-  `codex exec --json` event metadata, or the session line codex prints); store it
-  for the loop.
-- **Resume by id** on every convergence round: `… resume "$session_id" -`.
-- **Fallbacks, in order:** if no id was captured → `resume --last` (with the caveat
+- **Capture round 1's session id** from the `--json` stream's **`thread_id`** field
+  — a `{"type":"thread.started","thread_id":"<uuid>"}` event (verified: codex-cli
+  0.135.0; not `session_id`). Parse it with **`jq`**, not a regex:
+  `jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1`. The
+  `--json` output is JSONL, so `jq` is the correct, format-robust tool.
+- **Resume by id** on every convergence round: `… resume "$thread_id" -` (resume's
+  trailing `-` for the stdin follow-up prompt is valid — only the `review` target
+  flags conflict with a prompt, `resume` does not).
+- **Fallbacks, in order:** if no id was captured (e.g. `jq` absent) → `resume --last` (with the caveat
   below); if `resume` fails (session expired/missing) → fall back to a **fresh
-  `codex exec review`** with the prior findings restated in the stdin instructions,
-  so a round never silently loses the review.
+  `codex exec review`** with the prior findings restated as a freeform prompt
+  (`review -`, no target flag), so a round never silently loses the review.
 - **`--last` caveat:** `--last` resumes the most recent session in this directory
   (cwd-scoped unless `--all`); if the author starts an unrelated `codex` session in
   the same repo mid-loop it becomes the new "last." Id-based resume avoids this; the
@@ -251,28 +292,27 @@ retired.
 ## Success criteria
 
 - `scripts/codex-pane.sh` no longer exists.
-- `SKILL.md` Phase A2 documents `codex exec review` (`--uncommitted` / `--base` /
-  `--commit`, custom instructions via `-`) as the primary path, with freeform
-  `codex exec "<diff>"` only as a non-git/older-codex fallback, and `resume` for
-  convergence rounds — all with `--sandbox read-only` before the subcommand, no
-  `-m`/effort override (defers to `review_model`).
+- `SKILL.md` Phase A2 documents the **targeted** `codex exec review`
+  (`--uncommitted` / `--base` / `--commit`, **no** prompt — target flags conflict
+  with `[PROMPT]`) as the primary path, the **freeform** `review -` form for custom
+  focus, plain `codex exec "<diff>"` only as a non-git/older-codex fallback, and
+  `resume "$thread_id" -` for convergence rounds — all with `--sandbox read-only`
+  before the subcommand, no `-m`/effort override (defers to `review_model`).
 - `SKILL.md` Requirements + reviewer-roster item 2 list Codex as needing only
   `codex` on `PATH`; tmux is documented as optional live-watch, not a gate.
 - No `codex-pane.sh` / "tmux pane" reference remains in `SKILL.md` (incl. intro,
-  roster, requirements, PATH note, helper-scripts) or `README.md` or the
-  `description` frontmatter.
+  roster, requirements, PATH note, helper-scripts), `commands/review-loop.md`,
+  `README.md`, or the `description` frontmatter.
 - The three failure outcomes in §4 are distinct: clean (exit 0), usage-limited
   (non-zero + limit stderr → fallback), Codex-failed (non-zero, no limit → surfaced).
 - **Non-tmux verification:** a smoke run with `$TMUX` unset performs a real Codex
   review (the regression the old design had). The plan includes this check; it is
   run manually before merge since the *old* loop drives the PR.
-- The plan/implementation **proves and documents the session-id capture path** —
-  the `codex exec --json` event field if available, otherwise the exact stdout/stderr
-  line parsed — since id-based resume (§5) is now the normal design, not best-effort.
-- The plan empirically confirms `codex exec --sandbox read-only review` behavior in
-  an **untrusted / first-run directory** (does it proceed, or fail with a
-  trust-related non-zero exit?) and routes a trust failure through §4's
-  "Codex-failed" path, not the usage-limit path.
+- The session-id capture path is documented as the `--json` **`thread_id`** field
+  (verified on codex-cli 0.135.0), since id-based resume (§5) is the normal design.
+- The untrusted/first-run-directory behavior is documented: a read-only review
+  **proceeds** (rc=0, verified) — no trust hard-fail — so §4 needs no dedicated trust
+  branch; any future trust-gate non-zero exit lands in the "Codex-failed" path.
 - `README.md` and project `CLAUDE.md` reflect the headless mechanism.
 - `marketplace.json` bumps the `review-loop` plugin version; the file is valid JSON.
 - The change was driven through the (old) `review-loop` local gate — and Copilot,
