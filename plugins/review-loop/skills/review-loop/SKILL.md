@@ -75,6 +75,8 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   ```
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
+- **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree); for a `<PR-number>` target, `gh pr checkout <num>` first. Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checking out isn't possible, pipe `gh pr diff <num>` through the freeform `review -` form instead.)
+
 - **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
   codex exec --json --sandbox read-only review --base "$base"  >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
