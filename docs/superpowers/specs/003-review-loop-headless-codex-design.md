@@ -70,12 +70,6 @@ tmux was only ever required for a human to *watch*; the channel never needed it.
 - The **global** `~/.claude/CLAUDE.md` review-loop note ("Codex review applies only
   inside tmux (`$TMUX` set); skip silently otherwise") goes stale. Different repo
   (`~/.claude`); flag it for the author, don't edit it here.
-- The **local skill copy** at `~/.claude/skills/review-loop/`, which spec 002 left
-  in place and which actually *drives this PR's dogfooding loop*. After this change
-  the plugin and that copy diverge (002's "byte-identical to local copy" invariant
-  no longer holds). Re-sync or retire the local copy **after** this plugin merges
-  and is verified — same different-repo reason as the global CLAUDE.md note. Until
-  then, the *old* tmux-pane loop is what reviews this PR (see Dogfooding).
 - `copilot.sh` and `pr-comments.sh` are **untouched** — entirely GitHub-side.
 - No change to the tier model, Copilot phase, target scope, or merge stance.
 
@@ -240,8 +234,13 @@ is the **normal design**, not best-effort:
 
 Per the author's standing instruction, **the existing (tmux-pane) `review-loop`
 reviews this change** — spec, plan, and code — right up until the PR is shipped.
-The headless version only takes over once merged. The old loop reviewing its own
-replacement is a genuine self-review of the very mechanism being retired.
+This is the marketplace-installed plugin (`~/.claude/plugins/cache/caasi-dong3/
+review-loop/`, currently `0.1.1`), whose source of truth is this repo's
+`plugins/review-loop/` — there is **no** hand-placed `~/.claude/skills/` copy (the
+migration-era copy spec 002 mentioned was retired when 002 merged). The headless
+version takes over once this PR merges and the plugin updates. The old loop
+reviewing its own replacement is a genuine self-review of the mechanism being
+retired.
 
 1. **Docs (this spec, the plan)** — local Claude subagent + Codex gate until clean,
    then committed to `main` (`docs:`), no PR phase.
@@ -286,6 +285,7 @@ replacement is a genuine self-review of the very mechanism being retired.
 - No general-purpose "external reviewer" abstraction — Codex-specific. Generalize
   only if a second external reviewer ever appears.
 - `--output-schema` structured output is documented as a future option, not shipped.
-- No edit to the global `~/.claude/CLAUDE.md`, and no re-sync/retirement of the
-  local `~/.claude/skills/review-loop/` copy, in this PR (post-merge follow-ups).
+- No edit to the global `~/.claude/CLAUDE.md` review-loop note in this PR
+  (post-merge follow-up; the installed plugin updates via the marketplace, so there
+  is no separate local copy to re-sync).
 - No change to `copilot.sh` or `pr-comments.sh`.
