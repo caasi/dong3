@@ -78,7 +78,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 - **Optional tmux live-watch (spectating only, not the channel) — spawn it now, before the first `codex` call, so it covers round 1.** The channel is *always* `codex exec`. If `$TMUX` is set, spawn one read-only spectator pane that follows the per-run `$log` (for round 1 that `$log` is a JSON event stream — the human's authoritative summary is still Claude's relayed tier list; the pane is a raw-feed spectator aid):
   ```bash
   [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
-    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f $log")
+    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f '$log'")
   ```
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
