@@ -61,23 +61,56 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 **A1. Claude subagent review** — dispatch a subagent to review the diff. Classify findings into T1/T2/T3, post the grouped list, resolve T2/T3 picks, then apply fixes (per *Tiers*). Commit fixes; push only if a remote/PR branch exists, otherwise commit locally.
 
-**A2. Codex review** (only if `$TMUX` is set and `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it):
-- **Find or open the Codex pane** (capture the exit code safely — a bare `rc=$?` after a `set -e` command substitution can abort before you read it):
+**A2. Codex review** (only if `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it). Codex runs **headless** via `codex exec review` — no tmux, no pane, runs wherever `codex` is on `PATH`. The `review` subcommand is read-only by construction; Codex *finds* issues, Claude applies fixes (Codex never edits the tree).
+
+- **Set up per-run logs (once, at loop start):** pick a `<runid>` (PR number, branch slug, or `mktemp` suffix) and truncate the paths so back-to-back runs never read stale findings:
   ```bash
-  if pane=$(${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh ensure); then rc=0; else rc=$?; fi
+  log="/tmp/review-loop-codex.<runid>.log"; err="/tmp/review-loop-codex.<runid>.err"
+  : >"$log"   # stdout is appended (>>) per round → cumulative; $err is overwritten per attempt
   ```
-  Splitting the current window is intentional: the Codex pane sits beside the working pane so the interaction is visible. Accept the narrower pane as the trade-off.
-  - `rc == 10` → Codex is showing a **trust/onboarding prompt**. Do **not** auto-approve it. Pause and tell the author: "Codex needs you to approve the folder-trust prompt in pane `$pane`, then say continue." Resume the Codex step once they confirm.
-  - `rc == 1` → Codex couldn't start; skip the Codex step (fall back to Claude-only) and note it.
-  - `rc == 0` → ready.
-- **Send the work and read the reply:**
+
+- **First round — map the loop's target to a `review` invocation.** `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions:
   ```bash
-  ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh send "$pane" 'Please review this change: <paste diff or summary>'
-  ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh capture "$pane"      # read Codex's reply
+  codex exec --sandbox read-only review --uncommitted   >>"$log" 2>"$err"; rc=$?   # working tree
+  codex exec --sandbox read-only review --base "$base"   >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
+  codex exec --sandbox read-only review --commit "$sha"  >>"$log" 2>"$err"; rc=$?   # one commit
+  cat "$log"                                                                        # surface Codex's review
   ```
-- **Loop Codex until clean or its usage limit:** classify its findings into tiers, resolve picks, fix, then re-send for re-review. Check `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh usage-limited "$pane"` (exit 0 = limited) each round. Repeat until **either**:
-  - Codex reports no remaining problems → Codex gate clean, **or**
-  - it hits a **usage / rate-limit** message. On detection: **stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
+  For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose:
+  ```bash
+  printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
+    | codex exec --sandbox read-only review - >>"$log" 2>"$err"; rc=$?
+  cat "$log"
+  ```
+  Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
+
+- **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to `$log` (`>>`, cumulative) and stderr to `$err`, grab `rc=$?` immediately, then `cat "$log"`.
+
+- **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop.
+
+- **Three outcomes** after each call — branch on `rc`:
+  - **`rc == 0` → read the review (NL judgment).** Codex's review is plain stdout in `$log`; Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. No grep, no parsing.
+  - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
+  - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
+
+- **Convergence rounds — resume the same session.** Capture round 1's session id from the `--json` stream's **`thread_id`** field (run the first round with `--json`, parse `thread_id` — not `session_id`), then resume so Codex remembers its prior comments (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
+  ```bash
+  printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
+    | codex exec --sandbox read-only resume "$thread_id" - >>"$log" 2>"$err"; rc=$?
+  cat "$log"
+  ```
+  **Fallbacks, in order:** no id captured → `resume --last` (caveat: `--last` is cwd-scoped, so an unrelated `codex` session started in this repo mid-loop becomes the new "last"); `resume` fails (session expired/missing) → a **fresh** `codex exec --sandbox read-only review -` (freeform, no target flag) with the prior findings restated, so a round never silently loses the review.
+
+- **Loop Codex until clean or its usage limit:** each round classify its findings into tiers, resolve picks, fix, then `resume` for re-review. Repeat until **either** Codex reports no remaining problems (Codex gate clean) **or** it hits the usage-limit outcome above.
+
+- **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
+
+- **Optional tmux live-watch (spectating only, not the channel).** The channel is *always* `codex exec`. If `$TMUX` is set, on the **first** Codex round only, spawn one read-only spectator pane that follows the per-run log:
+  ```bash
+  [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
+    -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f $log")
+  ```
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. Later rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
 **A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped for no-tmux/no-CLI, or stopped at its usage limit, counts as done). Only then proceed.
 
