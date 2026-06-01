@@ -23,7 +23,8 @@ it ever reaches GitHub, so Copilot has much less to flag and rounds converge fas
 
 - **Always usable:** the Claude subagent reviewer.
 - **Codex (optional):** the `codex` CLI on `PATH` (tmux optional — only for a
-  live-watch pane).
+  live-watch pane). `jq` is used to read the resume `thread_id` from `codex`'s
+  `--json` stream; without it, Codex resume falls back to `--last`.
 - **Copilot phase (optional):** an authenticated `gh` CLI and `jq`; GitHub PRs only.
 
 ## Tiers
