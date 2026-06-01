@@ -101,7 +101,7 @@ author nothing.
 
 ```bash
 # branch vs its base (the loop's default target)
-codex exec --json --sandbox read-only review --base "$base"
+codex exec --json --sandbox read-only review --base "$base" >>"$log" 2>"$err"; rc=$?
 thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
 
 # other targets:
