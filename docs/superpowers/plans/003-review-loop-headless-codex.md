@@ -76,7 +76,7 @@ Run: `printf '\n<!-- codex smoke -->\n' >> README.md`
 Run (target flag takes **no** prompt — see Step 1 note):
 ```bash
 codex exec --json --sandbox read-only review --uncommitted >/tmp/cx.json 2>/tmp/cx.err; rc=$?
-echo "rc=$rc"; grep -oiE '"thread_id":"[^"]*"' /tmp/cx.json | head
+echo "rc=$rc"; grep -oiE '"thread_id"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/cx.json | head
 ```
 **Verified (codex-cli 0.135.0):** `rc=0`; the `--json` stream carries `"thread_id":"<uuid>"` — parse `thread_id` (not `session_id`/`conversation_id`). **Also discovered:** `review --uncommitted -` (target flag + `[PROMPT]`/stdin) is **invalid** (rc=2, *"'--uncommitted' cannot be used with '[PROMPT]'"*) — target-flag forms take no prompt; custom focus uses freeform `review -`. Spec 003 §1/§4/§5 reconciled accordingly (this PR).
 

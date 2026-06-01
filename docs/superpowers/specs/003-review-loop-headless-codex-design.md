@@ -105,7 +105,7 @@ round="$(mktemp)"
 rc=0   # rc=0; … || rc=$? so it survives `set -e`
 codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
 cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
-thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
+thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
 
 # other targets:
 #   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
@@ -128,7 +128,7 @@ consistency, factual accuracy, gaps. No tests here." \
   | codex exec --json --sandbox read-only review - \
       >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
 cat "$round" >>"$log"
-thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
+thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
 ```
 
 Use the targeted form by default; reach for the freeform form only when custom
