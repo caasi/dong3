@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + Codex via `codex exec review` (headless; optional tmux live-watch)) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + headless Codex via `codex exec review`) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -111,7 +111,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   ```
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. Later rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan: `tmux kill-pane -t "$watch_pane"`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
-**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped for no-tmux/no-CLI, or stopped at its usage limit, counts as done). Only then proceed.
+**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available* (Codex skipped only when the `codex` CLI is absent, or stopped at its usage limit, counts as done). Only then proceed.
 
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
