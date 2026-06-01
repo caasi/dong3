@@ -62,10 +62,17 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 **A2. Codex review** (only if `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it). Codex runs **headless** via `codex exec review` — no tmux, no pane, runs wherever `codex` is on `PATH`. The `review` subcommand is read-only by construction; Codex *finds* issues, Claude applies fixes (Codex never edits the tree).
 
-- **Set up per-run logs (once, at loop start):** pick a `<runid>` (PR number, branch slug, or `mktemp` suffix) and truncate the paths so back-to-back runs never read stale findings:
+- **Set up logs (once, at loop start):** pick a `<runid>` (PR number, branch slug, or `mktemp` suffix). `$log` is the **cumulative** feed for the optional watch pane *only*; each round also writes its own `$round` file, which is what Claude actually reads (so old rounds' findings are never replayed):
   ```bash
   log="/tmp/review-loop-codex.<runid>.log"; err="/tmp/review-loop-codex.<runid>.err"
-  : >"$log"   # stdout is appended (>>) per round → cumulative; $err is overwritten per attempt
+  : >"$log"   # cumulative across rounds — for the tail -f watch pane only
+  ```
+  Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only):
+  ```bash
+  round="$(mktemp)"
+  <codex exec …> >"$round" 2>"$err"; rc=$?   # NEVER `| tee` — that masks Codex's rc
+  cat "$round" >>"$log"                       # feed the cumulative watch pane
+  # Claude reads "$round" (only this round); parse thread_id from "$round" too
   ```
 
 - **Optional tmux live-watch (spectating only, not the channel) — spawn it now, before the first `codex` call, so it covers round 1.** The channel is *always* `codex exec`. If `$TMUX` is set, spawn one read-only spectator pane that follows the per-run `$log` (for round 1 that `$log` is a JSON event stream — the human's authoritative summary is still Claude's relayed tier list; the pane is a raw-feed spectator aid):
@@ -79,33 +86,38 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 - **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
-  codex exec --json --sandbox read-only review --base "$base"  >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
+  round="$(mktemp)"
+  codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err"; rc=$?   # branch vs base (default)
   # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
-  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
+  cat "$round" >>"$log"   # feed the watch pane
+  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
   ```
-  With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$log` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
+  With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$round` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
   For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
   ```bash
+  round="$(mktemp)"
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
-    | codex exec --json --sandbox read-only review - >>"$log" 2>"$err"; rc=$?
-  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
+    | codex exec --json --sandbox read-only review - >"$round" 2>"$err"; rc=$?
+  cat "$round" >>"$log"
+  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
   ```
   Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
 
-- **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to `$log` (`>>`, cumulative) and stderr to `$err`, grab `rc=$?` immediately, then `cat "$log"`.
+- **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to the per-round `$round` file and stderr to `$err`, grab `rc=$?` immediately, then `cat "$round" >>"$log"` for the watch and read `$round` for classification.
 
 - **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop.
 
 - **Three outcomes** after each call — branch on `rc`:
-  - **`rc == 0` → read the review (NL judgment).** Codex's review is in `$log` — a JSON event stream on the first round (read the review text from the assistant/agent-message events), plain text on `resume` rounds. Either way Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. (Only `thread_id` is parsed out of the JSON; the review itself is read, not grepped.)
+  - **`rc == 0` → read the review (NL judgment).** Read **this round's `$round`** (not the cumulative `$log`, which replays earlier rounds) — a JSON event stream on the first round (read the review text from the assistant/agent-message events), plain text on `resume` rounds. Either way Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. (Only `thread_id` is parsed out of the JSON; the review itself is read, not grepped.)
   - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
   - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
 
 - **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
   ```bash
+  round="$(mktemp)"
   printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
-    | codex exec --sandbox read-only resume "$thread_id" - >>"$log" 2>"$err"; rc=$?
-  cat "$log"
+    | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err"; rc=$?
+  cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
   ```
   **Fallbacks, in order:** no id captured → `resume --last` (caveat: `--last` is cwd-scoped, so an unrelated `codex` session started in this repo mid-loop becomes the new "last"); `resume` fails (session expired/missing) → a **fresh** `codex exec --sandbox read-only review -` (freeform, no target flag) with the prior findings restated, so a round never silently loses the review.
 

@@ -101,8 +101,10 @@ author nothing.
 
 ```bash
 # branch vs its base (the loop's default target)
-codex exec --json --sandbox read-only review --base "$base" >>"$log" 2>"$err"; rc=$?
-thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
+round="$(mktemp)"
+codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err"; rc=$?
+cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
+thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
 
 # other targets:
 #   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
@@ -118,11 +120,13 @@ the common case.
 ```bash
 # e.g. steer a doc-artifact review; name the target in prose since no flag is allowed.
 # Keep --json so a focused first round still captures thread_id for resume (§5).
+round="$(mktemp)"
 printf '%s\n' "Review the changes against main as a design artifact: clarity,
 consistency, factual accuracy, gaps. No tests here." \
   | codex exec --json --sandbox read-only review - \
-      >>"$log" 2>"$err"; rc=$?    # append stdout (cumulative log); capture rc (see below)
-thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
+      >"$round" 2>"$err"; rc=$?   # per-round file (see safe-capture note below)
+cat "$round" >>"$log"
+thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
 ```
 
 Use the targeted form by default; reach for the freeform form only when custom
@@ -130,10 +134,11 @@ focus is worth giving up the explicit target flag.
 
 **Capture the exit status, don't pipe it away.** Piping `codex … | tee` would make
 `$?` reflect `tee`, not Codex — and §4's three-way outcome split depends on Codex's
-real exit code. So the loop **redirects** Codex's stdout to the per-run log
-(`$log` = `/tmp/review-loop-codex.<runid>.log`) and stderr to `$err`, captures
-`rc=$?` immediately, then displays the log. The optional `tail -f` spectator pane
-(§3) already follows `$log`, so nothing extra is needed to show it live.
+real exit code. So the loop **redirects** Codex's stdout to a fresh per-round
+`$round` file and stderr to `$err`, captures `rc=$?` immediately, then appends
+`$round` to the cumulative `$log` (`/tmp/review-loop-codex.<runid>.log`) for the
+`tail -f` spectator pane (§3). Claude classifies from **`$round`** (this round
+only) — never the cumulative `$log`, which would replay earlier rounds' findings.
 
 **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no
 reasoning-effort override**. `codex exec review` honors the user's
@@ -146,11 +151,12 @@ user's own review config. If the author names a model for the session
 **Convergence rounds — resume the same session (§5):**
 
 ```bash
+round="$(mktemp)"
 printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
 resolved? Any new concerns?" \
   | codex exec --sandbox read-only resume "$thread_id" - \
-      >>"$log" 2>"$err"; rc=$?    # same safe-capture pattern as the first round
-cat "$log"
+      >"$round" 2>"$err"; rc=$?   # per-round file; same safe-capture pattern
+cat "$round" >>"$log"             # feed the watch; Claude reads "$round" (this round only)
 ```
 
 First round uses `review`; later rounds `resume` the captured session so Codex
@@ -178,10 +184,11 @@ The channel is *always* `codex exec`. tmux is a pure observability add-on:
 - Each loop run uses a **per-run** log/err path (`<runid>` = e.g. PR number, branch
   slug, or `mktemp` suffix), truncated/created at loop start — so concurrent or
   back-to-back runs never read each other's stale findings.
-- Each invocation **appends** its stdout to that per-run `$log` (`>>`), so the log
-  is cumulative across rounds; `$err` is overwritten per attempt (§4 only inspects
-  the current round's stderr). Stdout is appended, not piped through `tee`, so
-  Codex's own exit status survives (§1).
+- Each round writes Codex's stdout to a fresh **per-round** `$round` file (read by
+  Claude for classification, so earlier rounds' fixed findings are never replayed),
+  then appends `$round` to the cumulative `$log` for the watch pane. `$err` is
+  overwritten per attempt (§4 only inspects the current round's stderr). Stdout is
+  redirected, not piped through `tee`, so Codex's own exit status survives (§1).
 - **If `$TMUX` is set**, spawn one read-only spectator pane **before the first
   `codex exec` call** (right after the per-run log setup), so it covers round 1.
   The pane follows the per-run log — for round 1 that log is a JSON event stream;
