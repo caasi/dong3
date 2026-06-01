@@ -155,8 +155,7 @@ user's own review config. If the author names a model for the session
 ```bash
 round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0
-printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
-resolved? Any new concerns?" \
+printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
   | codex exec --sandbox read-only resume "$thread_id" - \
       >"$round" 2>"$err" || rc=$?   # per-round file; same safe-capture pattern
 cat "$round" >>"$log"             # feed the watch; Claude reads "$round" (this round only)
