@@ -19,7 +19,7 @@ Claude and Codex reviewing **together** produces noticeably better output than e
 - **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. (tmux is **not** required — it only adds an optional live-watch pane; see A2.)
 - **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
 
-The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`) from `PATH`, so the skill is self-contained and portable across machines.
+The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`, plus `tmux` only for the optional live-watch pane) from `PATH`, so the skill is self-contained and portable across machines.
 
 ## Inputs
 
