@@ -105,7 +105,7 @@ round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0   # rc=0; … || rc=$? so it survives `set -e`
 codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
 cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
-thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
+[ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
 
 # other targets:
 #   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
@@ -127,7 +127,7 @@ printf '%s\n' "Review the changes against main as a design artifact: clarity, co
   | codex exec --json --sandbox read-only review - \
       >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
 cat "$round" >>"$log"
-thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
+[ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
 ```
 
 Use the targeted form by default; reach for the freeform form only when custom

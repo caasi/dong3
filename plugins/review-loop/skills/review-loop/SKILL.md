@@ -92,7 +92,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err" || rc=$?   # branch vs base (default)
   # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
   cat "$round" >>"$log"   # feed the watch pane
-  thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
+  [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
   ```
   With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$round` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
   For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
@@ -102,7 +102,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
     | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"
-  thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
+  [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
   ```
   Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
 
