@@ -123,8 +123,7 @@ the common case.
 # Keep --json so a focused first round still captures thread_id for resume (§5).
 round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0
-printf '%s\n' "Review the changes against main as a design artifact: clarity,
-consistency, factual accuracy, gaps. No tests here." \
+printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
   | codex exec --json --sandbox read-only review - \
       >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
 cat "$round" >>"$log"

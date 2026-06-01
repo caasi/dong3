@@ -64,7 +64,7 @@ Expected: `feat/review-loop-headless-codex` (NOT `main`).
 
 The spec defers three facts to "the plan verifies." Resolve them now so the SKILL.md wording is grounded, not guessed. Record the answers in a scratch note — they decide exact wording in Task 2.
 
-Throughout, **capture Codex's real exit status** with the redirect-then-`rc=$?` pattern — never `… | tee; echo $?` (that reads `tee`'s status, the very trap §1 of the spec warns about).
+Throughout, **capture Codex's real exit status** set-e-safely with `rc=0; … || rc=$?` (never a bare `… | tee; echo $?`, which reads `tee`'s status — the trap §1 of the spec warns about — nor a bare `; rc=$?`, which aborts under `set -e`).
 
 - [ ] **Step 0: Create a throwaway uncommitted change** (the fresh worktree is clean, but `review --uncommitted` needs a diff)
 
