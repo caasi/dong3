@@ -123,6 +123,7 @@ consistency, factual accuracy, gaps. No tests here." \
   | codex exec --json --sandbox read-only review - \
       >>"$log" 2>"$err"; rc=$?    # append stdout (cumulative log); capture rc (see below)
 thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
+```
 
 Use the targeted form by default; reach for the freeform form only when custom
 focus is worth giving up the explicit target flag.
@@ -147,7 +148,7 @@ user's own review config. If the author names a model for the session
 ```bash
 printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
 resolved? Any new concerns?" \
-  | codex exec --sandbox read-only resume "$session_id" - \
+  | codex exec --sandbox read-only resume "$thread_id" - \
       >>"$log" 2>"$err"; rc=$?    # same safe-capture pattern as the first round
 cat "$log"
 ```
@@ -232,7 +233,7 @@ is the **normal design**, not best-effort:
 - **Capture round 1's session id** from the `--json` stream's **`thread_id`** field
   (verified: codex-cli 0.135.0 emits `"thread_id":"<uuid>"`; not `session_id`).
   Run the first round with `--json`, parse `thread_id`, store it for the loop.
-- **Resume by id** on every convergence round: `… resume "$session_id" -` (resume's
+- **Resume by id** on every convergence round: `… resume "$thread_id" -` (resume's
   trailing `-` for the stdin follow-up prompt is valid — only the `review` target
   flags conflict with a prompt, `resume` does not).
 - **Fallbacks, in order:** if no id was captured → `resume --last` (with the caveat
