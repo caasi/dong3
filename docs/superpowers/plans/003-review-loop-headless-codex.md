@@ -128,16 +128,22 @@ Run: `git checkout README.md` (drop the Step 0 edit). Then write the four answer
 - [ ] **Step 0: Empirical findings already reconciled.** Task 1 confirmed: session id = `--json` `thread_id`; resume-by-id works; untrusted dir proceeds read-only (no hard-fail); **and** target flags conflict with `[PROMPT]` (so `review --uncommitted -` is invalid — targeted forms take no prompt, custom focus uses freeform `review -`). Spec 003 §1/§4/§5 + success criteria were reconciled on this branch. Write the A2 wording to match those corrected commands.
 
 - [ ] **Step 1: Replace the A2 body** with the headless mechanism from spec §1, §4, §5. Cover, in this order:
-  1. **First-round invocation** mapping the target to a `review` subcommand, `--sandbox read-only` **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]`):
+  1. **First-round invocation** mapping the target to a `review` subcommand, `--sandbox read-only` **before** the subcommand, **`--json`** so the round's `thread_id` can be captured (target flags take **no** prompt — they conflict with `[PROMPT]`):
      ```bash
-     codex exec --sandbox read-only review --uncommitted      # working tree
-     codex exec --sandbox read-only review --base "$base"     # branch vs base
-     codex exec --sandbox read-only review --commit "$sha"    # one commit
+     codex exec --json --sandbox read-only review --uncommitted   # working tree
+     codex exec --json --sandbox read-only review --base "$base"  # branch vs base
+     codex exec --json --sandbox read-only review --commit "$sha" # one commit
      ```
-     For custom focus (e.g. a doc artifact), use the freeform form instead — no target flag, Codex infers the diff: `printf '<focus, name the target in prose>' | codex exec --sandbox read-only review -`.
-  2. **Safe capture** (not `| tee`, which masks `$?`): `… >>"$log" 2>"$err"; rc=$?` then `cat "$log"`. `$log`/`$err` are per-run paths (Step in Task 2.3).
+     For custom focus (e.g. a doc artifact), use the freeform form — no target flag, Codex infers the diff (keep `--json`): `printf '<focus, name the target in prose>' | codex exec --json --sandbox read-only review -`.
+  2. **Safe, per-round capture** (not `| tee`, which masks `$?`; and `set -e`-safe): write each round to its own `$round` file, append to the cumulative `$log` only for the watch pane, read `$round` for classification:
+     ```bash
+     round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"; rc=0
+     codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
+     cat "$round" >>"$log"
+     thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
+     ```
   3. **Model/effort:** pass no `-m`/effort; defer to `~/.codex/config.toml` `review_model`; session override only if the author names a model.
-  4. **Convergence rounds:** resume by captured `SESSION_ID` (use the exact capture path from Task 1 Step 1); ordered fallbacks `--last` → fresh `codex exec review` with prior findings restated.
+  4. **Convergence rounds:** resume by the captured **`thread_id`** (from the `--json` stream): `… resume "$thread_id" -`; ordered fallbacks `--last` (cwd-scoped caveat) → fresh freeform `review -` with prior findings restated.
   5. **Three outcomes** (from §4): `rc==0` → Claude reads stdout and classifies T1/T2/T3; non-zero **with** a limit-pattern stderr → usage-limited, stop Codex sub-loop, fall back to Claude-only (+ Copilot for GitHub); non-zero **without** a limit match → "Codex failed", **surface to author** with stderr summary (do not swallow). If Task 1 Step 3 showed a trust failure, name it as an example of the "Codex failed" branch.
   6. **Freeform fallback** (rare): only when `codex` lacks `exec review` or the target is non-git (then add `--skip-git-repo-check`).
 
@@ -147,8 +153,8 @@ Run: `grep -nE 'capture-pane|paste-buffer|send-keys|trust/onboarding' plugins/re
 Expected: **no matches** (these scraping verbs are gone repo-wide after the rewrite). Note: `codex-pane` and the roster/requirements `$TMUX` gate still appear until Task 3 cleans them — those are checked in Task 3 Step 6 and Task 8, not here.
 
 - [ ] **Step 3: Add the optional tmux live-watch + per-run log/teardown** (spec §3) to A2:
-  - Per-run `$log`/`$err` (e.g. PR number / branch slug / `mktemp` suffix), truncated/created at loop start; stdout appended (`>>`) so the log is cumulative, `$err` overwritten per attempt.
-  - If `$TMUX` set, on the first round only spawn one read-only pane: `tmux split-window -h -P -F '…' "tail -f $log"`, capture its id.
+  - Per-run `$log`/`$err`, truncated/created at loop start. Each round's stdout goes to its own `$round` file (read by Claude); `cat "$round" >>"$log"` feeds the cumulative watch log, `$err` overwritten per attempt.
+  - If `$TMUX` set, spawn the read-only pane **before the first `codex` call** so it covers round 1: `tmux split-window -h -P -F '…' "tail -f '$log'"` (quote `$log`), capture its id, and `tmux kill-pane` it at loop end.
   - Tear the pane down at loop end (clean / fallback / abort): `tmux kill-pane -t "$watch_pane"`.
 
 - [ ] **Step 4: Commit**
