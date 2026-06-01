@@ -23,9 +23,10 @@ accuracy; TDD / one-commit-per-item discipline applies only to executable change
 
 Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
 
-- **Local gate first** — a Claude subagent always reviews; Codex (in a tmux pane)
-  joins when `$TMUX` is set and `codex` is on `PATH`, otherwise it is skipped
-  silently. The local gate must be clean before any GitHub PR is opened.
+- **Local gate first** — a Claude subagent always reviews; Codex (headless
+  `codex exec review`) joins when `codex` is on `PATH`; tmux is optional (a
+  live-watch pane only), not a gate. The local gate must be clean before any
+  GitHub PR is opened.
 - **Copilot is GitHub-only** — requested only for PR targets, after the local gate.
 - **Never merges autonomously** — the author decides T2/T3 fixes and the final
   merge. Default to a merge commit to preserve history.

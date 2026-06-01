@@ -58,6 +58,9 @@ tmux was only ever required for a human to *watch*; the channel never needed it.
   frontmatter line — *all* currently assert the tmux gate. Document the
   `codex exec review` invocations **inline** (no Codex helper script).
 - **Delete `scripts/codex-pane.sh`** entirely.
+- **`commands/review-loop.md`** — overlooked consumer: its "Local gate first"
+  invariant also asserts the `$TMUX`/tmux-pane gate; drop it to match (Codex gates
+  on `codex` on `PATH`, tmux is optional live-watch).
 - **`README.md`** — update reviewer-roster / requirements prose (Codex needs only
   `codex` on `PATH`; tmux is optional live-watch).
 - **`.claude-plugin/marketplace.json`** — bump the `review-loop` plugin version.
@@ -276,8 +279,8 @@ retired.
 - `SKILL.md` Requirements + reviewer-roster item 2 list Codex as needing only
   `codex` on `PATH`; tmux is documented as optional live-watch, not a gate.
 - No `codex-pane.sh` / "tmux pane" reference remains in `SKILL.md` (incl. intro,
-  roster, requirements, PATH note, helper-scripts) or `README.md` or the
-  `description` frontmatter.
+  roster, requirements, PATH note, helper-scripts), `commands/review-loop.md`,
+  `README.md`, or the `description` frontmatter.
 - The three failure outcomes in §4 are distinct: clean (exit 0), usage-limited
   (non-zero + limit stderr → fallback), Codex-failed (non-zero, no limit → surfaced).
 - **Non-tmux verification:** a smoke run with `$TMUX` unset performs a real Codex

@@ -22,6 +22,7 @@ All paths under the plugin root `plugins/review-loop/`:
 |------|--------|------------------------------|
 | `skills/review-loop/SKILL.md` | Modify | Phase A2 documents `codex exec review`/`resume` inline; intro, reviewer-roster, Requirements, PATH note, Helper-scripts, and `description` frontmatter drop the tmux gate |
 | `skills/review-loop/scripts/codex-pane.sh` | **Delete** | (removed — channel no longer scrapes a pane) |
+| `commands/review-loop.md` | Modify | Overlooked consumer: "Local gate first" invariant drops the `$TMUX`/tmux-pane gate (Codex gates on `codex` on `PATH`; tmux optional live-watch) |
 | `skills/review-loop/README.md` | Modify | User-facing roster/requirements reflect headless Codex + optional live-watch |
 | `.claude-plugin/marketplace.json` (repo root) | Modify | Bump `review-loop` plugin version `0.1.1 → 0.2.0` |
 | `CLAUDE.md` (repo root) | Modify | One-line `review-loop` gloss drops "Codex in a `tmux` pane" |
