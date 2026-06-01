@@ -14,6 +14,12 @@
 # Requires: the `gh` CLI, authenticated. Repo (owner/name) is inferred from the current directory.
 set -euo pipefail
 
+# Copilot shows up under THREE different login forms across GitHub's APIs — don't unify them:
+#   - GraphQL review author / Bot node:  copilot-pull-request-reviewer        (used as BOT_LOGIN below)
+#   - REST reviews endpoint .user.login: copilot-pull-request-reviewer[bot]   (note the [bot] suffix)
+#   - REST requested_reviewers .login:   Copilot                              (display name)
+# So match REST review logins by PREFIX (startswith BOT_LOGIN), and read pending requests from
+# REST `requested_reviewers` (the GraphQL-backed `gh pr view --json reviewRequests` drops the bot).
 BOT_LOGIN='copilot-pull-request-reviewer'
 
 # Guard against non-numeric input — `pr` is interpolated into GraphQL queries.
@@ -27,48 +33,57 @@ repo_owner() { gh repo view --json owner --jq '.owner.login'; }
 repo_name()  { gh repo view --json name  --jq '.name'; }
 
 status() {
-  gh pr view "$1" --json reviewRequests,reviews \
-    --jq '{requested: [.reviewRequests[].login], reviewed: [.reviews[].author.login]}'
+  local pr="$1" owner name pull reviews
+  owner="$(repo_owner)"; name="$(repo_name)"
+  # `requested` from REST `requested_reviewers` — it includes the Copilot bot (login "Copilot"),
+  # which `gh pr view --json reviewRequests` (GraphQL union) drops. `reviewed` from paginated
+  # REST reviews. NB: requested login is "Copilot"; reviewed login is the "[bot]" form — callers
+  # comparing the two must normalize by prefix, not `==`.
+  pull="$(gh api "repos/${owner}/${name}/pulls/${pr}")"
+  reviews="$(gh api --paginate "repos/${owner}/${name}/pulls/${pr}/reviews" | jq -s 'add // []')"
+  jq -n --argjson pull "$pull" --argjson reviews "$reviews" '{
+    requested: [ $pull.requested_reviewers[]? | (.login // .name // empty),
+                 $pull.requested_teams[]?     | (.slug  // .name // empty) ],
+    reviewed:  [ $reviews[]? | (.user.login // empty) ] | unique
+  }'
 }
 
 request() {
-  local pr="$1"
-  if gh pr edit "${pr}" --add-reviewer "${BOT_LOGIN}" 2>/dev/null; then
+  local pr="$1" errf
+  errf="$(mktemp "${TMPDIR:-/tmp}/copilot-request.XXXXXX")"
+  if gh pr edit "${pr}" --add-reviewer "${BOT_LOGIN}" 2>"${errf}"; then
+    rm -f "${errf}"
     echo "Copilot requested via 'gh pr edit'."
     return 0
   fi
-  echo "'gh pr edit --add-reviewer ${BOT_LOGIN}' failed (a 422 is expected for bots on some repos)." >&2
+  # Surface gh's actual stderr — a 422 for the bot is expected, but auth/network/validation
+  # failures would otherwise be hidden behind the same message.
+  echo "'gh pr edit --add-reviewer ${BOT_LOGIN}' failed (a 422 is expected for bots on some repos); gh said:" >&2
+  sed -n '1,20p' "${errf}" >&2
+  rm -f "${errf}"
   echo "  - If Copilot has already reviewed this PR once, run: copilot.sh rerequest ${pr}" >&2
   echo "  - If this is the FIRST request, ask for the initial Copilot review through the GitHub UI once." >&2
   return 1
 }
 
 rerequest() {
-  local pr="$1" owner name resp pr_id bot_id
+  local pr="$1" owner name pr_id bot_id
   owner="$(repo_owner)"
   name="$(repo_name)"
 
-  # Scan the 100 most recent reviews for Copilot's bot id. Practical cap: on an
-  # extremely noisy PR where Copilot's reviews are all older than the last 100,
-  # this would miss it — accept that bound rather than paginate backward.
-  resp="$(gh api graphql --raw-field query="query {
-    repository(owner: \"${owner}\", name: \"${name}\") {
-      pullRequest(number: ${pr}) {
-        id
-        reviews(last: 100) { nodes { author { __typename login ... on Bot { id } } } }
-      }
-    }
-  }")" || { echo "GraphQL query failed (auth/network?) — see the error above." >&2; return 1; }
-
-  pr_id="$(printf '%s' "${resp}" | jq -r '.data.repository.pullRequest.id // ""')"
-  bot_id="$(printf '%s' "${resp}" | jq -r --arg login "${BOT_LOGIN}" '
-    [ .data.repository.pullRequest.reviews.nodes[]?
-      | select(.author.__typename == "Bot" and .author.login == $login)
-      | .author.id ][0] // ""')"
+  # Resolve both node ids from REST (paginated reviews — no 100-review cap that a backward
+  # GraphQL scan would impose). A bot review's REST `.user.node_id` is the same node as its
+  # GraphQL `Bot.id` (verified), so it's a valid `botIds` argument for requestReviews.
+  pr_id="$(gh api "repos/${owner}/${name}/pulls/${pr}" --jq '.node_id // ""')" \
+    || { echo "Could not fetch PR #${pr} (auth/network?) — see the error above." >&2; return 1; }
+  bot_id="$(gh api --paginate "repos/${owner}/${name}/pulls/${pr}/reviews" \
+    | jq -r -s --arg login "${BOT_LOGIN}" '
+        (add // [])
+        | map(select((.user.login // "") | startswith($login)) | .user.node_id)
+        | last // ""')"
 
   if [ -z "${pr_id}" ]; then
-    echo "Could not resolve the PR node id. GraphQL response:" >&2
-    printf '%s\n' "${resp}" >&2
+    echo "Could not resolve the PR node id for #${pr}." >&2
     return 1
   fi
   if [ -z "${bot_id}" ]; then
