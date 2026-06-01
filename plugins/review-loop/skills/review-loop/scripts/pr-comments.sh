@@ -49,7 +49,7 @@ clean_pass() {
   body="$(gh api --paginate "repos/${owner}/${name}/pulls/${pr}/reviews" \
     | jq -r -s --arg login "${BOT_LOGIN}" '
         (add // [])
-        | map(select(.user.login | startswith($login)))
+        | map(select((.user.login // "") | startswith($login)))
         | sort_by(.submitted_at)
         | last
         | .body // ""')"
