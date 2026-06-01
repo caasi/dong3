@@ -1,13 +1,13 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + Codex in a tmux pane) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + Codex via `codex exec review` (headless; optional tmux live-watch)) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
 
 Assisted, not autonomous. Preserves the author's architectural voice and learning across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
-**Local reviewers are preferred and run first.** A Claude subagent and Codex (via the `codex` CLI in a tmux pane) cost nothing extra and are fast, so they are the first gate. GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
+**Local reviewers are preferred and run first.** A Claude subagent and Codex (headless, via `codex exec review`) cost nothing extra and are fast, so they are the first gate. Codex runs wherever the `codex` CLI is on `PATH` — no tmux needed; tmux is only an optional live-watch layer for a human to spectate the review. GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
 
 ## Why this loop exists
 
@@ -16,10 +16,10 @@ Claude and Codex reviewing **together** produces noticeably better output than e
 ## Requirements
 
 - **Always usable:** the Claude subagent reviewer needs nothing extra.
-- **Codex reviewer (optional):** a `tmux` session (`$TMUX` set) and the `codex` CLI on `PATH`. Absent either, the Codex step is skipped silently.
+- **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. (tmux is **not** required — it only adds an optional live-watch pane; see A2.)
 - **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
 
-The helper scripts use POSIX-friendly options and resolve their CLI dependencies (`codex`, `tmux`, `gh`, `jq`) from `PATH`, so the skill is self-contained and portable across machines.
+The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`) from `PATH`, so the skill is self-contained and portable across machines.
 
 ## Inputs
 
@@ -32,14 +32,13 @@ The helper scripts use POSIX-friendly options and resolve their CLI dependencies
 ## Reviewer roster & priority
 
 1. **Local Claude subagent** — always. Dispatch a subagent (Task tool) to do the review.
-2. **Local Codex** (tmux pane) — when `$TMUX` is set and `codex` is on `PATH`. See A2.
+2. **Local Codex** (headless `codex exec review`) — when `codex` is on `PATH`. tmux is not required; if `$TMUX` is set it only adds an optional live-watch pane. See A2.
 3. **GitHub Copilot** — only for GitHub PR targets, after the PR is open.
 
 ## Helper scripts
 
 Prebuilt so you don't re-derive the same commands each run. All in `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/`, executable:
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/codex-pane.sh {find | ensure | send <pane> <message> | capture <pane> | usage-limited <pane>}` — manage the Codex tmux pane. `ensure` finds-or-creates (splits the current window) and prints the pane id; its **exit code** matters: `0` ready, `10` a trust/onboarding prompt is showing (you must approve it), `1` Codex failed to start. `send` pastes a possibly multi-line message faithfully and submits it. `usage-limited` exits 0 when the pane shows a rate/usage-limit message.
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh {status <pr> | request <pr> | rerequest <pr>}` — manage the Copilot reviewer. `request` uses `gh pr edit --add-reviewer`; `rerequest` uses the GraphQL `requestReviews` mutation. Note: the first-ever Copilot review may need a one-time request through the GitHub UI (see B1).
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh {fetch <pr> | clean-pass <pr>}` — paginated fetch of reviews + inline comments; `clean-pass` exits 0 when Copilot's newest review is a clean pass.
 
