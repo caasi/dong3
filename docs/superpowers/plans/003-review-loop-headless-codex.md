@@ -75,7 +75,7 @@ Run: `printf '\n<!-- codex smoke -->\n' >> README.md`
 
 Run (target flag takes **no** prompt — see Step 1 note):
 ```bash
-codex exec --json --sandbox read-only review --uncommitted >/tmp/cx.json 2>/tmp/cx.err; rc=$?
+rc=0; codex exec --json --sandbox read-only review --uncommitted >/tmp/cx.json 2>/tmp/cx.err || rc=$?
 echo "rc=$rc"; grep -oiE '"thread_id"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/cx.json | head
 ```
 **Verified (codex-cli 0.135.0):** `rc=0`; the `--json` stream carries `"thread_id":"<uuid>"` — parse `thread_id` (not `session_id`/`conversation_id`). **Also discovered:** `review --uncommitted -` (target flag + `[PROMPT]`/stdin) is **invalid** (rc=2, *"'--uncommitted' cannot be used with '[PROMPT]'"*) — target-flag forms take no prompt; custom focus uses freeform `review -`. Spec 003 §1/§4/§5 reconciled accordingly (this PR).
@@ -84,9 +84,10 @@ echo "rc=$rc"; grep -oiE '"thread_id"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/cx.j
 
 Run (using the id captured in Step 1):
 ```bash
+rc=0
 printf 'Just confirming resume works; no action needed.\n' \
   | codex exec --sandbox read-only resume "<thread_id>" - \
-      >/tmp/cx2.out 2>/tmp/cx2.err; rc=$?
+      >/tmp/cx2.out 2>/tmp/cx2.err || rc=$?
 echo "rc=$rc"; cat /tmp/cx2.out
 ```
 **Verified:** `rc=0` — resume by `thread_id` works (resume's trailing `-` stdin prompt is valid; only `review` target flags conflict with a prompt). Id-based resume is the primary path, not just `--last`.
@@ -98,8 +99,8 @@ Run:
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/rl.XXXXXX"); git -C "$tmp" init -q
 echo base > "$tmp/f"; git -C "$tmp" add f; git -C "$tmp" commit -qm init   # give it a HEAD
 echo changed >> "$tmp/f"                                                    # then a real diff
-codex exec --sandbox read-only -C "$tmp" review --uncommitted \
-  >/tmp/cx3.out 2>/tmp/cx3.err; rc=$?
+rc=0; codex exec --sandbox read-only -C "$tmp" review --uncommitted \
+  >/tmp/cx3.out 2>/tmp/cx3.err || rc=$?
 echo "rc=$rc"; tail -3 /tmp/cx3.err; rm -rf "$tmp"
 ```
 **Verified:** `rc=0` — a read-only review **proceeds** in a fresh repo; no trust hard-fail. So §4 needs no dedicated trust branch (any future trust-gate non-zero exit lands in the "Codex-failed" path). The initial commit + edit ensures `rc` reflects trust behavior, not "no HEAD / nothing to review."
@@ -108,8 +109,8 @@ echo "rc=$rc"; tail -3 /tmp/cx3.err; rm -rf "$tmp"
 
 Run with tmux disabled:
 ```bash
-env -u TMUX codex exec --sandbox read-only review --uncommitted \
-  >/tmp/cx4.out 2>/tmp/cx4.err; rc=$?
+rc=0; env -u TMUX codex exec --sandbox read-only review --uncommitted \
+  >/tmp/cx4.out 2>/tmp/cx4.err || rc=$?
 echo "rc=$rc"; head /tmp/cx4.out
 ```
 **Verified:** `rc=0` + a review on stdout — Codex review works with no tmux (headline regression fixed). Re-run in Task 8 as the acceptance check.
@@ -311,8 +312,8 @@ Expected: every hit is live-watch language (spawn/`tail -f`/kill-pane the specta
 
 The branch now has commits vs `main`, so review the branch diff (no dirty file needed):
 ```bash
-env -u TMUX codex exec --sandbox read-only review --base main \
-  >/tmp/cx.out 2>/tmp/cx.err; rc=$?
+rc=0; env -u TMUX codex exec --sandbox read-only review --base main \
+  >/tmp/cx.out 2>/tmp/cx.err || rc=$?
 echo "rc=$rc"; head /tmp/cx.out
 ```
 Expected: `rc=0` + a review on stdout (proves the headline regression — Codex review with no tmux — is fixed).

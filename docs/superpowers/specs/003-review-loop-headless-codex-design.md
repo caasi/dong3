@@ -137,7 +137,8 @@ focus is worth giving up the explicit target flag.
 **Capture the exit status, don't pipe it away.** Piping `codex … | tee` would make
 `$?` reflect `tee`, not Codex — and §4's three-way outcome split depends on Codex's
 real exit code. So the loop **redirects** Codex's stdout to a fresh per-round
-`$round` file and stderr to `$err`, captures `rc=$?` immediately, then appends
+`$round` file and stderr to `$err`, captures the code set-e-safely
+(`rc=0; … || rc=$?`, never a bare `; rc=$?`), then appends
 `$round` to the cumulative `$log` (`/tmp/review-loop-codex.<runid>.log`) for the
 `tail -f` spectator pane (§3). Claude classifies from **`$round`** (this round
 only) — never the cumulative `$log`, which would replay earlier rounds' findings.
