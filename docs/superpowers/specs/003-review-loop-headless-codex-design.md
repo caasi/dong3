@@ -102,7 +102,8 @@ author nothing.
 ```bash
 # branch vs its base (the loop's default target)
 round="$(mktemp)"
-codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err"; rc=$?
+rc=0   # rc=0; … || rc=$? so it survives `set -e`
+codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
 cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
 thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
 
@@ -121,10 +122,11 @@ the common case.
 # e.g. steer a doc-artifact review; name the target in prose since no flag is allowed.
 # Keep --json so a focused first round still captures thread_id for resume (§5).
 round="$(mktemp)"
+rc=0
 printf '%s\n' "Review the changes against main as a design artifact: clarity,
 consistency, factual accuracy, gaps. No tests here." \
   | codex exec --json --sandbox read-only review - \
-      >"$round" 2>"$err"; rc=$?   # per-round file (see safe-capture note below)
+      >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
 cat "$round" >>"$log"
 thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
 ```
@@ -152,10 +154,11 @@ user's own review config. If the author names a model for the session
 
 ```bash
 round="$(mktemp)"
+rc=0
 printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
 resolved? Any new concerns?" \
   | codex exec --sandbox read-only resume "$thread_id" - \
-      >"$round" 2>"$err"; rc=$?   # per-round file; same safe-capture pattern
+      >"$round" 2>"$err" || rc=$?   # per-round file; same safe-capture pattern
 cat "$round" >>"$log"             # feed the watch; Claude reads "$round" (this round only)
 ```
 

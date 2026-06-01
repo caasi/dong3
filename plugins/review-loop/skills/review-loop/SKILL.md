@@ -70,7 +70,8 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only):
   ```bash
   round="$(mktemp)"
-  <codex exec …> >"$round" 2>"$err"; rc=$?   # NEVER `| tee` — that masks Codex's rc
+  rc=0
+  <codex exec …> >"$round" 2>"$err" || rc=$?   # rc=0; … || rc=$? so it survives `set -e`; NEVER `| tee` (masks Codex's rc)
   cat "$round" >>"$log"                       # feed the cumulative watch pane
   # Claude reads "$round" (only this round); parse thread_id from "$round" too
   ```
@@ -87,7 +88,8 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 - **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
   round="$(mktemp)"
-  codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err"; rc=$?   # branch vs base (default)
+  rc=0
+  codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err" || rc=$?   # branch vs base (default)
   # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
   cat "$round" >>"$log"   # feed the watch pane
   thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
@@ -96,8 +98,9 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
   ```bash
   round="$(mktemp)"
+  rc=0
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
-    | codex exec --json --sandbox read-only review - >"$round" 2>"$err"; rc=$?
+    | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"
   thread_id=$(grep -oE '"thread_id":"[^"]*"' "$round" | head -1 | sed 's/.*:"//;s/"//')
   ```
@@ -115,8 +118,9 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 - **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
   ```bash
   round="$(mktemp)"
+  rc=0
   printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
-    | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err"; rc=$?
+    | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
   ```
   **Fallbacks, in order:** no id captured → `resume --last` (caveat: `--last` is cwd-scoped, so an unrelated `codex` session started in this repo mid-loop becomes the new "last"); `resume` fails (session expired/missing) → a **fresh** `codex exec --sandbox read-only review -` (freeform, no target flag) with the prior findings restated, so a round never silently loses the review.
