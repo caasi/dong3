@@ -83,30 +83,41 @@ subcommand is read-only by construction; for safety the examples still pin
 subcommand). Codex's job is to *find* issues; Claude applies fixes (TDD, one commit
 per item, author decides T2/T3) — Codex never edits the tree.
 
-**First round — map the loop's target to a `review` invocation:**
+**First round — map the loop's target to a `review` invocation.** The target flag
+and a `[PROMPT]` are **mutually exclusive** (`codex exec review --uncommitted -`
+errors: *"the argument '--uncommitted' cannot be used with '[PROMPT]'"*, rc=2).
+So there are two modes:
+
+*Targeted (primary) — explicit diff, built-in review behavior, no custom prompt:*
 
 ```bash
 # working tree (uncommitted spec/plan/code, no branch yet)
-codex exec --sandbox read-only review --uncommitted -
+codex exec --sandbox read-only review --uncommitted
 
 # branch vs its base (the loop's default target)
-codex exec --sandbox read-only review --base "$base" -
+codex exec --sandbox read-only review --base "$base"
 
 # a single commit
-codex exec --sandbox read-only review --commit "$sha" -
+codex exec --sandbox read-only review --commit "$sha"
 ```
 
-The trailing `-` reads **custom review instructions from stdin**, so the loop can
-add focus (e.g. "design artifact — judge clarity/consistency/factual accuracy, not
-tests" for a doc target):
+The built-in review reviews the selected diff for correctness/design/risk and
+handles a Markdown/doc diff sensibly on its own (verified) — no steering needed for
+the common case.
+
+*Freeform (to add focus) — Codex infers the diff itself; no target flag:*
 
 ```bash
-printf '%s\n' "Review as a design artifact: clarity, consistency, factual
-accuracy, gaps. No tests here." \
-  | codex exec --sandbox read-only review --uncommitted - \
+# e.g. steer a doc-artifact review; name the target in prose since no flag is allowed
+printf '%s\n' "Review the changes against main as a design artifact: clarity,
+consistency, factual accuracy, gaps. No tests here." \
+  | codex exec --sandbox read-only review - \
       >>"$log" 2>"$err"; rc=$?    # append stdout (cumulative log); capture rc (see below)
 cat "$log"                        # ... then surface it; tail -f also shows it
 ```
+
+Use the targeted form by default; reach for the freeform form only when custom
+focus is worth giving up the explicit target flag.
 
 **Capture the exit status, don't pipe it away.** Piping `codex … | tee` would make
 `$?` reflect `tee`, not Codex — and §4's three-way outcome split depends on Codex's
@@ -189,10 +200,13 @@ No more TUI scraping. After each `codex exec` call, branch on the result:
   `usage limit|rate limit|quota|too many requests|try again later` set) → **usage
   limited.** Stop the Codex sub-loop, note the fallback to Claude-only local review
   (+ Copilot for GitHub targets), continue.
-- **Non-zero exit *without* a limit match → Codex failed** (bad flag, no git repo,
-  invalid base branch, auth failure, untrusted dir, …). Do **not** silently fold
-  this into the usage-limit fallback — surface it to the author with the stderr
-  summary, then degrade to Claude-only per the existing policy.
+- **Non-zero exit *without* a limit match → Codex failed** (bad flag — e.g. the
+  `--uncommitted -` conflict rc=2; no git repo; invalid base branch; auth failure).
+  Do **not** silently fold this into the usage-limit fallback — surface it to the
+  author with the stderr summary, then degrade to Claude-only per the existing
+  policy. (A read-only review in an untrusted/first-run dir was verified to
+  *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; should a
+  future codex add a trust gate, its non-zero exit lands here.)
 
 **Future option (not shipped now):** `codex exec --output-schema <file>` can
 constrain the final response to a JSON verdict+severity+issue list for a
@@ -204,14 +218,16 @@ above ships first (keeps the skill file-light, matching the subagent path).
 `codex exec resume [SESSION_ID]` accepts a UUID or thread name, so id-based resume
 is the **normal design**, not best-effort:
 
-- **Capture round 1's session id.** The plan verifies the exact mechanism (e.g.
-  `codex exec --json` event metadata, or the session line codex prints); store it
-  for the loop.
-- **Resume by id** on every convergence round: `… resume "$session_id" -`.
+- **Capture round 1's session id** from the `--json` stream's **`thread_id`** field
+  (verified: codex-cli 0.135.0 emits `"thread_id":"<uuid>"`; not `session_id`).
+  Run the first round with `--json`, parse `thread_id`, store it for the loop.
+- **Resume by id** on every convergence round: `… resume "$session_id" -` (resume's
+  trailing `-` for the stdin follow-up prompt is valid — only the `review` target
+  flags conflict with a prompt, `resume` does not).
 - **Fallbacks, in order:** if no id was captured → `resume --last` (with the caveat
   below); if `resume` fails (session expired/missing) → fall back to a **fresh
-  `codex exec review`** with the prior findings restated in the stdin instructions,
-  so a round never silently loses the review.
+  `codex exec review`** with the prior findings restated as a freeform prompt
+  (`review -`, no target flag), so a round never silently loses the review.
 - **`--last` caveat:** `--last` resumes the most recent session in this directory
   (cwd-scoped unless `--all`); if the author starts an unrelated `codex` session in
   the same repo mid-loop it becomes the new "last." Id-based resume avoids this; the
@@ -251,11 +267,12 @@ retired.
 ## Success criteria
 
 - `scripts/codex-pane.sh` no longer exists.
-- `SKILL.md` Phase A2 documents `codex exec review` (`--uncommitted` / `--base` /
-  `--commit`, custom instructions via `-`) as the primary path, with freeform
-  `codex exec "<diff>"` only as a non-git/older-codex fallback, and `resume` for
-  convergence rounds — all with `--sandbox read-only` before the subcommand, no
-  `-m`/effort override (defers to `review_model`).
+- `SKILL.md` Phase A2 documents the **targeted** `codex exec review`
+  (`--uncommitted` / `--base` / `--commit`, **no** prompt — target flags conflict
+  with `[PROMPT]`) as the primary path, the **freeform** `review -` form for custom
+  focus, plain `codex exec "<diff>"` only as a non-git/older-codex fallback, and
+  `resume "$thread_id" -` for convergence rounds — all with `--sandbox read-only`
+  before the subcommand, no `-m`/effort override (defers to `review_model`).
 - `SKILL.md` Requirements + reviewer-roster item 2 list Codex as needing only
   `codex` on `PATH`; tmux is documented as optional live-watch, not a gate.
 - No `codex-pane.sh` / "tmux pane" reference remains in `SKILL.md` (incl. intro,
@@ -266,13 +283,11 @@ retired.
 - **Non-tmux verification:** a smoke run with `$TMUX` unset performs a real Codex
   review (the regression the old design had). The plan includes this check; it is
   run manually before merge since the *old* loop drives the PR.
-- The plan/implementation **proves and documents the session-id capture path** —
-  the `codex exec --json` event field if available, otherwise the exact stdout/stderr
-  line parsed — since id-based resume (§5) is now the normal design, not best-effort.
-- The plan empirically confirms `codex exec --sandbox read-only review` behavior in
-  an **untrusted / first-run directory** (does it proceed, or fail with a
-  trust-related non-zero exit?) and routes a trust failure through §4's
-  "Codex-failed" path, not the usage-limit path.
+- The session-id capture path is documented as the `--json` **`thread_id`** field
+  (verified on codex-cli 0.135.0), since id-based resume (§5) is the normal design.
+- The untrusted/first-run-directory behavior is documented: a read-only review
+  **proceeds** (rc=0, verified) — no trust hard-fail — so §4 needs no dedicated trust
+  branch; any future trust-gate non-zero exit lands in the "Codex-failed" path.
 - `README.md` and project `CLAUDE.md` reflect the headless mechanism.
 - `marketplace.json` bumps the `review-loop` plugin version; the file is valid JSON.
 - The change was driven through the (old) `review-loop` local gate — and Copilot,

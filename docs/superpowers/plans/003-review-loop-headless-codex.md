@@ -72,25 +72,23 @@ Run: `printf '\n<!-- codex smoke -->\n' >> README.md`
 
 - [ ] **Step 1: Session-id capture mechanism (§5 of spec)**
 
-Run:
+Run (target flag takes **no** prompt — see Step 1 note):
 ```bash
-printf 'one-line sanity review\n' \
-  | codex exec --json --sandbox read-only review --uncommitted - \
-      >/tmp/cx.json 2>/tmp/cx.err; rc=$?
-echo "rc=$rc"; grep -iE 'session|conversation|thread|id' /tmp/cx.json | head
+codex exec --json --sandbox read-only review --uncommitted >/tmp/cx.json 2>/tmp/cx.err; rc=$?
+echo "rc=$rc"; grep -oiE '"thread_id":"[^"]*"' /tmp/cx.json | head
 ```
-Expected: `rc=0`; identify the JSON event/field carrying the session id (e.g. a `session_id`/`conversation_id` field in an early event). **Record the exact field name / parse path.** If `--json` carries no usable id, fall back to inspecting plain stdout/stderr for a printed session line and record that instead.
+**Verified (codex-cli 0.135.0):** `rc=0`; the `--json` stream carries `"thread_id":"<uuid>"` — parse `thread_id` (not `session_id`/`conversation_id`). **Also discovered:** `review --uncommitted -` (target flag + `[PROMPT]`/stdin) is **invalid** (rc=2, *"'--uncommitted' cannot be used with '[PROMPT]'"*) — target-flag forms take no prompt; custom focus uses freeform `review -`. Spec 003 §1/§4/§5 reconciled accordingly (this PR).
 
 - [ ] **Step 2: Resume-by-id round-trips**
 
 Run (using the id captured in Step 1):
 ```bash
 printf 'Just confirming resume works; no action needed.\n' \
-  | codex exec --sandbox read-only resume "<captured-id>" - \
+  | codex exec --sandbox read-only resume "<thread_id>" - \
       >/tmp/cx2.out 2>/tmp/cx2.err; rc=$?
 echo "rc=$rc"; cat /tmp/cx2.out
 ```
-Expected: `rc=0`, output references the prior review context. Confirms id-based resume is the primary path (not just `--last`).
+**Verified:** `rc=0` — resume by `thread_id` works (resume's trailing `-` stdin prompt is valid; only `review` target flags conflict with a prompt). Id-based resume is the primary path, not just `--last`.
 
 - [ ] **Step 3: Untrusted / first-run directory behavior (§4 of spec)**
 
@@ -99,21 +97,21 @@ Run:
 tmp=$(mktemp -d); git -C "$tmp" init -q
 echo base > "$tmp/f"; git -C "$tmp" add f; git -C "$tmp" commit -qm init   # give it a HEAD
 echo changed >> "$tmp/f"                                                    # then a real diff
-printf 'review\n' | codex exec --sandbox read-only -C "$tmp" review --uncommitted - \
+codex exec --sandbox read-only -C "$tmp" review --uncommitted \
   >/tmp/cx3.out 2>/tmp/cx3.err; rc=$?
 echo "rc=$rc"; tail -3 /tmp/cx3.err; rm -rf "$tmp"
 ```
-Expected: record whether it (a) proceeds read-only (`rc=0`), or (b) exits non-zero with a trust-related stderr message. The initial commit + edit ensures a non-zero `rc` reflects **trust/onboarding**, not "no HEAD / nothing to review." **This decides** whether §4's "Codex failed (surface to author)" branch needs an explicit trust-prompt note. Record the outcome.
+**Verified:** `rc=0` — a read-only review **proceeds** in a fresh repo; no trust hard-fail. So §4 needs no dedicated trust branch (any future trust-gate non-zero exit lands in the "Codex-failed" path). The initial commit + edit ensures `rc` reflects trust behavior, not "no HEAD / nothing to review."
 
 - [ ] **Step 4: Non-tmux smoke run (the headline regression fix)**
 
 Run with tmux disabled:
 ```bash
-printf 'sanity\n' | env -u TMUX codex exec --sandbox read-only review --uncommitted - \
+env -u TMUX codex exec --sandbox read-only review --uncommitted \
   >/tmp/cx4.out 2>/tmp/cx4.err; rc=$?
 echo "rc=$rc"; head /tmp/cx4.out
 ```
-Expected: `rc=0` and a review on stdout — proving Codex review works with no tmux. Keep this command; it is re-run in Task 8 as the acceptance check.
+**Verified:** `rc=0` + a review on stdout — Codex review works with no tmux (headline regression fixed). Re-run in Task 8 as the acceptance check.
 
 - [ ] **Step 5: Record findings + revert the throwaway change**
 
@@ -126,15 +124,16 @@ Run: `git checkout README.md` (drop the Step 0 edit). Then write the four answer
 **Files:**
 - Modify: `plugins/review-loop/skills/review-loop/SKILL.md` (Phase A2, currently lines ~64–82)
 
-- [ ] **Step 0: Read the empirical notes first.** Open `/tmp/codex-verify-notes.md` (Task 1). If the session-id capture path differs from §5's `--json` assumption, or untrusted dirs hard-fail, **reconcile spec 003 in this PR before** writing the A2 wording (the spec delegated these to the plan). The wording below must match what Task 1 actually observed.
+- [ ] **Step 0: Empirical findings already reconciled.** Task 1 confirmed: session id = `--json` `thread_id`; resume-by-id works; untrusted dir proceeds read-only (no hard-fail); **and** target flags conflict with `[PROMPT]` (so `review --uncommitted -` is invalid — targeted forms take no prompt, custom focus uses freeform `review -`). Spec 003 §1/§4/§5 + success criteria were reconciled on this branch. Write the A2 wording to match those corrected commands.
 
 - [ ] **Step 1: Replace the A2 body** with the headless mechanism from spec §1, §4, §5. Cover, in this order:
-  1. **First-round invocation** mapping the target to a `review` subcommand, with `--sandbox read-only` **before** the subcommand and custom instructions via `-`:
+  1. **First-round invocation** mapping the target to a `review` subcommand, `--sandbox read-only` **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]`):
      ```bash
-     codex exec --sandbox read-only review --uncommitted -      # working tree
-     codex exec --sandbox read-only review --base "$base" -     # branch vs base
-     codex exec --sandbox read-only review --commit "$sha" -    # one commit
+     codex exec --sandbox read-only review --uncommitted      # working tree
+     codex exec --sandbox read-only review --base "$base"     # branch vs base
+     codex exec --sandbox read-only review --commit "$sha"    # one commit
      ```
+     For custom focus (e.g. a doc artifact), use the freeform form instead — no target flag, Codex infers the diff: `printf '<focus, name the target in prose>' | codex exec --sandbox read-only review -`.
   2. **Safe capture** (not `| tee`, which masks `$?`): `… >>"$log" 2>"$err"; rc=$?` then `cat "$log"`. `$log`/`$err` are per-run paths (Step in Task 2.3).
   3. **Model/effort:** pass no `-m`/effort; defer to `~/.codex/config.toml` `review_model`; session override only if the author names a model.
   4. **Convergence rounds:** resume by captured `SESSION_ID` (use the exact capture path from Task 1 Step 1); ordered fallbacks `--last` → fresh `codex exec review` with prior findings restated.
@@ -305,7 +304,7 @@ Expected: every hit is live-watch language (spawn/`tail -f`/kill-pane the specta
 
 The branch now has commits vs `main`, so review the branch diff (no dirty file needed):
 ```bash
-printf 'final acceptance\n' | env -u TMUX codex exec --sandbox read-only review --base main - \
+env -u TMUX codex exec --sandbox read-only review --base main \
   >/tmp/cx.out 2>/tmp/cx.err; rc=$?
 echo "rc=$rc"; head /tmp/cx.out
 ```
