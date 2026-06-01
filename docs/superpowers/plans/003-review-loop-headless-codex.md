@@ -155,8 +155,8 @@ Expected: **no matches** (these scraping verbs are gone repo-wide after the rewr
 
 - [ ] **Step 3: Add the optional tmux live-watch + per-run log/teardown** (spec §3) to A2:
   - Per-run `$log`/`$err`, truncated/created at loop start. Each round's stdout goes to its own `$round` file (read by Claude); `cat "$round" >>"$log"` feeds the cumulative watch log, `$err` overwritten per attempt.
-  - If `$TMUX` set, spawn the read-only pane **before the first `codex` call** so it covers round 1: `tmux split-window -h -P -F '…' "tail -f '$log'"` (quote `$log`), capture its id, and `tmux kill-pane` it at loop end.
-  - Tear the pane down at loop end (clean / fallback / abort): `tmux kill-pane -t "$watch_pane"`.
+  - If `$TMUX` set, spawn the read-only pane **before the first `codex` call** so it covers round 1: `tmux split-window -h -P -F '…' "tail -f '$log'"` (quote `$log`), capture its id.
+  - Tear the pane down at loop end (clean / fallback / abort), **guarded** so an unset/failed pane doesn't abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`.
 
 - [ ] **Step 4: Commit**
 
