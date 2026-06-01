@@ -105,7 +105,7 @@ round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0   # rc=0; … || rc=$? so it survives `set -e`
 codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
 cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
-thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
+thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
 
 # other targets:
 #   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
@@ -127,7 +127,7 @@ printf '%s\n' "Review the changes against main as a design artifact: clarity, co
   | codex exec --json --sandbox read-only review - \
       >"$round" 2>"$err" || rc=$?   # per-round file (see safe-capture note below)
 cat "$round" >>"$log"
-thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
+thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
 ```
 
 Use the targeted form by default; reach for the freeform form only when custom
@@ -243,12 +243,14 @@ above ships first (keeps the skill file-light, matching the subagent path).
 is the **normal design**, not best-effort:
 
 - **Capture round 1's session id** from the `--json` stream's **`thread_id`** field
-  (verified: codex-cli 0.135.0 emits `"thread_id":"<uuid>"`; not `session_id`).
-  Run the first round with `--json`, parse `thread_id`, store it for the loop.
+  — a `{"type":"thread.started","thread_id":"<uuid>"}` event (verified: codex-cli
+  0.135.0; not `session_id`). Parse it with **`jq`**, not a regex:
+  `jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1`. The
+  `--json` output is JSONL, so `jq` is the correct, format-robust tool.
 - **Resume by id** on every convergence round: `… resume "$thread_id" -` (resume's
   trailing `-` for the stdin follow-up prompt is valid — only the `review` target
   flags conflict with a prompt, `resume` does not).
-- **Fallbacks, in order:** if no id was captured → `resume --last` (with the caveat
+- **Fallbacks, in order:** if no id was captured (e.g. `jq` absent) → `resume --last` (with the caveat
   below); if `resume` fails (session expired/missing) → fall back to a **fresh
   `codex exec review`** with the prior findings restated as a freeform prompt
   (`review -`, no target flag), so a round never silently loses the review.

@@ -76,7 +76,7 @@ Run: `printf '\n<!-- codex smoke -->\n' >> README.md`
 Run (target flag takes **no** prompt — see Step 1 note):
 ```bash
 rc=0; codex exec --json --sandbox read-only review --uncommitted >/tmp/cx.json 2>/tmp/cx.err || rc=$?
-echo "rc=$rc"; grep -oiE '"thread_id"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/cx.json | head
+echo "rc=$rc"; jq -r 'select(.type=="thread.started") | .thread_id' /tmp/cx.json | head
 ```
 **Verified (codex-cli 0.135.0):** `rc=0`; the `--json` stream carries `"thread_id":"<uuid>"` — parse `thread_id` (not `session_id`/`conversation_id`). **Also discovered:** `review --uncommitted -` (target flag + `[PROMPT]`/stdin) is **invalid** (rc=2, *"'--uncommitted' cannot be used with '[PROMPT]'"*) — target-flag forms take no prompt; custom focus uses freeform `review -`. Spec 003 §1/§4/§5 reconciled accordingly (this PR).
 
@@ -141,7 +141,7 @@ Run: `git checkout README.md` (drop the Step 0 edit). Then write the four answer
      round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"; rc=0
      codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
      cat "$round" >>"$log"
-     thread_id=$(sed -nE 's/.*"thread_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$round" | head -1)
+     thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" | head -1)   # jq parses the JSONL event stream (robust; no regex)
      ```
   3. **Model/effort:** pass no `-m`/effort; defer to `~/.codex/config.toml` `review_model`; session override only if the author names a model.
   4. **Convergence rounds:** resume by the captured **`thread_id`** (from the `--json` stream): `… resume "$thread_id" -`; ordered fallbacks `--last` (cwd-scoped caveat) → fresh freeform `review -` with prior findings restated.
