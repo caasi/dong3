@@ -95,7 +95,7 @@ echo "rc=$rc"; cat /tmp/cx2.out
 
 Run:
 ```bash
-tmp=$(mktemp -d); git -C "$tmp" init -q
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/rl.XXXXXX"); git -C "$tmp" init -q
 echo base > "$tmp/f"; git -C "$tmp" add f; git -C "$tmp" commit -qm init   # give it a HEAD
 echo changed >> "$tmp/f"                                                    # then a real diff
 codex exec --sandbox read-only -C "$tmp" review --uncommitted \

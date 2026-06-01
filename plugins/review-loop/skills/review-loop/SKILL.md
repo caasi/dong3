@@ -69,7 +69,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   ```
   Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only):
   ```bash
-  round="$(mktemp)"
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"   # template form: portable on BSD/macOS too
   rc=0
   <codex exec …> >"$round" 2>"$err" || rc=$?   # rc=0; … || rc=$? so it survives `set -e`; NEVER `| tee` (masks Codex's rc)
   cat "$round" >>"$log"                       # feed the cumulative watch pane
@@ -87,7 +87,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 - **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
-  round="$(mktemp)"
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
   codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err" || rc=$?   # branch vs base (default)
   # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
@@ -97,7 +97,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$round` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
   For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
   ```bash
-  round="$(mktemp)"
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
     | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
@@ -117,7 +117,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 - **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
   ```bash
-  round="$(mktemp)"
+  round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
   printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
     | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?

@@ -101,7 +101,7 @@ author nothing.
 
 ```bash
 # branch vs its base (the loop's default target)
-round="$(mktemp)"
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0   # rc=0; … || rc=$? so it survives `set -e`
 codex exec --json --sandbox read-only review --base "$base" >"$round" 2>"$err" || rc=$?
 cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
@@ -121,7 +121,7 @@ the common case.
 ```bash
 # e.g. steer a doc-artifact review; name the target in prose since no flag is allowed.
 # Keep --json so a focused first round still captures thread_id for resume (§5).
-round="$(mktemp)"
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0
 printf '%s\n' "Review the changes against main as a design artifact: clarity,
 consistency, factual accuracy, gaps. No tests here." \
@@ -153,7 +153,7 @@ user's own review config. If the author names a model for the session
 **Convergence rounds — resume the same session (§5):**
 
 ```bash
-round="$(mktemp)"
+round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
 rc=0
 printf '%s\n' "I applied these fixes: <summary>. Are your earlier points
 resolved? Any new concerns?" \
