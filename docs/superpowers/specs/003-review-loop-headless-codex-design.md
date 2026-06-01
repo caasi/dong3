@@ -116,13 +116,13 @@ the common case.
 *Freeform (to add focus) — Codex infers the diff itself; no target flag:*
 
 ```bash
-# e.g. steer a doc-artifact review; name the target in prose since no flag is allowed
+# e.g. steer a doc-artifact review; name the target in prose since no flag is allowed.
+# Keep --json so a focused first round still captures thread_id for resume (§5).
 printf '%s\n' "Review the changes against main as a design artifact: clarity,
 consistency, factual accuracy, gaps. No tests here." \
-  | codex exec --sandbox read-only review - \
+  | codex exec --json --sandbox read-only review - \
       >>"$log" 2>"$err"; rc=$?    # append stdout (cumulative log); capture rc (see below)
-cat "$log"                        # ... then surface it; tail -f also shows it
-```
+thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
 
 Use the targeted form by default; reach for the freeform form only when custom
 focus is worth giving up the explicit target flag.

@@ -82,11 +82,11 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
   ```
   With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$log` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
-  For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose:
+  For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose. Keep `--json` here too, so a focused first round still captures `thread_id` for resume (otherwise convergence falls back to `--last`):
   ```bash
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
-    | codex exec --sandbox read-only review - >>"$log" 2>"$err"; rc=$?
-  cat "$log"
+    | codex exec --json --sandbox read-only review - >>"$log" 2>"$err"; rc=$?
+  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
   ```
   Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
 
@@ -126,7 +126,7 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 
 **B2. Pre-scan** — `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>` (paginated reviews + inline comments). Group unresolved comments into tiers, then handle them per *Tiers*.
 
-**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If a Codex pane is reachable, have Codex review the new commits **before** re-requesting Copilot (local gate first).
+**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If `codex` is on `PATH`, have Codex review the new commits headlessly (`codex exec --sandbox read-only review --base "$base"`, or `resume "$thread_id" -` to continue the session) **before** re-requesting Copilot (local gate first).
 
 **B4. Poll** — `/loop 3m` re-run `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>`. New comments → re-classify → B2.
 - **Copilot clean-pass stop signal:** when `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh clean-pass <num>` exits 0 (newest Copilot review matches `generated no (new )?comments.` — "generated no comments." on a first review, "generated no new comments." on a re-review), **STOP immediately** — cancel the cron/`/loop` job, do not schedule another poll. Post: "Copilot review is clean — no new comments. Stopping the loop; your call on what's next (review / merge / more work)." Then wait.
