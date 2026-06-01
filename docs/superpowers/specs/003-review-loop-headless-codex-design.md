@@ -91,17 +91,22 @@ and a `[PROMPT]` are **mutually exclusive** (`codex exec review --uncommitted -`
 errors: *"the argument '--uncommitted' cannot be used with '[PROMPT]'"*, rc=2).
 So there are two modes:
 
-*Targeted (primary) — explicit diff, built-in review behavior, no custom prompt:*
+*Targeted (primary) — explicit diff, built-in review behavior, no custom prompt.*
+The first round runs with `--json` because it is the round whose session id the
+loop needs for resume (§5): `--json` makes stdout a JSON **event stream**, from
+which Claude reads the review text (assistant/agent-message events) to classify
+into T1/T2/T3 **and** parses `thread_id`. The human still gets the findings via
+Claude's relayed tier list (Claude relays regardless), so JSON-on-stdout costs the
+author nothing.
 
 ```bash
-# working tree (uncommitted spec/plan/code, no branch yet)
-codex exec --sandbox read-only review --uncommitted
-
 # branch vs its base (the loop's default target)
-codex exec --sandbox read-only review --base "$base"
+codex exec --json --sandbox read-only review --base "$base"
+thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
 
-# a single commit
-codex exec --sandbox read-only review --commit "$sha"
+# other targets:
+#   review --uncommitted     # working tree (uncommitted spec/plan/code, no branch yet)
+#   review --commit "$sha"   # a single commit
 ```
 
 The built-in review reviews the selected diff for correctness/design/risk and

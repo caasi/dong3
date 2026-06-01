@@ -68,13 +68,13 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   : >"$log"   # stdout is appended (>>) per round → cumulative; $err is overwritten per attempt
   ```
 
-- **First round — map the loop's target to a `review` invocation.** `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions:
+- **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
   ```bash
-  codex exec --sandbox read-only review --uncommitted   >>"$log" 2>"$err"; rc=$?   # working tree
-  codex exec --sandbox read-only review --base "$base"   >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
-  codex exec --sandbox read-only review --commit "$sha"  >>"$log" 2>"$err"; rc=$?   # one commit
-  cat "$log"                                                                        # surface Codex's review
+  codex exec --json --sandbox read-only review --base "$base"  >>"$log" 2>"$err"; rc=$?   # branch vs base (default)
+  # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
+  thread_id=$(grep -oE '"thread_id":"[^"]*"' "$log" | head -1 | sed 's/.*:"//;s/"//')
   ```
+  With `--json` the stdout is a JSON **event stream**: Claude reads the review content from the assistant/agent-message events in `$log` and classifies it into T1/T2/T3, **and** extracts `thread_id` for resume. The human-readable findings still reach the author via Claude's own relayed tier list (Claude relays regardless), so JSON-on-stdout is fine.
   For **custom focus** (e.g. steering a doc-artifact review), use the freeform form — no target flag, Codex infers the diff itself; name the target in prose:
   ```bash
   printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here." \
@@ -88,11 +88,11 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 - **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop.
 
 - **Three outcomes** after each call — branch on `rc`:
-  - **`rc == 0` → read the review (NL judgment).** Codex's review is plain stdout in `$log`; Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. No grep, no parsing.
+  - **`rc == 0` → read the review (NL judgment).** Codex's review is in `$log` — a JSON event stream on the first round (read the review text from the assistant/agent-message events), plain text on `resume` rounds. Either way Claude classifies it into T1/T2/T3 or judges "no remaining problems," exactly as it handles its own subagent review. (Only `thread_id` is parsed out of the JSON; the review itself is read, not grepped.)
   - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
   - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
 
-- **Convergence rounds — resume the same session.** Capture round 1's session id from the `--json` stream's **`thread_id`** field (run the first round with `--json`, parse `thread_id` — not `session_id`), then resume so Codex remembers its prior comments (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
+- **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
   ```bash
   printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
     | codex exec --sandbox read-only resume "$thread_id" - >>"$log" 2>"$err"; rc=$?
