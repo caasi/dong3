@@ -200,13 +200,15 @@ The channel is *always* `codex exec`. tmux is a pure observability add-on:
   ```bash
   [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
     -F '#{session_name}:#{window_index}.#{pane_index}' \
-    "tail -f /tmp/review-loop-codex.<runid>.log")
+    "tail -f /tmp/review-loop-codex.<runid>.log" 2>/dev/null) || true
   ```
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. All
   rounds append to the same log, so the single spectator pane keeps showing them.
+  Both the spawn and teardown are guarded (`… || true`, and `[ -n "${watch_pane:-}" ] && …`)
+  so a tmux failure or an unset pane never aborts a `set -e` loop.
 - **Teardown:** when the loop ends (clean, usage-limit fallback, or abort), close
-  the spectator pane (`tmux kill-pane -t "$watch_pane"`) so it doesn't linger as an
-  orphan (per the project's no-orphan-process rule).
+  the spectator pane (`[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`)
+  so it doesn't linger as an orphan (per the project's no-orphan-process rule).
 - **No tmux?** Codex still runs (the key win). The human sees Codex's findings
   relayed in Claude's own grouped tier list, exactly as for the Claude subagent
   reviewer.
