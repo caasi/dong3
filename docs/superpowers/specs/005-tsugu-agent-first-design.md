@@ -118,7 +118,7 @@ from a one-time **setup question**, which is allowed because the first
 ### The recorded form
 
 Each configured source is a natural-language entry plus **one read
-instruction** — no per-system integration logic in the plugin:
+pointer** — no per-system integration logic in the plugin:
 
 ```md
 ## Intake Sources

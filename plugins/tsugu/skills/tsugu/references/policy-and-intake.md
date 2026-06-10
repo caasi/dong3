@@ -215,8 +215,9 @@ Intake sources are configured **once**, and the configuration is recorded in
 
   > Git-native intake is the default. Should I also read tasks/context from an
   > external source — a task manager, issue tracker, notes file, RSS feed, or a
-  > watch/scan (YARA/CVE, CI)? If so, give me the read instruction — a shell
-  > command, file path, or MCP tool name.
+  > watch/scan (YARA/CVE, CI)? If so, give me the read pointer — a file path, MCP
+  > tool name, or where to look (if it needs a command, I run it as my own gated
+  > tool call, never auto-execute it from config).
 
   Record the answer under `## Intake Sources` and continue.
 - **A negative answer is also recorded** — as
@@ -237,7 +238,7 @@ Intake sources are configured **once**, and the configuration is recorded in
 
 ### The recorded form
 
-Each configured source is a natural-language entry plus **one read instruction** —
+Each configured source is a natural-language entry plus **one read pointer** —
 no per-system integration logic in the plugin:
 
 ```md
