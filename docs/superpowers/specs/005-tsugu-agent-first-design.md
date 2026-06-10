@@ -568,18 +568,17 @@ deterministic, version-stamped migration.
 - A migration that cannot be applied mechanically (a curated section
   conflicting with the new structure) **stops and asks** — never force-resolve.
 - **Push-protected default branches:** the whole migration rides an `init/*`
-  branch + human-approved PR (the 004 `init` rule), and any coordination-ref
-  change (e.g. the `knowledge/` rename) is performed only **after** that PR
-  merges — otherwise schema-1 readers and the renamed coord ref would disagree
-  during the window. Until the migration completes, readers accept both
-  `context/` and `knowledge/` names. **The `tsugu-schema` stamp lives in
-  `policy.md` on the default branch, so it always rides the policy `init/*` PR —
-  but that PR merges only *after* the coordination-ref rename is confirmed on its
-  own ref** (not one commit when the coord ref is a separate branch): same PR when
+  branch + human-approved PR (the 004 `init` rule). Throughout the migration
+  window readers accept both `context/` and `knowledge/` names, so a schema-1
+  reader and the renamed coord ref never disagree. **The `tsugu-schema` stamp
+  lives in `policy.md` on the default branch, so it always rides the policy
+  `init/*` PR and is the last write to land — but that PR merges only *after* the
+  coordination-ref rename is confirmed on its own ref** (not one commit when the
+  coord ref is a separate branch): the rename and stamp share the PR when
   `coordination-ref=default`, otherwise the separate pushable coord branch is
-  renamed first and confirmed, then the stamp PR merges. The stamp is genuinely
-  last — while it is absent a re-run re-enters, so the schema never reads complete
-  over a half-applied rename.
+  renamed first and confirmed, then the stamp PR merges. While the stamp is absent
+  a re-run re-enters, so the schema never reads complete over a half-applied
+  rename.
 
 ### Migration 1→2 (shipped with this spec)
 

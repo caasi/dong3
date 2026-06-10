@@ -70,7 +70,7 @@ Then write the `.tsugu/` skeleton + `policy.md` from the plugin templates (seed 
 3. **`.tsugu/` present, stamp older** → **migrate**: apply `references/migrations.md` steps in order (N→N+1 until current), then update the stamp **last** and commit (message names the range, e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`). Migrations add/restructure schema parts only, never overwrite curated content; an interrupted migration re-enters safely (stamp written last).
 
 - **Progressive:** when a new situation appears, ask once, record the rule in `policy.md`, let future agents inherit it.
-- **Push-protected default:** the fixed metadata (`policy.md`, `templates/`) must reach the default branch; if it is push-protected, write on an `init/*` branch and open a **human-approved PR**. `prepare` does not run in that repo until the metadata is merged. The same applies to a migration: it rides an `init/*` branch + PR, and any coordination-ref change (e.g. the `knowledge/` rename) is performed only **after** that PR merges.
+- **Push-protected default:** the fixed metadata (`policy.md`, `templates/`) must reach the default branch; if it is push-protected, write on an `init/*` branch and open a **human-approved PR**. `prepare` does not run in that repo until the metadata is merged. The same applies to a migration: it rides an `init/*` branch + PR; the `tsugu-schema` stamp rides the policy PR as the **last** write, and that PR merges only **after** the `knowledge/` rename is confirmed on the coordination ref (same PR when `coordination-ref=default`; the separate coord branch is renamed first otherwise) — never a "complete" stamp over a half-applied rename.
 
 ### `prepare` (human absent)
 

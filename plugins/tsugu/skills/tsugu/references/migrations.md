@@ -47,20 +47,19 @@ The steps obey these rules, which hold for every migration (not just 1→2):
   with the new structure and cannot be re-wrapped mechanically, the migration
   **stops and asks** — never force-resolve.
 - **Push-protected default branches:** the whole migration rides an `init/*`
-  branch + human-approved PR (the 004 `init` rule). Any **coordination-ref**
-  change — e.g. the `knowledge/` rename — is deferred and performed only **after**
-  that PR merges; otherwise schema-1 readers and the renamed coordination ref
-  would disagree during the window. Until the migration completes, readers accept
-  **both** `context/` and `knowledge/` names. **The `tsugu-schema` stamp lives in
-  `policy.md` on the default branch, so it always rides the policy `init/*` PR —
-  but that PR is merged only *after* the coordination-ref rename is confirmed on
-  its own ref** (they are not one commit when the coordination ref is a separate
-  branch). Two cases: when `coordination-ref` is `default`, the rename and the
-  stamp travel in the same PR (stamp written last within it); when it is a
-  separate pushable branch (the usual push-protected setup), the rename is pushed
-  to that branch first and confirmed, then the policy PR carrying the stamp is
-  merged. Either way the stamp is genuinely last — while it is absent a re-run
-  re-enters, so the schema never reads complete over a half-applied rename.
+  branch + human-approved PR (the 004 `init` rule). The `tsugu-schema` stamp lives
+  in `policy.md` on the default branch, so it always rides this policy PR and is
+  the **last** write to land; how the `knowledge/` rename orders against it
+  depends on where the coordination ref lives. When `coordination-ref` is
+  `default` (the default branch itself), the rename is also a default-branch
+  change and travels **in the same policy PR**, stamp written last within it — one
+  atomic merge. When `coordination-ref` is a separate pushable branch (the usual
+  push-protected setup), the rename is pushed to that branch **first** and
+  confirmed, **then** the policy PR carrying the stamp is merged. Either way the
+  stamp lands only after the rename is confirmed, and while it is absent a re-run
+  re-enters — so the schema never reads complete over a half-applied rename.
+  Throughout the window readers accept **both** `context/` and `knowledge/` names,
+  so a schema-1 reader and the renamed coordination ref never disagree.
 
 ## Migration 1→2
 
