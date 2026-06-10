@@ -165,19 +165,20 @@ The exact checks:
 ```bash
 branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
 slug="${branch##*/}"                   # basename: drop the remote and work prefix (one segment each)
-# resolve the slug-paired handoff ref (if any) by searching the configured handoff
-# prefixes — you don't need to know which prefix (feat/fix/legacy public) was used:
-handoff=$(git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$")
+# $handoff_refs = the Handoff-Prefix branches enumerated in "Read the queue" step 4
+# (the repo's *configured* `## Handoff Prefixes`, not hardcoded defaults). Resolve
+# this item's slug-paired handoff ref (if any) by matching slug across them — no need
+# to know which prefix (feat/fix/legacy public, or a customized one) was used:
+handoff=$(printf '%s\n' "$handoff_refs" | grep --extended-regexp "/${slug}$")
 
-# settled? (containment)
-# include mode: the work branch itself is what merges
-git merge-base --is-ancestor "$branch" <remote>/<default> && echo settled
-# exclude mode: containment rides on the slug-paired handoff branch instead
-[ -n "$handoff" ] && git merge-base --is-ancestor "$handoff" <remote>/<default> && echo settled
-
-# pending? (slug pairing — names, not commits): a handoff ref exists
-[ -n "$handoff" ] && echo pending
+# Classify by the FIRST matching table row, in order (settled → pending → in progress):
+if   git merge-base --is-ancestor "$branch" <remote>/<default> 2>/dev/null \
+  || { [ -n "$handoff" ] && git merge-base --is-ancestor "$handoff" <remote>/<default>; }
+then echo settled       # include: work branch contained; exclude: its handoff branch contained
+elif [ -n "$handoff" ]
+then echo pending        # a slug-paired handoff branch exists — decided, awaiting merge
+else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
+fi
 ```
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
