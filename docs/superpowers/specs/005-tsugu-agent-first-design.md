@@ -178,13 +178,21 @@ human-present session:
      verify (build/tests) → rewrite `context.md` to the post-merge mainline
      narrative (C2) → push → the human merges (or approves the PR). Once the
      merge is confirmed, run the **completion tail**, in this order: promote
-     reusable knowledge to `knowledge/shared/`; clean up worktrees and
-     branches (worktree remove before branch delete, as always); remove the
-     pending-merge line from the mainline `context.md` (a `.tsugu/`-only
-     commit — private space per 004); and **last**, flip the intake note
-     `claimed → done` — the durable record that everything finished. The tail
-     is idempotent: if interrupted, the note stays `claimed` and a later tidy
-     pass re-enters the **whole** tail, not just the flip (C4).
+     reusable knowledge to `knowledge/shared/`; remove the pending-merge line
+     from the mainline `context.md` (a `.tsugu/`-only commit — private space
+     per 004; **skip when the default branch is push-protected**: the named
+     marker is already treated as residue by the partition (C4) and
+     disappears with the next mainline rewrite); flip the intake note
+     `claimed → done`, recording the landed tip SHA in the note as a durable
+     breadcrumb; and **only then** clean up worktrees and branches (worktree
+     remove before branch delete, as always). Branch deletion comes after the
+     flip because the branch *is* the ancestry evidence — a lingering merged
+     branch is harmless (ancestry-filtered; prune any time), while deleting
+     it before the flip would turn an interruption into a false
+     reconciliation case. The tail is idempotent: if interrupted before the
+     flip, the note stays `claimed` and a later tidy pass re-enters the
+     **whole** tail, not just the flip (C4); interrupted after the flip, only
+     harmless cleanup remains.
    - **Accepted (`exclude` mode):** cut a clean `public/*` branch from the
      fetched default, apply accepted code/test/doc/config **by path** (no
      `.tsugu/` in the public diff), verify, human-approved PR. The work branch
@@ -287,14 +295,16 @@ cleaned up**: a deleted branch is not in the queue at all.
   fetched default, the work is confirmed landed — run the completion tail
   (intake → `done`, promotion, cleanup of both branches). Until then the work
   branch's `status: converged` keeps it skipped.
-- **Intake-note closing requires confirmed landing — and comes last.** Flip
-  `claimed → done` only when ancestry confirms the landing (the work branch
-  itself in `include` mode; the linked public branch in `exclude` mode) **and
-  the rest of the completion tail (promotion, cleanup, residue removal) has
-  run — the flip is the tail's final step** (C1). An interrupted tail thus
-  stays discoverable: the note remains `claimed`, and a `prepare`/`converge`
-  tidy pass re-enters the whole idempotent tail for sessions that ended
-  before or during completion.
+- **Intake-note closing requires confirmed landing — and precedes only
+  cleanup.** Flip `claimed → done` only when ancestry confirms the landing
+  (the work branch itself in `include` mode; the linked public branch in
+  `exclude` mode) **and promotion + residue removal have run; branch/worktree
+  cleanup alone comes after the flip** (C1), so the ancestry evidence — the
+  branch — survives every interruption window. The flip records the landed
+  tip SHA in the note as a durable breadcrumb. An interrupted tail thus stays
+  discoverable: the note remains `claimed` with its branch intact, and a
+  `prepare`/`converge` tidy pass re-enters the whole idempotent tail for
+  sessions that ended before or during completion.
   **Absence is never proof of success:** a `claimed` note whose linked branch
   is gone *without* ancestry evidence (accidental deletion, rejection that
   didn't update the note, force-push) is a **reconciliation case** — surface
@@ -488,10 +498,11 @@ branch converts on its next touch.
    queue via ancestry alone; a branch freshly cut from default is skipped
    unless a `claimed` intake note links it; legacy `status: settled` notes are
    still read as "skip".
-8. An intake note flips to `done` only on ancestry-confirmed landing, as the
-   final step of the idempotent completion tail (an interrupted tail re-enters
-   via tidy); a `claimed` note whose branch vanished without evidence is
-   surfaced for human reconciliation, never auto-closed.
+8. An intake note flips to `done` only on ancestry-confirmed landing, after
+   promotion + residue removal and before branch cleanup, recording the
+   landed tip SHA (an interrupted tail re-enters via tidy); a `claimed` note
+   whose branch vanished without evidence is surfaced for human
+   reconciliation, never auto-closed.
 9. Re-running `/tsugu:init` on a schema-1 repo migrates it to schema 2 without
    losing any curated `policy.md` content; an interrupted migration re-enters
    safely (stamp written last); re-running after completion is a no-op.
