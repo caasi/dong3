@@ -9,7 +9,9 @@ what grew out of what) are derived from ref names, ancestry, containment, and
 commit recency, never written into a note (see `SKILL.md`'s partition and
 `references/git-recipes.md`). Notes hold two things only: **narrative**
 (maintained freely; it informs judgment, never classification) and **write-once
-records** (run notes, packets, intake terminal fields).
+records** (run notes, packets, and intake's write-once breadcrumbs
+`linked-branch:` / `landed:` — the note's `status:` itself still advances
+`open → claimed → done | dropped`).
 
 ## `context.md` — every ref describes itself, in pure narrative
 
