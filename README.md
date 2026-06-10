@@ -54,6 +54,12 @@ Assisted (not autonomous) multi-reviewer convergence loop for any change — cod
 
 See [plugins/review-loop/skills/review-loop/README.md](plugins/review-loop/skills/review-loop/README.md) for full documentation.
 
+### tsugu
+
+A git-native skill for unattended work preparation and human–agent convergence. Using git's DAG as the coordination substrate, an agent prepares engineering work privately on git branches (often while you are away), records evidence in committed `.tsugu/` notes, and packages a convergence packet; when you return you converge (review the prepared evidence and decide together what becomes public), then the work is settled (cut a clean public branch / open a PR, human-gated). Four routines: `init` (set up the repo's `.tsugu/` workspace + `policy.md`), `prepare` (private git work + tests + evidence while you are absent), `converge` (present the packet and decide with you), `settle` (accept/reject/pause; promote reusable knowledge; clean up). Never auto-merges; light and script-free; invokes no user-installed skill by default (per-repo `policy.md` may opt-in). One slash command: `/tsugu [init|prepare|converge|settle]`.
+
+See [plugins/tsugu/skills/tsugu/README.md](plugins/tsugu/skills/tsugu/README.md) for full documentation.
+
 ## Install
 
 ```bash

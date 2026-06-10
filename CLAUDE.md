@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing eight independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing nine independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -21,6 +21,7 @@ plugins/
   old-react/                      # FP-thinking review/refactor for pre-RSC React
   owasp/                          # OWASP security review with offline references
   review-loop/                    # Assisted multi-reviewer loop (Claude + Codex → Copilot), never auto-merges
+  tsugu/                          # Git-native unattended work prep & human–agent convergence (init/prepare/converge/settle)
 tools/                            # Repo-level dev tooling (NOT shipped to skill users)
   old-react/                      # Validator + fixtures for old-react rule files
 docs/superpowers/                 # Design specs and implementation plans
@@ -55,6 +56,8 @@ plugins/<name>/
 **old-react:** FP-thinking review/refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships **architectural** rules only — categories already covered by the React-Compiler diagnostics in `eslint-plugin-react-hooks` v5+ (`recommended-latest`) and TypeScript discriminated unions are deferred. Five active categories: `model-`, `effect-`, `compose-`, `purity-`, `hooks-`. Two deferred: `immutable-`, `message-`. Canonical rule list lives in `plugins/old-react/skills/old-react/SKILL.md` (don't duplicate counts here — they drift). Rule bodies use FP/TEA pattern terms only; brand names live in `references/lib-suggestions.md`. Rules ship from real review examples, not a planned list (see spec §9 "Adding rules — real-example-driven"). One slash command: `/old-react [review|refactor] [path]`. Spec: `docs/superpowers/specs/001-old-react-skill-design.md`. Lineage source: `docs/old-react.md`.
 
 **review-loop:** Assisted, not autonomous, multi-reviewer convergence loop. Local reviewers run first — a Claude subagent always, plus Codex via `codex exec review` (headless) when `codex` is on `PATH`; tmux optional for a live-watch pane — then GitHub Copilot for PR targets. Helper scripts in `skills/review-loop/scripts/` (`copilot.sh`, `pr-comments.sh`) are referenced via `${CLAUDE_PLUGIN_ROOT}`. Target scope is any changed artifact: code or design artifacts (specs, plans, docs). One slash command: `/review-loop [PR# | branch | blank]`. Spec: `docs/superpowers/specs/002-review-loop-plugin-design.md` (Codex channel superseded by `docs/superpowers/specs/003-review-loop-headless-codex-design.md`).
+
+**tsugu:** Git-native skill for unattended work preparation and human–agent convergence (継ぐ — "to inherit / continue / carry forward"). Using git's DAG as the coordination substrate, an agent prepares engineering work privately on git branches (often while the human is away), records evidence in committed `.tsugu/` notes, and packages a convergence packet; the human then converges (decides together what becomes public) and the work is settled (cut a clean public branch with no `.tsugu/` in the diff / open a PR, human-gated). Four routines: `init` (set up the repo's `.tsugu/` workspace + `policy.md`; idempotent), `prepare` (private git work on `prepare/*` branches + tests + evidence while the human is absent; external silence), `converge` (present packet + branches and decide with the human; invokes no skill — the human triggers skills by keyword), `settle` (accept/reject/pause; promote reusable knowledge to shared context; clean up branches/worktrees). **Never auto-merges** (no public coordination without approval). **Light / script-free** — recipes are documented guidance; no scripts shipped. **Invokes no user-installed skill by default** — native git + its own built-in subagents only; a repo's `.tsugu/policy.md` may opt-in to named skills locally. One slash command: `/tsugu [init|prepare|converge|settle]`. Spec: `docs/superpowers/specs/004-tsugu-skill-design.md`.
 
 ## Versioning
 
