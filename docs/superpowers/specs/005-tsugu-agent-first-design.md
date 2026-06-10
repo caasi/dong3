@@ -261,6 +261,12 @@ human-present session:
 5. **Wait for approval before any public coordination** — opening/merging the
    PR is the human's act; Tsugu never auto-merges.
 
+Steps 1–3 are **read-only**, so running `/tsugu:converge` just to look is a
+first-class use: it doubles as the morning status view — how many prepared
+branches are workable today, what awaits merge, what needs reconciliation.
+Choosing nothing and leaving is a valid outcome; side effects begin only at
+step 4's disposition.
+
 Tsugu still invokes no user-installed skill here: it presents and yields; the
 human triggers workflow skills by keyword. The packet may hint which skill
 fits, but must not fire it.
