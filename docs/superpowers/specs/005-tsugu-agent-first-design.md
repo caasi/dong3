@@ -599,10 +599,11 @@ deterministic, version-stamped migration.
    available).
 5. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref
    (`git mv`, contents preserved — existing tier subdirectories ride along as
-   plain folders, since no internal layout is prescribed anymore; deferred
-   until the policy PR merges when the default branch is push-protected — the
-   step-8 stamp is gated on this rename completing on its ref, not bundled into
-   one commit with it).
+   plain folders, since no internal layout is prescribed anymore). On a
+   push-protected default branch the rename completes on its ref **before** the
+   step-8 stamp lands — in the same `init/*` PR when `coordination-ref=default`,
+   else on the separate coord branch first — never bundled into one commit with
+   the stamp.
 6. Update `.tsugu/templates/` from the plugin (`branch.md` template replaced
    by the pure-narrative `context.md`; `intake.md` gains `landed:`).
 7. Write the default branch's `.tsugu/context.md` (mainline form) if absent.

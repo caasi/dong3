@@ -120,12 +120,12 @@ present it nests `context/` *inside* `knowledge/` instead of erroring — so ver
 Contents are preserved: existing tier subdirectories (e.g. `context/shared`,
 `context/dormant`, `context/archived` from the 004 layout) **ride along as plain
 folders**, since no internal layout is prescribed anymore. This is a
-**coordination-ref** change, so on a push-protected default branch it is
-**deferred until the policy PR merges** (see the contract above); readers accept
-both `context/` and `knowledge/` until then. The step 8 schema stamp is **gated
-on this rename**: the policy PR carrying the stamp merges only after the rename is
-confirmed on its ref (same PR when `coordination-ref=default`; the separate coord
-branch is renamed first otherwise).
+**coordination-ref** change. On a push-protected default branch the rename
+completes on its own ref **before** the schema stamp lands — in the same `init/*`
+PR when `coordination-ref=default`, or pushed to the separate coord branch first
+otherwise (see the contract above). Readers accept both `context/` and
+`knowledge/` names meanwhile, and step 8's stamp is **gated on this rename**: the
+policy PR carrying it merges only once the rename is confirmed.
 
 **6. Refresh `.tsugu/templates/` from the plugin.** Replace the schema-1
 `branch.md` template with the pure-narrative `context.md`; update `intake.md` so
