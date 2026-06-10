@@ -80,7 +80,7 @@ The core routine. No human is present, so Tsugu does its own git work directly a
 
 1. **Fetch first** (`git fetch --prune`), resolving `<remote>` + `<default>`, so every read below uses fresh remote-tracking refs, not a stale checkout.
 2. Read `policy.md` + guidance from the **fetched default ref** (yields the work + `## Handoff Prefixes`, `## Push`, `public-branch-tsugu`, `coordination-ref`, `stale-after`, among others).
-3. **Read the queue from remote-tracking refs**, plus `knowledge/` from the coordination ref, plus `intake/` notes (an `open`/`claimed` note with no linked work branch = unbranched work to consider).
+3. **Read the queue from remote-tracking refs**, plus `knowledge/` from the coordination ref, plus `intake/` notes (an **`open`** note with no linked branch = unbranched work to consider; a **`claimed`** note whose linked branch has vanished is a **reconciliation case** for `converge`, never auto-resumed by a scheduled `prepare`).
 
    **Partition each work branch `<work-prefix>/<slug>` by two ref-level facts, checked in order** — there is **no written branch state**:
 

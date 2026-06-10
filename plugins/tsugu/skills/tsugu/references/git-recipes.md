@@ -197,8 +197,10 @@ squashes, force-pushes). Then, as prose rules (from C4):
   `<remote>/<default>`; otherwise it is **not** silent settlement but a
   **reconciliation case** to surface at converge.
 
-Plus any `intake/` note that is `claimed`/open with no linked work branch =
-unbranched work to consider.
+Plus any **`open`** `intake/` note with no linked branch = unbranched work to
+consider. A **`claimed`** note whose linked branch has vanished is **not** queue
+work — it is a reconciliation case surfaced at converge, never auto-resumed by a
+scheduled prepare.
 
 ---
 
