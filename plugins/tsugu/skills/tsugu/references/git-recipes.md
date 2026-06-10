@@ -45,8 +45,10 @@ the remote, but you need a remote to read policy):
   default exists even when `<remote>/HEAD` was unset: `git remote set-head
   <remote> --auto`. Read the fetched policy using that provisional default —
   take the **bare branch name** (`git symbolic-ref --short
-  refs/remotes/<remote>/HEAD | sed "s@^<remote>/@@"`, as in step 3, falling back
-  to `main` only if set-head failed; never the full `refs/remotes/...` ref) —
+  refs/remotes/<remote>/HEAD | sed "s@^<remote>/@@"`, as in step 3; never the full
+  `refs/remotes/...` ref). If set-head still yields no HEAD, use the **same
+  non-assumptive fallback as step 3** — the checked-out branch's upstream, else
+  ask the human to set `default-branch:` — rather than assuming `main` —
   `<default>` is resolved properly in step 3, but the policy read can't wait for
   it: `git show <remote>/<provisional-default>:.tsugu/policy.md`. If it names a
   **different** `remote:` (or a `default-branch:`), adopt those, re-fetch if the
@@ -84,7 +86,9 @@ the fetched policy, don't hardcode, since `init` may have customized them. Do
 **not** include `public/*`: that is a `settle` output, not a queue item.
 
 ```bash
-git branch --remotes --format='%(refname:short)'      # pushed mode
+# scope to the configured remote + work prefixes (defaults shown); never raw --remotes
+git branch --remotes --format='%(refname:short)' \
+  | grep -E "^<remote>/(prepare|investigate|review)/"      # pushed mode
 ```
 
 **No-push mode is local.** When `policy.md` forbids auto-pushing preparation
@@ -226,7 +230,7 @@ index:
 # not reverted (a two-dot `..` diff would undo default-branch work that landed
 # after prepare/<x> diverged). Rebasing prepare/<x> onto <remote>/<default> first
 # is the robust alternative.
-git diff --binary <remote>/<default>...prepare/<x> -- <code paths> | git apply --index
+git diff --binary <remote>/<default>...prepare/<x> -- <code paths> | git apply --index --binary
 git commit --message "tsugu: public/<x> — accepted code"
 ```
 
