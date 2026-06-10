@@ -1,0 +1,11 @@
+{
+  "name": "tsugu",
+  "description": "Git-native preparation & convergence — agents prepare work privately via git's DAG (init/prepare/converge/settle), package evidence for human-agent handoff, and settle cleanly. Never auto-merges; invokes no user-installed skill by default.",
+  "author": { "name": "caasi" },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["git", "worktree", "agent-coordination", "preparation", "convergence", "tsugu"],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}

@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "caasi's plugin collection for Claude Code",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -56,6 +56,12 @@
       "source": "./plugins/review-loop",
       "description": "Assisted multi-reviewer review loop — local Claude + Codex gate first, then GitHub Copilot for PRs; never merges autonomously",
       "version": "0.2.0"
+    },
+    {
+      "name": "tsugu",
+      "source": "./plugins/tsugu",
+      "description": "Git-native preparation & convergence skill — prepare/converge/settle work over git's DAG; never auto-merges",
+      "version": "0.1.0"
     }
   ]
 }
