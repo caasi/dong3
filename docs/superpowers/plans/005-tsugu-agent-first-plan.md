@@ -151,6 +151,12 @@ public commitments; move findings into human-facing docs; irreversible cleanup
 prepare/*  investigate/*  review/*
 <!-- work prefixes (the queue). Must be DISJOINT from Handoff Prefixes — init
      and migration validate this. -->
+## Push
+push-prepare-branches: yes
+<!-- init's default answer to "may agents create/commit/push preparation
+     branches automatically?". Pushing makes the branch a message (cross-
+     machine handoff reads remote refs). Set no to keep work local —
+     prepare then commits locally and stops for approval. -->
 ## Handoff Prefixes
 feat/*  fix/*
 <!-- human-workflow branches converge cuts for PRs. A branch here with the
@@ -165,9 +171,11 @@ Prefer merge commits — do not squash-merge tsugu-managed branches: derived
 settlement depends on preserved history. If a human system forces a squash,
 converge confirms the landing and records `landed: <sha>` in the intake note.
 ## Housekeeping
-stale-after: 30 days
-<!-- converge surfaces in-progress branches / open intake notes older than
-     this for human-decided cleanup; a scheduled prepare never cleans. -->
+<!-- stale-after: 30 days -->
+<!-- commented default — converge records the threshold here progressively on
+     first use (ask once), then surfaces in-progress branches / open intake
+     notes older than it for human-decided cleanup; a scheduled prepare never
+     cleans. -->
 ## Remote
 remote: origin                   # authoritative remote for fetch + branch enumeration (multi-remote safety)
 default-branch:                  # optional; if blank, resolved from <remote>/HEAD
@@ -291,7 +299,7 @@ This is a section-by-section rewrite. Keep the existing document's voice (recipe
   - Step 4 (enumerate): work prefixes default becomes `prepare`, `investigate`, `review` from policy's Branch Prefixes; **also enumerate the configured Handoff Prefixes** (`feat`, `fix`, legacy `public`) into a separate handoff list for slug pairing. Remove the "Do not include public/*" sentence (the prefix is retired; legacy `public/*` arrives via Handoff Prefixes — see migrations).
   - Step 5 (read context): `git show <branch-ref>:.tsugu/context.md`, with the compat line: *fall back to `.tsugu/branch.md` when `context.md` is absent (schema-1 branch); treat a legacy `status: settled` as skip, surface a legacy `converged` at converge.*
   - Step 6 (intake notes): path stays `.tsugu/intake/`; no change beyond surrounding wording.
-  - Step 7 (partition): **replace the status×claimed table verbatim with the spec's C4 table:**
+  - Step 7 (partition): **replace the status×claimed table with this condensed form of the spec's C4 table** (this embedded version is canonical for the recipes file; the spec's fuller wording stays in SKILL.md):
 
 ```markdown
 | Fact | State | Disposition |
@@ -309,7 +317,7 @@ git merge-base --is-ancestor <branch-ref> <remote>/<default> && echo settled
 # pending? (slug pairing — names, not commits)
 slug="${branch#*/}"   # strip the work prefix
 git branch --remotes --format='%(refname:short)' \
-  | grep -E "^<remote>/(feat|fix|public)/${slug}$"   # configured handoff prefixes
+  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$"   # configured handoff prefixes
 ```
 
   and these rules as prose bullets (from C4): zero-commit branches are exempt from the whole table (claimed-linked = interrupted work; note-less = request-by-branch; never cleanup targets); slugs are never reused — collisions surface at converge as naming conflicts; claims = the `context.md` rewrite commit's author + timestamp, degrading to pure recency under one shared git identity; zero-commit claim recency comes from the note's claimed-flip commit on the coordination ref; a `landed:` SHA is validated on read (must resolve + be contained in default, else reconciliation).
@@ -379,7 +387,7 @@ git commit --message "feat(tsugu): git-recipes — containment+slug partition, h
   - **`intake/` section**: two-layer table updated — the work layer's status column is replaced by "derived from refs and the DAG (see SKILL.md partition)". Lifecycle text: flip to `claimed` records `linked-branch:`; flip to `done` happens at confirmed landing as the completion tail's last-before-cleanup step, recording `landed: <sha>` only when a forced squash severed containment (validated on write and read); a claimed note whose branch vanished without evidence is a reconciliation case for the human. Dedup + slugs-never-reused.
   - **`runs/` section**: filename `runs/<slug>-<date-time>.md`; same body sections.
   - **`packets/` section**: final bullet becomes `## Suggested handoff branch` with the include/exclude meaning (mirror Task 3 Step 2).
-  - **`knowledge/` section** (replaces `context/`): exactly three clauses — location (coordination ref), promotion gate (deliberate act only), internal organization belongs to the agents (no prescribed layout; the old shared/dormant/archived tiers are gone). Then the **load-semantics paragraph** from C2: accumulated `runs/`/`packets/` on default are inherited archive — never read wholesale; navigate via the active branch's `context.md` or an intake breadcrumb; `knowledge/` is the only curated tier.
+  - **`knowledge/` section** (replaces `context/`): exactly three clauses — location (coordination ref), promotion gate (deliberate act only), internal organization belongs to the agents (no prescribed layout). **Do not name the old tier directories in this file** — that history lives only in `migrations.md`. Then the **load-semantics paragraph** from C2: accumulated `runs/`/`packets/` on default are inherited archive — never read wholesale; navigate via the active branch's `context.md` or an intake breadcrumb; `knowledge/` is the only curated tier.
   - Keep the "Context placement rule (omni-repo framing)" section, renaming its directory references to `knowledge/`.
 
 - [ ] **Step 2: Verify**
@@ -407,7 +415,7 @@ git commit --message "feat(tsugu): notes-and-packet — context.md semantics, kn
 
 - [ ] **Step 1: Update field docs** to match the Task 2 template: `tsugu-schema` (stamp, written last by migrations), `## Branch Prefixes` (work-only, disjointness rule), `## Handoff Prefixes` (slug pairing = pending), `## Public branch` (`include|exclude` semantics, one paragraph each), `## Merge method` (recommendation + forced-squash consequence), `## Housekeeping` (`stale-after`, derived staleness, human-decided cleanup, prepare never cleans), `coordination-ref` (knowledge/ paths). Keep Remote / default-branch / Skill-use / opt-in / Recursion sections as they are.
 
-- [ ] **Step 2: Rewrite the intake half:** the configuration moment (init asks; first interactive prepare backstop; the exact ask-once question from spec B; confirmed-negative recorded form; push-protected persistence via `init/*` PR; never block headless), the recorded form (name / one `read:` instruction / `notes:` hint; RSS / YARA / CVE / CI breadth with `curl --silent <url>` as the feed example), the dedup rule + slugs-never-reused + re-opens out of scope, `landed:` semantics (write-once, forced-squash only, validated both directions), and the reconciliation rule.
+- [ ] **Step 2: Rewrite the intake half:** the configuration moment (init asks; first interactive prepare backstop; the exact ask-once question from spec B; confirmed-negative recorded form; push-protected persistence via `init/*` PR; never block headless), the recorded form (name / one `read:` instruction / `notes:` hint; RSS / YARA / CVE / CI breadth with `curl --silent <url>` as the feed example), the dedup rule + slugs-never-reused + re-opens out of scope, `landed:` semantics (write-once, forced-squash only, validated both directions; note that the *claim* it complements is derived from the `context.md` rewrite commit), and the reconciliation rule.
 
 - [ ] **Step 3: Verify**
 
@@ -473,8 +481,8 @@ git commit --message "feat(tsugu): migrations reference — rules + schema 1→2
 
 - [ ] **Step 8: Verify**
 
-Run: `grep -n "settle" plugins/tsugu/skills/tsugu/SKILL.md`
-Expected: no routine named settle; allowed only in a historical aside if any (target: zero mentions)
+Run: `grep -n "settle" plugins/tsugu/skills/tsugu/SKILL.md | grep -v "settled\|settlement"`
+Expected: no output — derived-state vocabulary (`settled`, `settlement`) is correct and expected; what must be gone is the *routine*: `/tsugu settle`, a `### settle` section, `[init|prepare|converge|settle]`
 Run: `grep -c "context.md" plugins/tsugu/skills/tsugu/SKILL.md`
 Expected: ≥ 5
 Run: `grep -n "claimed-by" plugins/tsugu/skills/tsugu/SKILL.md`
@@ -596,8 +604,8 @@ git commit --message "feat(tsugu): three namespaced commands replace the /tsugu:
 
 - [ ] **Step 2: Verify**
 
-Run: `grep -n "settle\|four routines" plugins/tsugu/skills/tsugu/README.md`
-Expected: no output
+Run: `grep -n "settle\|four routines" plugins/tsugu/skills/tsugu/README.md | grep -v "settled\|settlement"`
+Expected: no output (the "State is derived" section legitimately says `settled`/`settlement`; the settle *routine* and "four routines" must be gone)
 Run: `grep -c "005-tsugu-agent-first-design.md" plugins/tsugu/skills/tsugu/README.md`
 Expected: `1`
 
@@ -654,23 +662,24 @@ git commit --message "chore(tsugu): metadata to three-routine surface; bump tsug
 - [ ] **Step 1: Removed-mechanism sweep** over the shipped plugin:
 
 ```bash
-grep -rn "settle" plugins/tsugu/ ; echo "---"
+grep -rn "settle" plugins/tsugu/ | grep -v "settled\|settlement" ; echo "---"
 grep -rn "claimed-by\|claimed-at" plugins/tsugu/ ; echo "---"
 grep -rn "context/shared\|context/dormant\|context/archived" plugins/tsugu/ ; echo "---"
 grep -rn "branch\.md" plugins/tsugu/
 ```
 
-Expected: `settle` — zero hits (or only inside a quoted legacy/compat sentence); `claimed-*` — only legacy-compat mentions; `context/{shared,dormant,archived}` — only `references/migrations.md`; `branch.md` — only legacy-fallback/compat/migration passages.
+Expected: the filtered `settle` sweep — zero hits (the retired *routine* tokens: `/tsugu settle`, `settle routine`, `[init|prepare|converge|settle]`; the derived-state words `settled`/`settlement` are filtered out as correct vocabulary); `claimed-*` — only legacy-compat mentions; `context/{shared,dormant,archived}` — only `references/migrations.md`; `branch.md` — only legacy-fallback/compat/migration passages.
 
 - [ ] **Step 2: New-mechanism presence sweep:**
 
 ```bash
 grep -rln "context.md" plugins/tsugu/skills/tsugu/ | sort
 grep -rln "Handoff Prefixes" plugins/tsugu/skills/tsugu/ | sort
-grep -rn "curl -s \|grep -E\" -r\b" plugins/tsugu/ | grep -v "full-length" || echo "options clean"
+grep -rn -- "curl -s " plugins/tsugu/ || echo "curl clean"
+grep -rn -- "grep -E \|git branch -r\b\|push -u\b" plugins/tsugu/ || echo "short options clean"
 ```
 
-Expected: `context.md` in SKILL.md, README, all three original references + templates; `Handoff Prefixes` in policy template, policy-and-intake, git-recipes, SKILL.md; short-option scan clean (written docs use full-length options).
+Expected: `context.md` at least in SKILL.md, README, `references/git-recipes.md`, `references/notes-and-packet.md`, and `templates/context.md`; `Handoff Prefixes` in the policy template, `references/policy-and-intake.md`, `references/git-recipes.md`, and SKILL.md; both option sweeps print their clean message (written docs use full-length options — `--silent`, `--extended-regexp`, `--remotes`, `--set-upstream`).
 
 - [ ] **Step 3: Fix anything found, one commit per finding** (`fix(tsugu): …`).
 
