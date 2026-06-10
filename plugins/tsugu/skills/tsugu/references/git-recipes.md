@@ -163,12 +163,14 @@ wording lives there):
 The exact checks:
 
 ```bash
-# settled? (containment)
+# settled? (containment) — include mode: the work branch itself is what merges
 git merge-base --is-ancestor <branch-ref> <remote>/<default> && echo settled
+# exclude mode: containment rides on the slug-paired public branch instead
+git merge-base --is-ancestor <remote>/<handoff-prefix>/<slug> <remote>/<default> && echo settled
 # pending? (slug pairing — names, not commits)
-slug="${branch#*/}"   # strip the work prefix
+slug="${branch##*/}"   # basename: drop the remote and work prefix (one segment each)
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$"   # configured handoff prefixes
+  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$" && echo pending   # configured handoff prefixes
 ```
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
