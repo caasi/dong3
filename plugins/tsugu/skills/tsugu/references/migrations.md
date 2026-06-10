@@ -98,8 +98,8 @@ human system forces a squash, converge confirms the landing and records
 
 **4. Re-wrap `## Intake Sources` into the structured entry format.** Preserve
 every listed source; rewrite each into the structured form (a name, one `read:`
-instruction, an interpretation hint). This re-wrap is **not** fully mechanical: a
-legacy free-prose entry (e.g. "gh issues") has no derivable `read:` instruction.
+pointer, an interpretation hint). This re-wrap is **not** fully mechanical: a
+legacy free-prose entry (e.g. "gh issues") has no derivable `read:` pointer.
 Such entries take the **ask-once** path — or, when no human is available, are
 carried over verbatim with an explicit `read: TODO (ask the human)` marker rather
 than guessed at. Never drop a listed source.

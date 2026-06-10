@@ -604,7 +604,7 @@ deterministic, version-stamped migration.
 4. Re-wrap any existing `## Intake Sources` content into the structured entry
    format (B), preserving listed sources. This re-wrap is **not** fully
    mechanical: a legacy free-prose entry (e.g. "gh issues") has no derivable
-   `read:` instruction — such entries take the ask-once path (or are carried
+   `read:` pointer — such entries take the ask-once path (or are carried
    over with an explicit `read: TODO (ask the human)` marker when no human is
    available).
 5. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref
