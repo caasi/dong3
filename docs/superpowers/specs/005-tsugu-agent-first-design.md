@@ -240,9 +240,11 @@ human-present session:
      Once landing is confirmed — by containment in merge-commit repos, or by
      the human's in-session confirmation where a squash was forced (C4's
      landing rules) — run the **completion tail**, in this order: promote
-     reusable knowledge into `.tsugu/knowledge/`; flip the intake note
-     `claimed → done` (recording `landed: <sha>` when the landing is not
-     containment-derivable); and **only then** clean up worktrees and branches
+     reusable knowledge into `.tsugu/knowledge/`; flip the **linked** intake
+     note `claimed → done` (recording `landed: <sha>` when the landing is not
+     containment-derivable) — request-by-branch work that has no intake note
+     skips this step, there is none to flip; and **only then** clean up
+     worktrees and branches
      (worktree remove before branch delete, as always — the handoff branch
      too, if the forge didn't already delete it). Branch deletion comes after
      the flip because the branch is landing evidence — a lingering merged
@@ -441,7 +443,9 @@ Containment checks are `git merge-base --is-ancestor` /
   `converge` as a naming conflict, not classified.
 - **Intake-note closing requires confirmed landing.** Flip `claimed → done`
   only on a confirmed landing — containment, or the `converge` confirmation
-  that records `landed: <sha>` — and **before branch cleanup only** (C1): the
+  that records `landed: <sha>` — and **before branch cleanup only** (C1); this
+  applies only when the work has a linked intake note (request-by-branch work
+  has none, so the flip is skipped). The
   branch is landing evidence; it outlives the flip, never the reverse. A
   `prepare`/`converge` tidy pass re-enters the whole idempotent tail for
   sessions that ended mid-completion. **Absence is never proof of success:** a

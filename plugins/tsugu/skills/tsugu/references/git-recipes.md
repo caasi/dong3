@@ -369,8 +369,9 @@ PR or invoke `finishing-a-development-branch` / `review-loop`.
 Once landing is confirmed — containment, or the human's converge confirmation
 recording `landed: <sha>` where a squash was forced — run, in this order:
 1. promote reusable knowledge into `.tsugu/knowledge/` (coordination-ref write);
-2. flip the intake note `claimed → done` (+ `landed:` only when not
-   containment-derivable; validate the SHA before writing);
+2. flip the linked intake note `claimed → done` (+ `landed:` only when not
+   containment-derivable; validate the SHA before writing) — request-by-branch
+   work with no intake note has nothing to flip, so this step is skipped;
 3. only then clean up: `git worktree remove <path>` before
    `git branch --delete --force <branch>` — the handoff branch too, if the
    forge didn't already delete it.
