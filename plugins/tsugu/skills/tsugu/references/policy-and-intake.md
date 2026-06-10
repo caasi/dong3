@@ -13,7 +13,7 @@ human-bridge.
 The whole point of the file: where the agent may act freely vs where it must ask.
 
 - **`## Private Git Space (agent may do freely)`** — actions the agent performs
-  without approval: create/commit/push `prepare·investigate·review` branches,
+  without approval: create/commit/push `prepare/*` / `investigate/*` / `review/*` branches,
   worktrees, write `.tsugu/*`, run tests, try reversible patches, dispatch its own
   built-in review subagents. All of this is git-local and reversible.
 - **`## Public Coordination (ask first)`** — actions requiring human approval:

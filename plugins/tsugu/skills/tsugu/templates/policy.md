@@ -1,5 +1,5 @@
 ## Private Git Space (agent may do freely)
-create/commit/push prepare·investigate·review branches; worktrees; write .tsugu/*;
+create/commit/push `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write .tsugu/*;
 run tests; try reversible patches; dispatch own (built-in) review subagents
 ## Public Coordination (ask first)
 open MR/PR; tracker comment / status change; assign reviewers; Slack; public
@@ -15,14 +15,14 @@ coordination-ref: default        # where intake/ + context/shared/ are written.
 # branch literally named "default"). Set to a branch (e.g. tsugu/coord) only if the
 # default branch is push-protected.
 ## Intake Sources
-default: none (git-native only). Add human-bridge sources here only if needed
+None by default (git-native only). Add human-bridge sources here only if needed
 (e.g. gh issues, CI).
 ## Skill use
 Tsugu invokes no user-installed skill by default; it uses native git + its own
 built-in capabilities. Humans trigger workflow skills (planning, review-loop, …)
 by keyword.
 ## Skills Tsugu may use (this repo, opt-in)
-default: none. List user-installed skills Tsugu may use during human-absent
+None by default. List user-installed skills Tsugu may use during human-absent
 prepare in THIS repo (e.g. systematic-debugging). Repo-local only — the shipped
 SKILL.md never names skills.
 ## Recursion
