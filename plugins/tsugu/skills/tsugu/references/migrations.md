@@ -30,9 +30,11 @@ The steps obey these rules, which hold for every migration (not just 1→2):
 - **Migrations add or restructure schema parts only — never overwrite curated
   content.** Existing intake-source entries, boundary edits, opted-in skills, and
   prefix customizations are preserved verbatim or re-wrapped in the new format.
-- **Every action is idempotent.** A migration may stop midway — a non-mechanical
-  conflict, an interruption. Re-running `init` re-enters the same migration; the
-  already-applied actions no-op.
+- **Every step is idempotent by virtue of its condition.** A migration may stop
+  midway — a non-mechanical conflict, an interruption. Re-running `init` re-enters
+  the same migration; each step whose condition no longer holds no-ops. The
+  idempotency lives in the condition guards, not in the raw actions (a bare
+  `git mv` run twice fails — see step 5).
 - **The stamp is written last.** Only after every action of a step succeeds is
   `tsugu-schema` updated. Because the stamp still reads the *old* schema while a
   migration is in flight, an interrupted re-run re-enters the same migration
@@ -92,10 +94,17 @@ carried over verbatim with an explicit `read: TODO (ask the human)` marker rathe
 than guessed at. Never drop a listed source.
 
 **5. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref.**
+Condition: `.tsugu/context/` still exists and `.tsugu/knowledge/` does not.
 
 ```bash
 git mv .tsugu/context .tsugu/knowledge
 ```
+
+If `.tsugu/knowledge/` already exists (a prior partial migration moved it) this
+step is **already done — skip it; do not re-run the move.** `git mv` is not
+idempotent: with the source gone it fails, and with the target directory already
+present it nests `context/` *inside* `knowledge/` instead of erroring — so verify
+`.tsugu/knowledge/` is absent before the move.
 
 Contents are preserved: existing tier subdirectories (e.g. `context/shared`,
 `context/dormant`, `context/archived` from the 004 layout) **ride along as plain
@@ -107,12 +116,13 @@ both `context/` and `knowledge/` until then.
 **6. Refresh `.tsugu/templates/` from the plugin.** Replace the schema-1
 `branch.md` template with the pure-narrative `context.md`; update `intake.md` so
 it gains the `landed:` field. Templates are plugin-owned scaffolding, not curated
-content, so refreshing them is safe. Condition: a template is stale relative to
-the shipped plugin.
+content, so refreshing them is safe. Condition: `branch.md` still exists, or
+`intake.md` lacks a `landed:` field.
 
 **7. Write the default branch's mainline `context.md` if absent.** Write the
-default-branch (mainline) form of `context.md`. Condition: it does not already
-exist — never overwrite a curated mainline note.
+default-branch (mainline) form of `context.md` — the mainline note **file**
+`.tsugu/context.md`, distinct from the `context/` **directory** renamed in step 5.
+Condition: it does not already exist — never overwrite a curated mainline note.
 
 **8. Add `tsugu-schema: 2` — last.** Only after steps 1–7 have all succeeded,
 stamp `tsugu-schema: 2` as the first line of `policy.md`. This is what marks the
