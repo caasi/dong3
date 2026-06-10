@@ -164,14 +164,20 @@ The exact checks:
 
 ```bash
 branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
-# settled? (containment) — include mode: the work branch itself is what merges
+slug="${branch##*/}"                   # basename: drop the remote and work prefix (one segment each)
+# resolve the slug-paired handoff ref (if any) by searching the configured handoff
+# prefixes — you don't need to know which prefix (feat/fix/legacy public) was used:
+handoff=$(git branch --remotes --format='%(refname:short)' \
+  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$")
+
+# settled? (containment)
+# include mode: the work branch itself is what merges
 git merge-base --is-ancestor "$branch" <remote>/<default> && echo settled
-# exclude mode: containment rides on the slug-paired public branch instead
-git merge-base --is-ancestor <remote>/<handoff-prefix>/<slug> <remote>/<default> && echo settled
-# pending? (slug pairing — names, not commits)
-slug="${branch##*/}"   # basename: drop the remote and work prefix (one segment each)
-git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feat|fix|public)/${slug}$" && echo pending   # configured handoff prefixes
+# exclude mode: containment rides on the slug-paired handoff branch instead
+[ -n "$handoff" ] && git merge-base --is-ancestor "$handoff" <remote>/<default> && echo settled
+
+# pending? (slug pairing — names, not commits): a handoff ref exists
+[ -n "$handoff" ] && echo pending
 ```
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
