@@ -164,17 +164,31 @@ The exact checks:
 
 ```bash
 branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
-slug="${branch##*/}"                   # basename: drop the remote and work prefix (one segment each)
-# $handoff_refs = the Handoff-Prefix branches enumerated in "Read the queue" step 4
-# (the repo's *configured* `## Handoff Prefixes`, not hardcoded defaults). Resolve
-# this item's slug-paired handoff ref (if any) by matching slug across them — no need
-# to know which prefix (feat/fix/legacy public, or a customized one) was used:
-handoff=$(printf '%s\n' "$handoff_refs" | grep --extended-regexp "/${slug}$")
+slug="${branch##*/}"                   # basename: drop the remote and work prefix
 
-# Classify by the FIRST matching table row, in order (settled → pending → in progress):
-if   git merge-base --is-ancestor "$branch" <remote>/<default> 2>/dev/null \
-  || { [ -n "$handoff" ] && git merge-base --is-ancestor "$handoff" <remote>/<default>; }
-then echo settled       # include: work branch contained; exclude: its handoff branch contained
+# Resolve this item's slug-paired handoff ref (if any) from $handoff_refs — the
+# configured `## Handoff Prefix` branches enumerated in "Read the queue" step 4
+# (not hardcoded feat/fix/public). Match the final path component *literally* — a
+# slug may contain `.`/`+`, which a regex would mis-glob — and take the first match:
+handoff=""
+while IFS= read -r ref; do
+  [ "${ref##*/}" = "$slug" ] && { handoff="$ref"; break; }
+done <<<"$handoff_refs"
+
+# settled? Containment is mode-dependent (`public-branch-tsugu` in policy.md):
+#   include (default) → the work branch is what merges
+#   exclude           → its slug-paired handoff branch is what lands
+case <public-branch-tsugu> in
+  exclude) landed_ref="$handoff" ;;    # empty until the handoff branch is cut
+  *)       landed_ref="$branch"  ;;
+esac
+
+# Classify by the FIRST matching table row, in order. A validated `landed:` in the
+# intake note (SHA resolves AND is contained in default — the forced-squash case)
+# counts as settled too; `note_has_valid_landed` stands for that documented check.
+if   { [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null; } \
+  || note_has_valid_landed
+then echo settled
 elif [ -n "$handoff" ]
 then echo pending        # a slug-paired handoff branch exists — decided, awaiting merge
 else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
