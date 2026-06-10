@@ -134,7 +134,7 @@ with the `notes:` hint, and converts anything new into committed
 `## Observed source: human-bridge: <name>`). Downstream is identical to 004 —
 the queue read, partition, and routines operate only on git. Sources are not
 limited to task systems: anything one read instruction can poll fits the same
-shape — an RSS feed (`curl -s <url>`), a security watch (a YARA scan whose new
+shape — an RSS feed (`curl --silent <url>`), a security watch (a YARA scan whose new
 matches become intake notes), a CVE feed, a CI status query.
 
 **Dedup rule:** derive the slug from a stable identifier in the source (issue
@@ -206,9 +206,10 @@ human-present session:
    branches are not candidates, but listing them is what surfaces an orphaned
    handoff (pushed, then the session died before its PR was opened); when
    `gh` is available, verify each awaiting-merge item has an open PR and flag
-   the ones that don't. Also flag divergence — a work tip with commits its
-   handoff branch lacks (C4) — and pairs whose handoff tip shares no history
-   with the work branch (possible name collision, C4).
+   the ones that don't. In `include` mode, also flag divergence — a work tip
+   with commits its handoff branch lacks (C4) — and pairs whose handoff tip
+   shares no history with the work branch (possible name collision, C4);
+   neither history heuristic applies in `exclude` mode (C4).
 3. Lay out the packet, prepared branches/worktrees, what was tried / worked /
    failed / evidence / remaining uncertainties; surface open questions
    (including unconfigured intake sources and any reconciliation cases — C4).
@@ -369,8 +370,11 @@ Containment checks are `git merge-base --is-ancestor` /
   derived meaning. One acknowledged imprecision: a human coincidentally
   starting `<handoff-prefix>/<same-slug>` false-pairs — the failure direction
   is safe (the agent yields; the item stays visible in the awaiting-merge
-  section), and `converge` marks pairs whose handoff tip shares no history
-  with the work branch as possible name collisions to confirm.
+  section), and in `include` mode `converge` marks pairs whose handoff tip
+  shares no history with the work branch as possible name collisions to
+  confirm (in `exclude` mode shared history is absent by design, so collisions
+  there are caught only by the human seeing the awaiting-merge list — same
+  safe failure direction).
 - **Merge method: Tsugu recommends merge commits — do not squash-merge
   tsugu-managed branches.** Preserved history is what makes settlement,
   lineage, and evidence derivable; this recommendation is recorded in
@@ -392,9 +396,14 @@ Containment checks are `git merge-base --is-ancestor` /
   re-decision, never auto-resumed by a scheduled `prepare`**.
 - **New commits on the work branch after the decision** leave it pending (the
   slug pairing still holds) — but they are **not** in the PR, which tracks the
-  handoff branch. `converge`'s awaiting-merge section flags the divergence
-  (a work tip with commits the handoff branch lacks): fold them into the
-  handoff branch (update it by **merge**, never rebase) or re-decide.
+  handoff branch. In **`include` mode**, `converge`'s awaiting-merge section
+  flags the divergence (a work tip with commits the handoff branch lacks):
+  fold them into the handoff branch (update it by **merge**, never rebase) or
+  re-decide. In **`exclude` mode** the public branch shares no commits with
+  the work branch *by design*, so this history-based flag (and the
+  shared-history collision heuristic below) does not apply — post-decision
+  changes are re-applied **by path** at the next `converge`, preserving the
+  no-`.tsugu/`-in-public-diff guarantee.
 - **Claims are derived from commits.** The 004 `claimed-by:`/`claimed-at:`
   fields are gone. Beginning active work means rewriting `context.md` (C2) —
   that commit's author and timestamp *are* the claim. The courtesy-yield rule
