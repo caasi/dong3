@@ -163,8 +163,9 @@ wording lives there):
 The exact checks:
 
 ```bash
+branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
 # settled? (containment) — include mode: the work branch itself is what merges
-git merge-base --is-ancestor <branch-ref> <remote>/<default> && echo settled
+git merge-base --is-ancestor "$branch" <remote>/<default> && echo settled
 # exclude mode: containment rides on the slug-paired public branch instead
 git merge-base --is-ancestor <remote>/<handoff-prefix>/<slug> <remote>/<default> && echo settled
 # pending? (slug pairing — names, not commits)
