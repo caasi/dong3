@@ -177,9 +177,14 @@ human-present session:
    - **Accepted (`include` mode):** freshness-rebase onto the fetched default →
      verify (build/tests) → rewrite `context.md` to the post-merge mainline
      narrative (C2) → push → the human merges (or approves the PR). Once the
-     merge is confirmed: flip the intake note `claimed → done`, promote
-     reusable knowledge to `knowledge/shared/`, clean up worktrees and
-     branches (worktree remove before branch delete, as always).
+     merge is confirmed, run the **completion tail**, in this order: promote
+     reusable knowledge to `knowledge/shared/`; clean up worktrees and
+     branches (worktree remove before branch delete, as always); remove the
+     pending-merge line from the mainline `context.md` (a `.tsugu/`-only
+     commit — private space per 004); and **last**, flip the intake note
+     `claimed → done` — the durable record that everything finished. The tail
+     is idempotent: if interrupted, the note stays `claimed` and a later tidy
+     pass re-enters the **whole** tail, not just the flip (C4).
    - **Accepted (`exclude` mode):** cut a clean `public/*` branch from the
      fetched default, apply accepted code/test/doc/config **by path** (no
      `.tsugu/` in the public diff), verify, human-approved PR. The work branch
@@ -229,9 +234,11 @@ branch included.
   read the default branch's current `context.md` from the fetched ref,
   integrate what this work changes, drop the work-only fields — **except one
   line**: until the merge is confirmed, the file keeps
-  `status: converged (pending merge)`, so the partition can still classify the
-  branch during the PR-waiting window. That line is acceptable mainline
-  residue after merge; the next mainline `context.md` touch removes it.
+  `status: converged (pending merge of <branch>)` — **naming the branch** — so
+  the partition can still classify the branch during the PR-waiting window.
+  After merge the line is mainline residue: the completion tail removes it
+  (C1), and until then a branch inheriting a marker that names a *different*
+  branch treats it as residue, not its own status (C4).
   Work-specific history stays in the keyed `runs/` and `packets/` files.
   Concurrent merges may conflict on `context.md`; that conflict is meaningful
   (two narratives to integrate) and is resolved by rewriting against the
@@ -280,10 +287,14 @@ cleaned up**: a deleted branch is not in the queue at all.
   fetched default, the work is confirmed landed — run the completion tail
   (intake → `done`, promotion, cleanup of both branches). Until then the work
   branch's `status: converged` keeps it skipped.
-- **Intake-note closing requires confirmed landing.** Flip `claimed → done`
-  only when ancestry confirms the landing (the work branch itself in `include`
-  mode; the linked public branch in `exclude` mode). A `prepare`/`converge`
-  tidy pass may perform this flip for sessions that ended before the merge.
+- **Intake-note closing requires confirmed landing — and comes last.** Flip
+  `claimed → done` only when ancestry confirms the landing (the work branch
+  itself in `include` mode; the linked public branch in `exclude` mode) **and
+  the rest of the completion tail (promotion, cleanup, residue removal) has
+  run — the flip is the tail's final step** (C1). An interrupted tail thus
+  stays discoverable: the note remains `claimed`, and a `prepare`/`converge`
+  tidy pass re-enters the whole idempotent tail for sessions that ended
+  before or during completion.
   **Absence is never proof of success:** a `claimed` note whose linked branch
   is gone *without* ancestry evidence (accidental deletion, rejection that
   didn't update the note, force-push) is a **reconciliation case** — surface
@@ -300,7 +311,10 @@ cleaned up**: a deleted branch is not in the queue at all.
   (the pending-merge window, C1/C2). `paused` still marks parked work. Both
   are human-meaningful, non-derivable states — exactly the ones worth writing.
   The partition matches `converged` **by prefix**: the
-  `(pending merge)` parenthetical (C2) is annotation, not a fourth state.
+  `(pending merge of <branch>)` parenthetical (C2) is annotation, not a
+  fourth state — but a marker that names a **different** branch than the one
+  being read is inherited mainline residue, not that branch's status; the C2
+  fallback rule (`open`, unclaimed) applies instead.
 
 ### C5 — Push by default
 
@@ -474,9 +488,10 @@ branch converts on its next touch.
    queue via ancestry alone; a branch freshly cut from default is skipped
    unless a `claimed` intake note links it; legacy `status: settled` notes are
    still read as "skip".
-8. An intake note flips to `done` only on ancestry-confirmed landing; a
-   `claimed` note whose branch vanished without evidence is surfaced for
-   human reconciliation, never auto-closed.
+8. An intake note flips to `done` only on ancestry-confirmed landing, as the
+   final step of the idempotent completion tail (an interrupted tail re-enters
+   via tidy); a `claimed` note whose branch vanished without evidence is
+   surfaced for human reconciliation, never auto-closed.
 9. Re-running `/tsugu:init` on a schema-1 repo migrates it to schema 2 without
    losing any curated `policy.md` content; an interrupted migration re-enters
    safely (stamp written last); re-running after completion is a no-op.
