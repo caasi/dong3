@@ -2,23 +2,23 @@
 
 ## Relationship to 004
 
-This spec **extends** `004-tsugu-skill-design.md`. The lifecycle, the `.tsugu/`
-namespace idea, git-native intake, the convergence packet, the
-no-skill-orchestration rule, and the multi-agent reservations all stand
-unchanged. 005 revises four surfaces, found by dogfooding:
+This spec **extends** `004-tsugu-skill-design.md`. The `.tsugu/` namespace idea,
+git-native intake, the convergence packet, the no-skill-orchestration rule, and
+the multi-agent reservations all stand unchanged. 005 revises four surfaces,
+found by dogfooding:
 
 | Line | Change | What it supersedes in 004 |
 | --- | --- | --- |
-| A | One command per routine: `/tsugu:init` `/tsugu:prepare` `/tsugu:converge` `/tsugu:settle` | "Packaging & file layout" — the single `commands/tsugu.md` router |
+| A | One command per routine: `/tsugu:init` `/tsugu:prepare` `/tsugu:converge` | "Packaging & file layout" — the single `commands/tsugu.md` router |
 | B | `prepare` asks once where to get tasks/context (recorded, no adapter) | Extends `init`'s "Intake sources?" question and the human-bridge interface |
-| C | Agent-first publishing & derived settlement: push by default; `branch.md` → per-ref `context.md`; `settled` becomes a **derived** git fact, not a written status; `.tsugu/context/` → `.tsugu/knowledge/`; public/default branches MAY carry `.tsugu/` (`public-branch-tsugu: include\|exclude`, default `include`) | Design principle #5; success criterion #7; the settle "no `.tsugu/` in the diff" guarantee; `init`'s neutral auto-push question; the `branch.md` name and its `settled` status; the `.tsugu/` placement table's "ephemeral, work-branch-only" entries (those become the `exclude`-mode description); the `context/` directory name |
+| C | Agent-first lifecycle: **`converge` absorbs `settle`** (three routines); settlement becomes a **derived** git fact, not a written status; `branch.md` → per-ref `context.md`; `.tsugu/context/` → `.tsugu/knowledge/`; push by default; public/default branches MAY carry `.tsugu/` (`public-branch-tsugu: include\|exclude`, default `include`) | The four-routine lifecycle (the `settle` routine and its ⚙/🔒 step list fold into `converge`); design principle #5; success criterion #7; the settle "no `.tsugu/` in the diff" guarantee; `init`'s neutral auto-push question; the `branch.md` name and its `settled` status; the `.tsugu/` placement table's "ephemeral, work-branch-only" entries (those become the `exclude`-mode description); the `context/` directory name; the rule that `claimed-by`/`claimed-at` are "retained as historical state on settle/pause" (in `include` mode the merge-back rewrite drops them — git history and `runs/` are the durable record); the packet's "Suggested public branch … not 'push this branch as-is'" semantics (in `include` mode it is exactly "merge this branch"); the two-layer-lifecycle rule that *settle* flips intake notes (the flip moves to merge confirmation, with `prepare`/`converge` tidy as a backstop) |
 | D | `init` re-run migrates an older `.tsugu/` to the current schema (`tsugu-schema` version stamp + documented migration steps) | Extends the `init` idempotency rule |
 
 Everything in 004 not named in this table is unchanged.
 
 ## Motivation
 
-Three dogfooding observations and one orientation shift:
+Four dogfooding observations and one orientation shift:
 
 1. **Command ergonomics.** The single router command surfaces as
    `/tsugu:tsugu init` — the doubled name is noise for a command meant to be run
@@ -39,30 +39,35 @@ Three dogfooding observations and one orientation shift:
    mainline" is a fact git itself records (ancestry). Deriving settlement from
    the DAG removes a whole class of state-sync bugs (stale statuses, inherited
    terminal states polluting fresh branches) and shrinks the internal state
-   machine.
+   machine. And once settlement is derived, `settle`'s remaining work — update
+   the context note, merge back — happens **while the human is already
+   present**, so a separate routine duplicates `converge`.
 5. **Shipped repos drift behind the plugin.** 005 itself changes the
    `policy.md` schema and renames paths, so already-initialized repos need an
    upgrade path that is not "hand-edit the files."
 
 ## A — One command per routine
 
-Replace `commands/tsugu.md` with four thin routers:
+Replace `commands/tsugu.md` with three thin routers (the lifecycle is three
+routines now — see C1):
 
 ```text
 plugins/tsugu/commands/
   init.md        →  /tsugu:init
   prepare.md     →  /tsugu:prepare
   converge.md    →  /tsugu:converge
-  settle.md      →  /tsugu:settle
 ```
 
 - Each command file invokes the `tsugu` skill with its routine fixed, and
-  passes any extra `$ARGUMENTS` through as free-form context for that routine.
-- **No overview command.** The four commands are the whole surface; the skill's
-  own trigger description still routes natural-language requests.
-- The skill is unchanged structurally: one `SKILL.md`, four routines. Only the
-  routing text changes (SKILL.md "Routing" section, README, root `CLAUDE.md`
-  "One slash command" → four commands).
+  passes any extra `$ARGUMENTS` through as free-form context for that routine
+  (for `converge`, a branch name — see C1).
+- **No overview command and no `settle` command.** The three commands are the
+  whole surface; the skill's own trigger description still routes
+  natural-language requests.
+- The skill is unchanged structurally: one `SKILL.md`. Routing text, the
+  frontmatter description (the trigger surface currently advertising
+  `/tsugu [init|prepare|converge|settle]`), README, and the root `CLAUDE.md`
+  all update to the three-routine surface.
 - The plugin version in `.claude-plugin/marketplace.json` gets a minor bump.
 
 ## B — `prepare` asks where tasks come from (record, no adapter)
@@ -134,7 +139,7 @@ a source item that comes back to life after its note is closed is not
 re-imported automatically — the human (or the human instructing the agent)
 authors a fresh intake note with a new slug.
 
-## C — Agent-first publishing & derived settlement
+## C — Agent-first lifecycle
 
 ### Orientation
 
@@ -144,49 +149,104 @@ assisting** — not agents producing artifacts for human-centric review flows.
 optimizes for human reviewers at the cost of agent legibility. 005 makes agent
 legibility the default and keeps the human-reviewer posture as per-repo opt-out.
 
-Two state-model consequences follow, beyond the publishing defaults:
-settlement is **derived from the DAG** instead of written (C3), and the
-per-branch note becomes a **per-ref context file** that every branch — default
-included — carries and rewrites (C1).
+Three state-model consequences follow, beyond the publishing defaults: the
+lifecycle loses its fourth routine (C1), settlement is **derived from the DAG**
+instead of written (C4), and the per-branch note becomes a **per-ref context
+file** that every branch — default included — carries and rewrites (C2).
 
-### C1 — `context.md`: every ref describes itself
+### C1 — `converge` absorbs `settle`: three routines
+
+With settlement derived (C4), `settle`'s remaining substance is "update
+`context.md` and merge back to the default branch" — work that happens while
+the human is already present. A separate routine only re-created the
+decided-but-not-settled gap. The lifecycle becomes **`init → prepare →
+converge`**, where `converge` runs decision *and* completion in one
+human-present session:
+
+1. **Fetch-first** (same read path as `prepare`): resolve `<remote>` +
+   `<default>`, `git fetch`, read everything from remote-tracking refs — a
+   `converge` on machine B reconstructs the full state from `git fetch` alone.
+2. **Ask which branch.** List the candidate work branches (those not skipped by
+   the C4 partition), each with a one-line `context.md` summary and packet
+   hint, and ask the human which to converge. An explicit branch argument
+   (`/tsugu:converge <branch>`) skips the question.
+3. Lay out the packet, prepared branches/worktrees, what was tried / worked /
+   failed / evidence / remaining uncertainties; surface open questions
+   (including unconfigured intake sources and any reconciliation cases — C4).
+4. Decide *with* the human, then **complete the disposition in-session**:
+   - **Accepted (`include` mode):** freshness-rebase onto the fetched default →
+     verify (build/tests) → rewrite `context.md` to the post-merge mainline
+     narrative (C2) → push → the human merges (or approves the PR). Once the
+     merge is confirmed: flip the intake note `claimed → done`, promote
+     reusable knowledge to `knowledge/shared/`, clean up worktrees and
+     branches (worktree remove before branch delete, as always).
+   - **Accepted (`exclude` mode):** cut a clean `public/*` branch from the
+     fetched default, apply accepted code/test/doc/config **by path** (no
+     `.tsugu/` in the public diff), verify, human-approved PR. The work branch
+     keeps its work-form `context.md` with `status: converged` until the
+     public PR's landing is confirmed (C4), then the same completion tail runs.
+   - **Rejected:** record why where it may matter (run note; intake note →
+     `dropped`), remove worktrees, delete the branch when safe. To keep a
+     rejected branch, mark it `paused` with a do-not-resume note (C4).
+   - **Paused:** set `status: paused`, update the packet, write a run note
+     listing what is needed to resume.
+5. **Wait for approval before any public coordination** — opening/merging the
+   PR is the human's act; Tsugu never auto-merges. When the merge cannot happen
+   in-session (a collaborative PR awaiting other reviewers), the branch carries
+   `status: converged (pending merge)` (C2) and a later session or tidy pass
+   finishes the completion tail.
+
+Tsugu still invokes no user-installed skill here: it presents and yields; the
+human triggers workflow skills by keyword. The packet may hint which skill
+fits, but must not fire it.
+
+### C2 — `context.md`: every ref describes itself
 
 `branch.md` is renamed **`context.md`**, and its scope widens: it describes
 **the situation and origin of the ref it lives on** — any branch, the default
 branch included.
 
 - **On a work branch:** what 004's `branch.md` carried — `status:`
-  (`open | paused | converged` — see C3 for why `settled` is gone),
+  (`open | paused | converged` — see C4 for why `settled` is gone),
   `claimed-by:` / `claimed-at:`, why this branch exists, current understanding,
-  open questions, next actions, verification, promotion candidates.
+  open questions, next actions, verification, promotion candidates — plus
+  links to **its own** packet and run notes (slug defaults to the branch
+  name), so a reader navigates to the relevant evidence instead of scanning
+  directories.
 - **On the default branch:** the mainline's current situation — what this repo
   is, where the mainline stands, what recently landed. No `status:` /
   `claimed-*` fields (those are work-branch concepts). `init` writes the first
   version.
 - **Inherit → rewrite cycle:** a new work branch cut from default inherits the
   mainline `context.md`; the agent's first act of real work rewrites it into
-  the branch's own narrative ("why this branch exists"). This replaces 004's
-  "fresh branch has no `branch.md` yet" gap — there is always a `context.md`,
-  and whether it has been rewritten distinguishes untouched from active
-  branches (the queue additionally pre-filters untouched branches via the
-  derived check, C3).
-- **Rewrite on merge-back:** before a work branch merges into the mainline
-  (`include` mode, C5), `settle`'s final commit on the branch **rewrites
-  `context.md` into the post-merge mainline narrative**: read the default
-  branch's current `context.md` from the fetched ref, integrate what this work
-  changes, drop the work-only fields. After the merge, the default branch's
-  `context.md` reflects current reality — it is maintained narrative, not
-  residue. Work-specific history stays in the keyed `runs/` and `packets/`
-  files, which accumulate without collisions. Concurrent merges may conflict on
-  `context.md`; that conflict is meaningful (two narratives to integrate) and
-  is resolved by rewriting against the then-current default version during the
-  freshness rebase.
+  the branch's own narrative ("why this branch exists"). There is always a
+  `context.md`; whether it has been rewritten distinguishes untouched from
+  active branches. **Fallback partition rule:** a branch with real commits but
+  a still-mainline-form `context.md` (agent crashed before the rewrite) is
+  treated as `open`, unclaimed.
+- **Rewrite on merge-back (`include` mode):** before the work branch merges,
+  `converge` rewrites `context.md` into the post-merge mainline narrative:
+  read the default branch's current `context.md` from the fetched ref,
+  integrate what this work changes, drop the work-only fields — **except one
+  line**: until the merge is confirmed, the file keeps
+  `status: converged (pending merge)`, so the partition can still classify the
+  branch during the PR-waiting window. That line is acceptable mainline
+  residue after merge; the next mainline `context.md` touch removes it.
+  Work-specific history stays in the keyed `runs/` and `packets/` files.
+  Concurrent merges may conflict on `context.md`; that conflict is meaningful
+  (two narratives to integrate) and is resolved by rewriting against the
+  then-current default version during the freshness rebase.
+- **Load semantics after `include` merges:** `runs/` and `packets/` accumulate
+  on the default branch as inherited archive. **Never read them wholesale** —
+  navigate via the active branch's `context.md` (which names its own files) or
+  via an intake note's breadcrumb. `knowledge/` remains the only deliberately
+  curated tier.
 - **Backward compatibility:** readers accept a legacy `branch.md` when
   `context.md` is absent on a work branch; a legacy `status: settled` is
-  treated as "skip" (see C3). Live work branches migrate on next touch; only
+  treated as "skip" (see C4). Live work branches migrate on next touch; only
   templates and references change centrally (see D).
 
-### C2 — `.tsugu/context/` → `.tsugu/knowledge/`
+### C3 — `.tsugu/context/` → `.tsugu/knowledge/`
 
 With `context.md` taken as "this ref's situation," the promoted-knowledge
 directory `.tsugu/context/` (`shared/`, `dormant/`, `archived/`) is renamed
@@ -194,99 +254,108 @@ directory `.tsugu/context/` (`shared/`, `dormant/`, `archived/`) is renamed
 are unchanged: `knowledge/` holds deliberately promoted, durable knowledge on
 the coordination ref; `context.md` describes the here-and-now of one ref.
 
-### C3 — Settlement is derived, not written
+### C4 — Settlement is derived, not written
 
 The `status:` enum shrinks to **`open | paused | converged`**. There is no
-written `settled` state. **A branch is settled when git says so: it contributes
-no non-`.tsugu/` changes beyond the fetched default ref.**
+written `settled` state. **A branch is settled when its tip is an ancestor of
+the fetched default ref** (`git merge-base --is-ancestor <branch-ref>
+<remote>/<default>`) — settled work *is* merged work — **or when it has been
+cleaned up**: a deleted branch is not in the queue at all.
 
-- **Primary signal — ancestry:** after the branch itself merges (the `include`
-  default, C5), `git merge-base --is-ancestor <branch> <remote>/<default>`
-  holds. Cheap, exact, and meaningful: settled work *is* merged work.
-- **Queue pre-filter:** `prepare`'s partition gains a git-level first check —
-  a branch whose contribution is empty (just cut, or already landed) is
-  skipped before its `context.md` is even consulted. This is what makes
-  inherited mainline `context.md` files harmless: nothing reads them as work
-  state on a branch that has no work.
-- **By-path landings** (`exclude` mode) don't produce ancestry. There the 004
-  freshness rebase does the job: rebasing the work branch onto the fetched
-  default drops already-applied patches, after which the contribution is empty
-  and ancestry holds. Exact mechanics → `references/git-recipes.md`.
-- **Settled branches get cleaned up, and absence is the strongest signal:** a
-  deleted work branch is not in the queue at all. `settle` (and the human) may
-  delete merged work branches per policy; until cleanup, the derived check
-  keeps them skipped.
+- **Queue pre-filter:** `prepare`'s partition (and `converge`'s candidate
+  list) first drops ancestor branches — merged work *and* freshly-cut branches
+  with no commits — before reading `context.md`. This is what makes inherited
+  mainline `context.md` files harmless. **Exemption:** a branch that is the
+  `linked-branch:` of a `claimed` intake note is never pre-filtered — a
+  zero-commit branch with a claim is interrupted work to resume (or a
+  reconciliation case, below), not a fresh cut to ignore. Evidence-only
+  branches (`investigate/*` whose whole deliverable is `.tsugu/` notes) have
+  commits, so they stay visible like any other work; in `include` mode,
+  merging that evidence *is* their accepted outcome.
+- **`exclude` mode reaches settlement through explicit completion, not
+  ancestry.** The by-path `public/*` cut never carries the work branch's
+  `.tsugu/` commits, so the work branch never becomes an ancestor of default.
+  The landing check is run against the **public branch** (recorded in the work
+  branch's `context.md` / packet): once `public/<slug>` is an ancestor of the
+  fetched default, the work is confirmed landed — run the completion tail
+  (intake → `done`, promotion, cleanup of both branches). Until then the work
+  branch's `status: converged` keeps it skipped.
+- **Intake-note closing requires confirmed landing.** Flip `claimed → done`
+  only when ancestry confirms the landing (the work branch itself in `include`
+  mode; the linked public branch in `exclude` mode). A `prepare`/`converge`
+  tidy pass may perform this flip for sessions that ended before the merge.
+  **Absence is never proof of success:** a `claimed` note whose linked branch
+  is gone *without* ancestry evidence (accidental deletion, rejection that
+  didn't update the note, force-push) is a **reconciliation case** — surface
+  it to the human at the next `converge`; never auto-flip it to `done` or
+  `dropped`.
 - **Rejected work** writes no status either: record the reason where it may
   matter (run note; intake note → `dropped`), then remove worktrees and delete
   the branch when safe. To keep a rejected branch around, mark it `paused`
-  with a note saying why.
-- **Intake-note closing decouples from a status write:** flip `claimed → done`
-  once the merge is confirmed. If the session ends before the human merges,
-  the note stays `claimed`; a later `prepare` run may tidy it — flip to `done`
-  when the linked branch is derived-settled or gone. Same for the legacy
-  table: an intake note whose linked branch shows legacy `status: settled` is
-  closeable.
-- **converge still writes `converged`** (a human decision is a real event git
-  does not record), and `paused` still marks parked work. Both are
-  human-meaningful, non-derivable states — exactly the ones worth writing.
+  with a do-not-resume note — `paused` is a resume *candidate*, not an
+  auto-resume: the partition offers it, and the agent reads the `context.md`
+  note before touching it, so a "rejected — do not resume" note is honored.
+- **`converge` still writes `converged`** (a human decision is a real event
+  git does not record) — but only when completion cannot finish in-session
+  (the pending-merge window, C1/C2). `paused` still marks parked work. Both
+  are human-meaningful, non-derivable states — exactly the ones worth writing.
 
-### C4 — Push by default
+### C5 — Push by default
 
 The `init` question "may agents create/commit/push preparation branches
-automatically?" defaults to **yes** (004 asked it neutrally, with no default).
-Pushing is what makes the branch a message: the MacBook `converge` and the next
-scheduled agent both read remote-tracking refs. A repo can still answer no;
-`prepare` then commits locally and stops for approval, as the shipped v1.0
-SKILL.md prepare step already specifies.
+automatically?" gains a **yes** default (004 asked it neutrally, with no
+default). Pushing is what makes the branch a message: the MacBook `converge`
+and the next scheduled agent both read remote-tracking refs. A repo can still
+answer no; `prepare` then commits locally and stops for approval, as the
+shipped v1.0 SKILL.md prepare step already specifies.
 
-To make success criterion #4 (cross-machine handoff) hold, **`converge` gains
-the same fetch-first read path as `prepare`**: resolve `<remote>` + `<default>`,
-`git fetch`, and read packet/branches/`context.md` from remote-tracking refs —
-machine B reconstructs the full state from `git fetch` alone.
-
-### C5 — `public-branch-tsugu: include | exclude`
+### C6 — `public-branch-tsugu: include | exclude`
 
 New `policy.md` field, default **`include`**:
 
-- **`include` (default):** the work branch **is** the public branch. `settle`
-  Accepted = freshness-rebase onto the fetched default, verify (build/tests),
-  rewrite `context.md` to the post-merge narrative (C1), push, then the
-  human-gated PR **of the work branch itself**. Merging it makes settlement
-  ancestry-true (C3) and lands the branch's `.tsugu/` evidence (`runs/`,
-  `packets/`, the rewritten `context.md`) on the default branch as durable
-  shared memory. No fresh `public/*` cut, no by-path filtering, no separate
-  evidence-landing step. Trade-offs, stated openly: mainline history carries
-  the agent's (possibly messy) preparation commits and `.tsugu/` files; in the
-  agent-first orientation that history *is* the memory, and the repo's merge
-  convention (merge commits, no squash) preserves it.
+- **`include` (default):** the work branch **is** the public branch — converge
+  Accepted merges it directly (C1). Merging makes settlement ancestry-true
+  (C4) and lands the branch's `.tsugu/` evidence (`runs/`, `packets/`, the
+  rewritten `context.md`) on the default branch as durable shared memory. No
+  fresh `public/*` cut, no by-path filtering, no separate evidence-landing
+  step. Trade-offs, stated openly: mainline history carries the agent's
+  (possibly messy) preparation commits and `.tsugu/` files; in the agent-first
+  orientation that history *is* the memory, and the repo's merge convention
+  (merge commits, no squash) preserves it.
 - **`exclude` (opt-out):** 004's behavior — cut a fresh `public/*` branch from
-  the fetched `<remote>/<default>`, apply accepted code/test/doc/config **by
-  path** so the public diff introduces no `.tsugu/` changes. For collaborative
-  repos where human reviewers should not see coordination metadata in PRs.
-  Settlement is still derived (C3, via rebase-collapse), and cleanup of the
-  work branch after the public PR merges follows 004's settle.
+  the fetched `<remote>/<default>`, apply accepted changes **by path** so the
+  public diff introduces no `.tsugu/` changes. For collaborative repos where
+  human reviewers should not see coordination metadata in PRs. Completion and
+  cleanup per C4's exclude-mode landing check.
 
-Unchanged in both modes: verification before the human gate, PR opening stays
-human-gated, promotion to `knowledge/shared/`, cleanup order
-(`git worktree remove` before branch delete). The `public/*` prefix remains in
-the default prefix set but is only used by `exclude` mode.
+Unchanged in both modes: verification before the human gate, PR
+opening/merging stays human-gated, promotion to `knowledge/shared/`, cleanup
+order (`git worktree remove` before branch delete). The `public/*` prefix
+remains in the default prefix set but is only used by `exclude` mode.
 
 ### Ripple
 
 - `templates/`: `branch.md` → `context.md` (work-branch form; `init` writes
-  the default-branch form), `policy.md` gains `public-branch-tsugu` + the new
-  defaults wording.
-- SKILL.md: prepare (queue pre-filter, push default, intake backstop),
-  converge (fetch-first, status write), settle (both C5 arms, derived
-  settlement, intake tidy), boundary section, multi-agent section (enum).
-- `references/git-recipes.md`: derived-settlement checks, include-mode settle,
-  freshness-rebase collapse, `knowledge/` paths; the by-path clean-cut recipe
-  becomes the `exclude` arm.
-- `references/notes-and-packet.md`: `context.md` semantics (per-ref, inherit →
-  rewrite, merge-back rewrite), placement/durability wording for both modes,
-  packet's "Suggested public branch" wording.
+  the default-branch form); `policy.md` gains `public-branch-tsugu` + the new
+  defaults wording; `packet.md`'s "Suggested public branch" comment (written
+  for the always-cut-fresh model) reworded for both modes.
+- SKILL.md: frontmatter description (trigger surface: three routines, no
+  "clean public form" framing) and the spine's legibility bullet
+  (`branch.md` → `context.md`); init (schema stamp, migration decision, push
+  default, intake question); prepare (queue pre-filter + exemption, intake
+  backstop, push default); converge (absorbs settle: fetch-first, branch
+  selection, dispositions, completion tail, pending-merge state); boundary +
+  multi-agent sections (enum, `context.md`, claimed-field lifecycle).
+- `references/git-recipes.md`: ancestry checks (work branch / public branch),
+  queue pre-filter + exemption, include-mode merge-back, freshness rebase,
+  `knowledge/` paths; the by-path clean-cut recipe becomes the `exclude` arm
+  of converge.
+- `references/notes-and-packet.md`: `context.md` per-ref semantics (inherit →
+  rewrite, merge-back rewrite, pending-merge line, own-files links), load
+  semantics for accumulated `runs/`/`packets/`, both-mode placement/durability,
+  packet wording.
 - `references/policy-and-intake.md`: new fields; intake recorded form, dedup +
-  re-open scope, push-protected persistence.
+  re-open scope, push-protected persistence, reconciliation rule.
 
 ## D — `init` re-run migrates (`tsugu-schema`)
 
@@ -331,8 +400,12 @@ deterministic, version-stamped migration.
   decide, write the default and say so in the commit message.
 - A migration that cannot be applied mechanically (a curated section
   conflicting with the new structure) **stops and asks** — never force-resolve.
-- Push-protected default branches follow the 004 `init` rule: write the
-  migration on an `init/*` branch and open a human-approved PR.
+- **Push-protected default branches:** the whole migration rides an `init/*`
+  branch + human-approved PR (the 004 `init` rule), and any coordination-ref
+  change (e.g. the `knowledge/` rename) is performed only **after** that PR
+  merges — otherwise schema-1 readers and the renamed coord ref would disagree
+  during the window. Until the migration completes, readers accept both
+  `context/` and `knowledge/` names.
 
 ### Migration 1→2 (shipped with this spec)
 
@@ -344,14 +417,15 @@ deterministic, version-stamped migration.
    over with an explicit `read: TODO (ask the human)` marker when no human is
    available).
 3. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref
-   (`git mv`, contents preserved).
+   (`git mv`, contents preserved; deferred until the policy PR merges when the
+   default branch is push-protected).
 4. Update `.tsugu/templates/` from the plugin (`branch.md` template replaced
    by `context.md`).
 5. Write the default branch's `.tsugu/context.md` (mainline form) if absent.
 6. Add `tsugu-schema: 2` — **last**, after steps 1–5 succeed.
 
 Live work branches are **not** migrated centrally: agents read legacy
-`branch.md` / `status: settled` per the C1/C3 compatibility rules, and each
+`branch.md` / `status: settled` per the C2/C4 compatibility rules, and each
 branch converts on its next touch.
 
 ## Affected surface
@@ -359,22 +433,23 @@ branch converts on its next touch.
 | File | Change |
 | --- | --- |
 | `commands/tsugu.md` | **removed** |
-| `commands/{init,prepare,converge,settle}.md` | **new** thin routers |
-| `skills/tsugu/SKILL.md` | routing; init (schema stamp, migration decision, flipped push default, intake question); prepare (queue pre-filter, intake backstop, push default); converge (fetch-first, `converged` write); settle (C5 arms, derived settlement, intake tidy); boundary + multi-agent sections (enum, `context.md`) |
+| `commands/{init,prepare,converge}.md` | **new** thin routers |
+| `skills/tsugu/SKILL.md` | frontmatter description; spine legibility bullet; routing; init (schema stamp, migration decision, push question default, intake question); prepare (queue pre-filter + exemption, intake backstop, push default); converge (absorbs settle — see C1); settle section removed; boundary + multi-agent sections (enum, `context.md`, claimed-field lifecycle) |
 | `skills/tsugu/templates/policy.md` | `tsugu-schema`, `public-branch-tsugu`, new Intake Sources format, push default wording |
 | `skills/tsugu/templates/branch.md` → `templates/context.md` | renamed + per-ref semantics (work-branch and mainline forms) |
-| `skills/tsugu/references/policy-and-intake.md` | new fields; intake recorded form, dedup + re-open scope, push-protected persistence |
-| `skills/tsugu/references/git-recipes.md` | derived-settlement checks; include-mode settle; freshness collapse; `knowledge/` paths; clean-cut as `exclude` arm |
-| `skills/tsugu/references/notes-and-packet.md` | `context.md` per-ref semantics + both-mode placement/durability; packet wording |
+| `skills/tsugu/templates/packet.md` | "Suggested public branch" comment reworded for both modes |
+| `skills/tsugu/references/policy-and-intake.md` | new fields; intake recorded form, dedup + re-open scope, push-protected persistence, reconciliation rule |
+| `skills/tsugu/references/git-recipes.md` | ancestry checks; pre-filter + exemption; include-mode merge-back; freshness collapse; `knowledge/` paths; clean-cut as `exclude` arm |
+| `skills/tsugu/references/notes-and-packet.md` | `context.md` per-ref semantics + pending-merge line + own-files links; accumulated `runs/`/`packets/` load semantics; both-mode placement/durability; packet wording |
 | `skills/tsugu/references/migrations.md` | **new** — migration rules + steps, starting with 1→2 |
-| `skills/tsugu/README.md` | command surface + new defaults |
+| `skills/tsugu/README.md` | command surface; lifecycle (three routines); `.tsugu/` diagram (`knowledge/`, `context.md`); settle description (clean-cut now `exclude`-only); add 005 spec link |
 | `.claude-plugin/marketplace.json` | tsugu plugin minor version bump |
-| root `CLAUDE.md` | tsugu section: four commands, agent-first defaults |
+| root `CLAUDE.md` | tsugu section: three commands, three-routine lifecycle, agent-first defaults |
 
 ## Success criteria
 
-1. `/tsugu:init`, `/tsugu:prepare`, `/tsugu:converge`, `/tsugu:settle` each
-   run their routine directly; no `/tsugu:tsugu` form remains.
+1. `/tsugu:init`, `/tsugu:prepare`, `/tsugu:converge` each run their routine
+   directly; no `/tsugu:tsugu` form and no `settle` command remain.
 2. A first interactive `prepare` on a repo with unconfigured intake sources
    asks once, records the answer (including a confirmed-negative form) in
    `policy.md`, and subsequent scheduled runs read it without asking.
@@ -383,15 +458,23 @@ branch converts on its next touch.
 4. With defaults, `prepare` on machine A pushes branches + `.tsugu/` such that
    a fetch-first `converge` on machine B reconstructs the full state from
    `git fetch` alone.
-5. With `public-branch-tsugu: include`, merging the work branch lands its
+5. `converge` lists candidate branches and asks which to work on; an explicit
+   branch argument skips the question; Accepted work completes in-session
+   (rebase, verify, `context.md` rewrite, human merge, intake close,
+   promotion, cleanup) with no separate settle step.
+6. With `public-branch-tsugu: include`, merging the work branch lands its
    `.tsugu/` evidence on the default branch and leaves the default branch's
    `context.md` rewritten to the post-merge reality; with `exclude`, the
-   public diff introduces no `.tsugu/` changes (004 behavior).
-6. No written `settled` state exists: a merged work branch is skipped by the
-   queue via the derived check alone, and a branch freshly cut from default
-   (inherited mainline `context.md`, no commits) is likewise skipped. Legacy
-   `status: settled` notes are still read as "skip".
-7. Re-running `/tsugu:init` on a schema-1 repo migrates it to schema 2 without
+   public diff introduces no `.tsugu/` changes (004 behavior) and landing is
+   confirmed via the public branch's ancestry.
+7. No written `settled` state exists: a merged work branch is skipped by the
+   queue via ancestry alone; a branch freshly cut from default is skipped
+   unless a `claimed` intake note links it; legacy `status: settled` notes are
+   still read as "skip".
+8. An intake note flips to `done` only on ancestry-confirmed landing; a
+   `claimed` note whose branch vanished without evidence is surfaced for
+   human reconciliation, never auto-closed.
+9. Re-running `/tsugu:init` on a schema-1 repo migrates it to schema 2 without
    losing any curated `policy.md` content; an interrupted migration re-enters
    safely (stamp written last); re-running after completion is a no-op.
 
