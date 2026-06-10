@@ -564,7 +564,12 @@ deterministic, version-stamped migration.
   change (e.g. the `knowledge/` rename) is performed only **after** that PR
   merges — otherwise schema-1 readers and the renamed coord ref would disagree
   during the window. Until the migration completes, readers accept both
-  `context/` and `knowledge/` names.
+  `context/` and `knowledge/` names. **Because a step lives past the PR, the
+  `tsugu-schema` stamp is deferred with it** — written in the same post-merge
+  commit that performs the coordination-ref change, not in the policy PR — so a
+  re-run after merge but before the rename still reads the old schema and
+  re-enters, keeping the stamp genuinely last (success criterion: never a
+  "complete" stamp over a half-applied migration).
 
 ### Migration 1→2 (shipped with this spec)
 
@@ -586,11 +591,15 @@ deterministic, version-stamped migration.
 5. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref
    (`git mv`, contents preserved — existing tier subdirectories ride along as
    plain folders, since no internal layout is prescribed anymore; deferred
-   until the policy PR merges when the default branch is push-protected).
+   until the policy PR merges when the default branch is push-protected, with
+   the step-8 stamp riding that same post-merge commit).
 6. Update `.tsugu/templates/` from the plugin (`branch.md` template replaced
    by the pure-narrative `context.md`; `intake.md` gains `landed:`).
 7. Write the default branch's `.tsugu/context.md` (mainline form) if absent.
-8. Add `tsugu-schema: 2` — **last**, after steps 1–7 succeed.
+8. Add `tsugu-schema: 2` — **last**, after steps 1–7 succeed. On a
+   push-protected repo where step 5 is deferred past the policy PR, the stamp
+   defers with it (written in the post-merge coordination-ref commit, not the
+   policy PR), so the schema never reads complete while a step is pending.
 
 Live work branches are **not** migrated centrally: agents read legacy
 `branch.md` per the C2 compatibility rules (legacy `status:` folded into

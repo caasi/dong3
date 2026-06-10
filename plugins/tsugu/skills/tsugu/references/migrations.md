@@ -51,7 +51,12 @@ The steps obey these rules, which hold for every migration (not just 1→2):
   change — e.g. the `knowledge/` rename — is deferred and performed only **after**
   that PR merges; otherwise schema-1 readers and the renamed coordination ref
   would disagree during the window. Until the migration completes, readers accept
-  **both** `context/` and `knowledge/` names.
+  **both** `context/` and `knowledge/` names. **Because a step lives past the PR,
+  the `tsugu-schema: 2` stamp does not ride the policy PR either** — it is written
+  in the same post-merge commit that performs the deferred coordination-ref
+  change, never before it. This keeps the stamp genuinely last: a re-run after the
+  PR merges but before the rename still reads schema 1 and re-enters, instead of
+  seeing a "complete" stamp over a half-applied migration.
 
 ## Migration 1→2
 
@@ -114,7 +119,8 @@ Contents are preserved: existing tier subdirectories (e.g. `context/shared`,
 folders**, since no internal layout is prescribed anymore. This is a
 **coordination-ref** change, so on a push-protected default branch it is
 **deferred until the policy PR merges** (see the contract above); readers accept
-both `context/` and `knowledge/` until then.
+both `context/` and `knowledge/` until then. The step 8 schema stamp rides this
+same deferred post-merge commit, not the policy PR.
 
 **6. Refresh `.tsugu/templates/` from the plugin.** Replace the schema-1
 `branch.md` template with the pure-narrative `context.md`; update `intake.md` so
@@ -130,7 +136,10 @@ Condition: it does not already exist — never overwrite a curated mainline note
 **8. Add `tsugu-schema: 2` — last.** Only after steps 1–7 have all succeeded,
 stamp `tsugu-schema: 2` as the first line of `policy.md`. This is what marks the
 migration complete; until it is written, a re-run re-enters migration 1→2 and the
-already-applied steps no-op.
+already-applied steps no-op. **Push-protected exception:** when step 5 is deferred
+past the policy PR, the stamp is deferred with it — written in the post-merge
+commit that performs the coordination-ref rename, **not** in the policy PR — so
+the schema never reads complete while a step is still pending.
 
 ## Live work branches convert on next touch
 
