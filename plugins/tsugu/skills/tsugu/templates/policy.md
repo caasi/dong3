@@ -1,6 +1,6 @@
 tsugu-schema: 2
 ## Private Git Space (agent may do freely)
-create/commit/push `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write `.tsugu/*`;
+create/commit (push per `## Push`) `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
 ## Public Coordination (ask first)
 open MR/PR; tracker comment / status change; assign reviewers; Slack;
