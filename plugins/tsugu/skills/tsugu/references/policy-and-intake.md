@@ -245,19 +245,29 @@ no per-system integration logic in the plugin:
 default: git-native. Each additional source below is read on every prepare run.
 
 - name: my-todos
-  read: `cat ~/notes/todo.md`          # shell command, file path, or MCP tool name
+  read: ~/notes/todo.md                # a file path / MCP tool name / where to look
   notes: lines starting with "- [ ]" are open tasks; mention repo names to scope.
 ```
 
-A source is three things: a **name**, **one `read:` instruction** (a shell
-command, a file path, or an MCP tool name), and a **`notes:` interpretation hint**.
-On each run, `prepare` executes the read instruction, interprets the result with
-the hint, and converts anything new into committed `.tsugu/intake/<slug>.md` notes
-(`status: open`, `## Observed source: human-bridge: <name>`).
+A source is three things: a **name**, **one `read:` pointer** (a file path, an MCP
+tool name, or a description of where to look), and a **`notes:` interpretation
+hint**. On each run the `prepare` **agent resolves** the pointer with its own
+**permissioned tools** — Tsugu never directly executes a string committed in
+`policy.md` — interprets the result with the hint, and converts anything new into
+committed `.tsugu/intake/<slug>.md` notes (`status: open`,
+`## Observed source: human-bridge: <name>`).
 
-Sources are **not limited to task systems** — anything one read instruction can
-poll fits the same shape: an RSS feed (`curl --silent <url>`), a security watch (a
-YARA scan whose new matches become intake notes), a CVE feed, a CI status query.
+**Why a pointer, not a command.** `policy.md` lives in the repo, and `prepare` may
+run headless/scheduled — so a `read:` that Tsugu auto-executed would be remote code
+execution in any repo where others can write the default branch / coordination
+ref. Instead the agent acts: it reads the file, calls the MCP tool, or — only where
+a source genuinely needs a command — issues it as **its own gated tool call**, which
+the harness's permission layer can prompt on, gate, or block. Prefer file paths and
+MCP tools; reserve commands for trusted repos.
+
+Sources are **not limited to task systems** — anything the agent can poll fits the
+same shape: an RSS feed (the agent fetches `<url>`), a security watch (a YARA scan
+whose new matches become intake notes), a CVE feed, a CI status query.
 Downstream is identical regardless — the queue read, partition, and routines
 operate only on git.
 

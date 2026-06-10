@@ -44,11 +44,16 @@ branch literally named "default"). Set to a branch (e.g. tsugu/coord) only if th
 default branch is push-protected. -->
 ## Intake Sources
 default: git-native. Each additional source below is read on every prepare run.
-<!-- a source = a name, ONE read instruction (shell command / file path / MCP
-     tool name), and an interpretation hint. Not limited to task systems —
-     RSS feeds, security watches (YARA/CVE), CI queries fit the same shape.
+<!-- a source = a name, ONE read pointer (a file path / MCP tool name / where to
+     look), and an interpretation hint. Not limited to task systems — RSS feeds,
+     security watches (YARA/CVE), CI queries fit the same shape.
+     The agent RESOLVES `read:` with its own permissioned tools; Tsugu never
+     executes a string from this file. Prefer a file path or MCP tool name. If a
+     source needs a command, the agent runs it as its own gated tool call — never
+     auto-run from committed config (which would be remote code execution on a
+     headless prepare in any repo others can write).
 - name: my-todos
-  read: `cat ~/notes/todo.md`
+  read: ~/notes/todo.md
   notes: lines starting with "- [ ]" are open tasks; mention repo names to scope.
 -->
 ## Skill use

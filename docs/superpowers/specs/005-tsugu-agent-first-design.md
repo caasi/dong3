@@ -95,8 +95,9 @@ from a one-time **setup question**, which is allowed because the first
 
   > Git-native intake is the default. Should I also read tasks/context from an
   > external source — a task manager, issue tracker, notes file, RSS feed, or
-  > a watch/scan (YARA/CVE, CI)? If so, give me the read instruction — a shell
-  > command, file path, or MCP tool name.
+  > a watch/scan (YARA/CVE, CI)? If so, give me the read pointer — a file path,
+  > MCP tool name, or where to look (if it needs a command, I run it as my own
+  > gated tool call, never auto-execute it from config).
 
   Record the answer in `policy.md` under `## Intake Sources` and continue. A
   **negative answer is also recorded** — as
@@ -124,18 +125,27 @@ instruction** — no per-system integration logic in the plugin:
 default: git-native. Each additional source below is read on every prepare run.
 
 - name: my-todos
-  read: `cat ~/notes/todo.md`          # shell command, file path, or MCP tool name
+  read: ~/notes/todo.md                # a file path / MCP tool name / where to look
   notes: lines starting with "- [ ]" are open tasks; mention repo names to scope.
 ```
 
-On each run, `prepare` executes the read instruction, interprets the result
-with the `notes:` hint, and converts anything new into committed
-`.tsugu/intake/<slug>.md` notes (`status: open`,
+On each run the `prepare` **agent resolves** the `read:` pointer with its own
+**permissioned tools** — **Tsugu never directly executes a string committed in
+`.tsugu/`** — interprets the result with the `notes:` hint, and converts anything
+new into committed `.tsugu/intake/<slug>.md` notes (`status: open`,
 `## Observed source: human-bridge: <name>`). Downstream is identical to 004 —
-the queue read, partition, and routines operate only on git. Sources are not
-limited to task systems: anything one read instruction can poll fits the same
-shape — an RSS feed (`curl --silent <url>`), a security watch (a YARA scan whose new
-matches become intake notes), a CVE feed, a CI status query.
+the queue read, partition, and routines operate only on git.
+
+`read:` is a **pointer, not a command**: `policy.md` is repo content and `prepare`
+may run headless, so a string Tsugu auto-executed would be remote code execution
+in any repo where others can write the default branch / coordination ref. The
+agent instead reads the file, calls the MCP tool, or — only where a command is
+genuinely needed — issues it as **its own gated tool call**, which the harness's
+permission layer can prompt on, gate, or block. This is the **no-force principle**:
+Tsugu offers data and trusts the agent's judgment; it never makes the agent run
+anything. Sources are not limited to task systems: anything the agent can poll
+fits the same shape — an RSS feed (the agent fetches `<url>`), a security watch (a
+YARA scan whose new matches become intake notes), a CVE feed, a CI status query.
 
 **Dedup rule:** derive the slug from a stable identifier in the source (issue
 number, todo line hash, title slug). If an intake note with that slug already
