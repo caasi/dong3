@@ -202,9 +202,11 @@ git -C <coord-worktree> commit --message "tsugu: bootstrap coordination ref (int
 git -C <coord-worktree> push --set-upstream <remote> <coordination-ref>
 ```
 
-Thereafter the normal commit → `pull --rebase` → push protocol applies. All queue
-reads resolve against `<remote>/<coordination-ref>`; always read `policy.md` /
-`templates/` from `<remote>/<default>`, never from the coord branch.
+Thereafter the normal commit → `fetch` + `rebase <remote>/<coordination-ref>` →
+`push <remote> HEAD:<coordination-ref>` protocol applies (never a bare `git pull`
+— see the warning above). All queue reads resolve against
+`<remote>/<coordination-ref>`; always read `policy.md` / `templates/` from
+`<remote>/<default>`, never from the coord branch.
 
 ---
 

@@ -2,8 +2,8 @@
 create/commit/push `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
 ## Public Coordination (ask first)
-open MR/PR; tracker comment / status change; assign reviewers; Slack; public
-commitments; move findings into human-facing docs; irreversible cleanup
+open MR/PR; tracker comment / status change; assign reviewers; Slack;
+public commitments; move findings into human-facing docs; irreversible cleanup
 ## Branch Prefixes
 prepare/*  investigate/*  review/*  public/*
 ## Remote
