@@ -29,8 +29,9 @@ One lifecycle, three routines:
    coordination metadata). Asks the minimum; idempotent (re-running repairs the
    skeleton and never overwrites a curated `policy.md`).
 2. **prepare** (human absent) — fetch, find work (from git branches / `.tsugu/`
-   intake notes / agent-discovered issues), do private git work on `prepare/*`
-   branches, run tests, record evidence + a convergence packet. **External
+   intake notes / agent-discovered issues), do private git work on the configured
+   work-prefix branches (`prepare/*`, `investigate/*`, `review/*`), run tests,
+   record evidence + a convergence packet. **External
    silence** — interrupt only if the task is unsafe, destructive, or blocked.
 3. **converge** (human present) — present the packet + prepared branches, decide
    **with you** what becomes public, and complete that disposition in the same
