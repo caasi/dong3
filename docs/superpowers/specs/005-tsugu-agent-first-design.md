@@ -206,8 +206,8 @@ human-present session:
 5. **Wait for approval before any public coordination** — opening/merging the
    PR is the human's act; Tsugu never auto-merges. When the merge cannot happen
    in-session (a collaborative PR awaiting other reviewers), the branch carries
-   `status: converged (pending merge)` (C2) and a later session or tidy pass
-   finishes the completion tail.
+   `status: converged (pending merge of <branch>)` (C2) and a later session or
+   tidy pass finishes the completion tail.
 
 Tsugu still invokes no user-installed skill here: it presents and yields; the
 human triggers workflow skills by keyword. The packet may hint which skill
@@ -292,9 +292,10 @@ cleaned up**: a deleted branch is not in the queue at all.
   `.tsugu/` commits, so the work branch never becomes an ancestor of default.
   The landing check is run against the **public branch** (recorded in the work
   branch's `context.md` / packet): once `public/<slug>` is an ancestor of the
-  fetched default, the work is confirmed landed — run the completion tail
-  (intake → `done`, promotion, cleanup of both branches). Until then the work
-  branch's `status: converged` keeps it skipped.
+  fetched default, the work is confirmed landed — run the completion tail in
+  the C1 order (promotion, then intake → `done`, then cleanup of both
+  branches). Until then the work branch's `status: converged` keeps it
+  skipped.
 - **Intake-note closing requires confirmed landing — and precedes only
   cleanup.** Flip `claimed → done` only when ancestry confirms the landing
   (the work branch itself in `include` mode; the linked public branch in
@@ -487,8 +488,8 @@ branch converts on its next touch.
    `git fetch` alone.
 5. `converge` lists candidate branches and asks which to work on; an explicit
    branch argument skips the question; Accepted work completes in-session
-   (rebase, verify, `context.md` rewrite, human merge, intake close,
-   promotion, cleanup) with no separate settle step.
+   (rebase, verify, `context.md` rewrite, human merge, promotion, intake
+   close, cleanup) with no separate settle step.
 6. With `public-branch-tsugu: include`, merging the work branch lands its
    `.tsugu/` evidence on the default branch and leaves the default branch's
    `context.md` rewritten to the post-merge reality; with `exclude`, the
