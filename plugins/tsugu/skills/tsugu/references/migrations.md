@@ -72,8 +72,11 @@ touch any existing `policy.md` content.
 
 **2. Add `## Handoff Prefixes` and narrow `## Branch Prefixes`.** Write
 `## Handoff Prefixes` with the default `feat/* fix/*` (ask once to confirm if the
-repo's branch-naming convention is visible). Update `## Branch Prefixes` to the
-new **work-only** default `prepare/* investigate/* review/*`. Crucially, **append
+repo's branch-naming convention is visible). Narrow `## Branch Prefixes` to
+**work-only** by **preserving the repo's configured work prefixes** and removing
+only `public/*` from them — `prepare/* investigate/* review/*` is the default
+*only when the section was never customized*; a repo that added e.g. `explore/*`
+keeps it (the contract forbids overwriting curated prefixes). Crucially, **append
 legacy `public/*` to the Handoff Prefixes list** — never to the work prefixes —
 so existing `public/*` branches keep their meaning as decided/landed outputs
 (pending/landed, never work candidates). The two lists must stay disjoint. Do not

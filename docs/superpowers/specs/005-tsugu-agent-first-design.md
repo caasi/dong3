@@ -570,10 +570,12 @@ deterministic, version-stamped migration.
 
 1. Add `public-branch-tsugu:` to `policy.md` (ask once, default `include`).
 2. Add `## Handoff Prefixes` to `policy.md` (default `feat/* fix/*`; ask once
-   if the repo's convention is visible to confirm) and update `## Branch
-   Prefixes` to the new work-only default — **legacy `public/*` is appended to
-   the Handoff Prefixes list**, so existing `public/*` branches keep their
-   meaning (pending/landed outputs, never work candidates).
+   if the repo's convention is visible to confirm) and narrow `## Branch
+   Prefixes` to work-only by **preserving the repo's configured work prefixes**
+   (the `prepare/* investigate/* review/*` set is the default only when never
+   customized) and removing only `public/*` from them — **legacy `public/*` is
+   appended to the Handoff Prefixes list**, so existing `public/*` branches keep
+   their meaning (pending/landed outputs, never work candidates).
 3. Add the merge-commit recommendation line to `policy.md`.
 4. Re-wrap any existing `## Intake Sources` content into the structured entry
    format (B), preserving listed sources. This re-wrap is **not** fully
