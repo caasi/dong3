@@ -186,7 +186,12 @@ esac
 # Classify by the FIRST matching table row, in order. A validated `landed:` in the
 # intake note (SHA resolves AND is contained in default — the forced-squash case)
 # counts as settled too; `note_has_valid_landed` stands for that documented check.
-if   { [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null; } \
+# This snippet covers the structural rows (exempt / settled / pending / in progress);
+# the finer rules below — claim recency / courtesy-yield, zero-commit claim recency,
+# and reconciliation on an *invalid* `landed:` — are prose, applied on top of it.
+if   [ "$(git rev-parse "$branch")" = "$(git rev-parse <remote>/<default>)" ]
+then echo exempt         # zero-commit: tip == default tip — interrupted / request-by-branch, not classified by the table
+elif { [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null; } \
   || note_has_valid_landed
 then echo settled
 elif [ -n "$handoff" ]
