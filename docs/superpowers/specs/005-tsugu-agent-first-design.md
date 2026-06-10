@@ -209,7 +209,16 @@ human-present session:
    the ones that don't. In `include` mode, also flag divergence — a work tip
    with commits its handoff branch lacks (C4) — and pairs whose handoff tip
    shares no history with the work branch (possible name collision, C4);
-   neither history heuristic applies in `exclude` mode (C4).
+   neither history heuristic applies in `exclude` mode (C4). Third, a
+   **housekeeping section**: in-progress branches (and open intake notes)
+   whose last activity is older than the policy's staleness threshold
+   (default 30 days; recorded progressively in `policy.md` on first use).
+   Staleness is derived — the last commit's timestamp, the same recency
+   mechanism as claims (C4) — and cleanup is **human-decided per item**, like
+   tidying a room: resume it, park it with an updated narrative, drop it
+   (record the reason; linked intake note → `dropped`; delete via the usual
+   order), or keep it. A scheduled `prepare` never cleans on its own —
+   housekeeping questions belong to the human-present moment.
 3. Lay out the packet, prepared branches/worktrees, what was tried / worked /
    failed / evidence / remaining uncertainties; surface open questions
    (including unconfigured intake sources and any reconciliation cases — C4).
@@ -594,7 +603,7 @@ its next touch.
 | `commands/tsugu.md` | **removed** |
 | `commands/{init,prepare,converge}.md` | **new** thin routers |
 | `skills/tsugu/SKILL.md` | frontmatter description; spine legibility bullet; routing; init (schema stamp, migration decision, push question default, intake question); prepare (slug/containment partition, derived claims, intake backstop, push default); converge (absorbs settle — see C1); settle section removed; boundary + multi-agent sections (derived claims, `context.md`) |
-| `skills/tsugu/templates/policy.md` | `tsugu-schema`, `public-branch-tsugu`, `## Handoff Prefixes`, merge-commit recommendation, work-only `## Branch Prefixes`, new Intake Sources format, push default wording |
+| `skills/tsugu/templates/policy.md` | `tsugu-schema`, `public-branch-tsugu`, `## Handoff Prefixes`, merge-commit recommendation, work-only `## Branch Prefixes`, new Intake Sources format, push default wording, staleness threshold (commented default 30d) |
 | `skills/tsugu/templates/branch.md` → `templates/context.md` | renamed; pure narrative (no status/claim fields); work-branch and mainline forms |
 | `skills/tsugu/templates/intake.md` | `landed:` field (write-once, squash-forced landings only); `linked-branch:` kept as write-once breadcrumb |
 | `skills/tsugu/templates/packet.md` | "Suggested public branch" comment reworded for both modes |
@@ -622,10 +631,12 @@ its next touch.
    `git fetch` alone.
 5. `converge` lists in-progress candidates and asks which to work on (an
    explicit branch argument skips the question), shows decided branches in a
-   separate awaiting-merge section (flagging PR-less orphans), and completes
-   Accepted work in-session (rebase, verify, `context.md` rewrite, direct
-   merge or slug-paired handoff branch + PR, promotion, intake close,
-   cleanup) with no separate settle step.
+   separate awaiting-merge section (flagging PR-less orphans), surfaces stale
+   branches/notes past the policy threshold as human-decided housekeeping
+   (never cleaned by a scheduled `prepare`), and completes Accepted work
+   in-session (rebase, verify, `context.md` rewrite, direct merge or
+   slug-paired handoff branch + PR, promotion, intake close, cleanup) with no
+   separate settle step.
 6. With `public-branch-tsugu: include`, merging lands the work's `.tsugu/`
    evidence on the default branch and leaves the default branch's `context.md`
    rewritten to the post-merge reality, with **no state line to clean up
