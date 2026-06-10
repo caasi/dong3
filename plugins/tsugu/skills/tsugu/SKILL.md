@@ -1,6 +1,6 @@
 ---
 name: tsugu
-description: Git-native preparation & convergence — carry work forward across the gap when no human is watching, the handoff to a human, and the resume by whoever comes next. Use to prepare work before review, then converge it with the human, or run the lifecycle via `/tsugu [init|prepare|converge]`. Triggers on "prepare work before review", "carry work forward", "git-native preparation", "init/prepare/converge", or "/tsugu". Human-triggered and schedule-wireable (wire `prepare` to `/schedule`/cron). Invokes no user-installed skill by default — native git + its own built-in subagents only. Never auto-merges and never performs public coordination without approval.
+description: Git-native preparation & convergence — carry work forward across the gap when no human is watching, the handoff to a human, and the resume by whoever comes next. Use to prepare work before review, then converge it with the human, or run the lifecycle via `/tsugu:init`, `/tsugu:prepare`, `/tsugu:converge`. Triggers on "prepare work before review", "carry work forward", "git-native preparation", "init/prepare/converge", or "/tsugu". Human-triggered and schedule-wireable (wire `prepare` to `/schedule`/cron). Invokes no user-installed skill by default — native git + its own built-in subagents only. Never auto-merges and never performs public coordination without approval.
 ---
 
 # Tsugu — 継ぐ (prepare & converge over git)
@@ -39,7 +39,7 @@ Every piece of one work item shares one slug: the work branch (`prepare/<slug>`)
 
 ## Routing
 
-`/tsugu [init|prepare|converge]` — one lifecycle, three routines:
+`/tsugu:init` · `/tsugu:prepare` · `/tsugu:converge` — one lifecycle, three routines:
 
 - **init** — first-run setup (or schema migration on re-run); ask the minimum, write the `.tsugu/` skeleton + policy.
 - **prepare** — human-absent: read the queue from git, work it privately, leave evidence.
