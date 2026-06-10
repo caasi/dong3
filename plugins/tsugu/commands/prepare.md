@@ -1,5 +1,5 @@
 ---
-description: Human-absent preparation — fetch, derive the queue from refs, work privately on the configured work-prefix branches (defaults prepare/* investigate/* review/*), push evidence. External silence
+description: Human-absent preparation — fetch, derive the queue from refs, work privately on the configured work-prefix branches (defaults prepare/* investigate/* review/*), push evidence when policy permits. External silence
 ---
 
 # /tsugu:prepare
