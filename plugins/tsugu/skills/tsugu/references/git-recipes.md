@@ -372,8 +372,10 @@ Once landing is confirmed — containment, or the human's converge confirmation
 recording `landed: <sha>` where a squash was forced — run, in this order:
 1. promote reusable knowledge into `.tsugu/knowledge/` (coordination-ref write);
 2. flip the linked intake note `claimed → done` (+ `landed:` only when not
-   containment-derivable; validate the SHA before writing) — request-by-branch
-   work with no intake note has nothing to flip, so this step is skipped;
+   containment-derivable; validate the SHA before writing) — note-less
+   request-by-branch work skips this for a containment-derivable landing; a
+   forced-squash landing (containment lost) instead materializes a slug-keyed
+   intake note to carry the validated `landed:` SHA, then flips it;
 3. only then clean up: `git worktree remove <path>` before
    `git branch --delete --force <branch>` — the handoff branch too, if the
    forge didn't already delete it.
