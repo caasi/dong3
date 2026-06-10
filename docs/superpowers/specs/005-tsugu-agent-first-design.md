@@ -299,6 +299,8 @@ cleaned up**: a deleted branch is not in the queue at all.
   git does not record) — but only when completion cannot finish in-session
   (the pending-merge window, C1/C2). `paused` still marks parked work. Both
   are human-meaningful, non-derivable states — exactly the ones worth writing.
+  The partition matches `converged` **by prefix**: the
+  `(pending merge)` parenthetical (C2) is annotation, not a fourth state.
 
 ### C5 — Push by default
 
@@ -442,8 +444,9 @@ branch converts on its next touch.
 | `skills/tsugu/references/git-recipes.md` | ancestry checks; pre-filter + exemption; include-mode merge-back; freshness collapse; `knowledge/` paths; clean-cut as `exclude` arm |
 | `skills/tsugu/references/notes-and-packet.md` | `context.md` per-ref semantics + pending-merge line + own-files links; accumulated `runs/`/`packets/` load semantics; both-mode placement/durability; packet wording |
 | `skills/tsugu/references/migrations.md` | **new** — migration rules + steps, starting with 1→2 |
-| `skills/tsugu/README.md` | command surface; lifecycle (three routines); `.tsugu/` diagram (`knowledge/`, `context.md`); settle description (clean-cut now `exclude`-only); add 005 spec link |
-| `.claude-plugin/marketplace.json` | tsugu plugin minor version bump |
+| `skills/tsugu/README.md` | command surface; lifecycle (three routines); `.tsugu/` diagram (`knowledge/`, `context.md`); former settle content folded into converge, clean-cut described as the `exclude` arm; add 005 spec link |
+| `plugins/tsugu/.claude-plugin/plugin.json` | description updated to the three-routine surface (currently advertises `settle` twice) |
+| `.claude-plugin/marketplace.json` | tsugu entry: description updated to three routines + minor version bump |
 | root `CLAUDE.md` | tsugu section: three commands, three-routine lifecycle, agent-first defaults |
 
 ## Success criteria
