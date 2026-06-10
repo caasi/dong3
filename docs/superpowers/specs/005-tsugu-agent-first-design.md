@@ -94,8 +94,9 @@ from a one-time **setup question**, which is allowed because the first
   ask once:
 
   > Git-native intake is the default. Should I also read tasks/context from an
-  > external source (a task manager, issue tracker, notes file)? If so, give me
-  > the read instruction — a shell command, file path, or MCP tool name.
+  > external source — a task manager, issue tracker, notes file, RSS feed, or
+  > a watch/scan (YARA/CVE, CI)? If so, give me the read instruction — a shell
+  > command, file path, or MCP tool name.
 
   Record the answer in `policy.md` under `## Intake Sources` and continue. A
   **negative answer is also recorded** — as
@@ -131,7 +132,10 @@ On each run, `prepare` executes the read instruction, interprets the result
 with the `notes:` hint, and converts anything new into committed
 `.tsugu/intake/<slug>.md` notes (`status: open`,
 `## Observed source: human-bridge: <name>`). Downstream is identical to 004 —
-the queue read, partition, and routines operate only on git.
+the queue read, partition, and routines operate only on git. Sources are not
+limited to task systems: anything one read instruction can poll fits the same
+shape — an RSS feed (`curl -s <url>`), a security watch (a YARA scan whose new
+matches become intake notes), a CVE feed, a CI status query.
 
 **Dedup rule:** derive the slug from a stable identifier in the source (issue
 number, todo line hash, title slug). If an intake note with that slug already
@@ -175,7 +179,11 @@ the work branch (`prepare/<slug>`), the intake note (`intake/<slug>.md`), the
 packet, the run notes, and — when one exists — the handoff branch
 (`<handoff-prefix>/<slug>`). Names are write-once identity (Tsugu never
 renames a branch), so name-level joins survive everything that rewrites
-commits.
+commits. One slug = one work item: same-slug branches under *different work
+prefixes* (e.g. a `review/<slug>` artifact from a built-in review subagent)
+are that item's artifacts — they share its lifecycle and are swept by its
+completion tail. Work prefixes and handoff prefixes must be **disjoint**
+sets; `init` and migration validate this.
 
 ### C1 — `converge` absorbs `settle`: three routines
 
@@ -198,7 +206,9 @@ human-present session:
    branches are not candidates, but listing them is what surfaces an orphaned
    handoff (pushed, then the session died before its PR was opened); when
    `gh` is available, verify each awaiting-merge item has an open PR and flag
-   the ones that don't.
+   the ones that don't. Also flag divergence — a work tip with commits its
+   handoff branch lacks (C4) — and pairs whose handoff tip shares no history
+   with the work branch (possible name collision, C4).
 3. Lay out the packet, prepared branches/worktrees, what was tried / worked /
    failed / evidence / remaining uncertainties; surface open questions
    (including unconfigured intake sources and any reconciliation cases — C4).
@@ -261,12 +271,18 @@ fields are removed** — it is narrative plus write-once links, nothing else.
 
 - **On a work branch:** why this branch exists, current understanding, open
   questions, next actions, verification, promotion candidates — plus links to
-  **its own** packet and run notes (all keyed by the branch's slug). No
+  **its own** packet and run notes (all keyed by the branch's slug). Evidence
+  should prefer **runnable artifacts** — a committed repro script, a failing
+  test, a probe — over prose claims (extending 004's principle #12): the next
+  inheritor re-runs instead of re-trusting; narrative explains, running code
+  demonstrates. No
   `status:`, no `claimed-*`: those facts are derived (C4). **Lineage is not
-  recorded either** — which branch this one grew out of is an ancestry
-  question the DAG answers while history is preserved; the one operation that
-  severs it (a squash merge) gets the landed-SHA record instead (C4). A
-  recorded copy in every other case only goes stale.
+  recorded either** — lineage *to the mainline* is an ancestry question the
+  DAG answers while history is preserved, and the operation that severs it (a
+  squash merge) gets the landed-SHA record instead (C4). Cross-work-branch
+  lineage is scratch-grade: a freshness rebase may sever it, and that is
+  acceptable — lineage never drives classification. A recorded copy in any of
+  these cases only goes stale.
 - **On the default branch:** the mainline's current situation — what this repo
   is, where the mainline stands, what recently landed. `init` writes the first
   version.
@@ -274,9 +290,9 @@ fields are removed** — it is narrative plus write-once links, nothing else.
   mainline `context.md`; the agent's first act of real work rewrites it into
   the branch's own narrative. There is always a `context.md`. A branch with
   real commits whose `context.md` is still the inherited mainline form (a
-  session that died before the rewrite) is simply an unclaimed candidate whose
-  narrative hasn't been written yet — the partition needs no special rule for
-  it (C4 derives "unclaimed" from commit recency, not from the file).
+  session that died before the rewrite) is simply a candidate whose narrative
+  hasn't been written yet — claim status comes from commit recency as usual
+  (C4); the partition needs no special rule for the file's form.
 - **Rewrite on merge-back (`include` mode):** before the work branch merges,
   `converge` rewrites `context.md` into the **ready-to-merge mainline
   narrative**: read the default branch's current `context.md` from the
@@ -335,7 +351,7 @@ There is no written branch state. The partition classifies every work branch
 
 | Fact | State | Disposition |
 | --- | --- | --- |
-| tip contained in `<remote>/<default>` — or its intake note records `landed:` | **settled** — the work landed | skip; completion-tail / cleanup candidate |
+| tip contained in `<remote>/<default>` (in `exclude` mode: the slug-paired public branch's tip, since by-path application breaks the work branch's own containment) — or its intake note records `landed:` | **settled** — the work landed | skip; completion-tail / cleanup candidate |
 | a branch with the **same slug** exists under a configured `## Handoff Prefixes` | **decided, awaiting merge** | skip as a candidate; shown in `converge`'s awaiting-merge section |
 | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
 
@@ -347,9 +363,14 @@ Containment checks are `git merge-base --is-ancestor` /
   work branch's slug, and ref names are write-once identity — so the pending
   state survives everything a forge does to commits (rebase-updates of the PR
   branch, squashes, force-pushes). The handoff branch had to exist anyway to
-  open the PR, so state and artifact cannot desync. Containment in refs
-  **outside** the configured handoff prefixes (someone's integration branch
-  that absorbed a work branch, a tag) carries **no** derived meaning.
+  open the PR, so for genuine handoffs state and artifact cannot desync.
+  Containment in refs **outside** the configured handoff prefixes (someone's
+  integration branch that absorbed a work branch, a tag) carries **no**
+  derived meaning. One acknowledged imprecision: a human coincidentally
+  starting `<handoff-prefix>/<same-slug>` false-pairs — the failure direction
+  is safe (the agent yields; the item stays visible in the awaiting-merge
+  section), and `converge` marks pairs whose handoff tip shares no history
+  with the work branch as possible name collisions to confirm.
 - **Merge method: Tsugu recommends merge commits — do not squash-merge
   tsugu-managed branches.** Preserved history is what makes settlement,
   lineage, and evidence derivable; this recommendation is recorded in
@@ -359,16 +380,21 @@ Containment checks are `git merge-base --is-ancestor` /
   obscured. Exactly there, and only there, the fact is recorded: the human
   confirms the landing at `converge` (they are usually the one who just
   merged) and the intake note's `done` flip records `landed: <sha>` — the
-  thread back to the specific mainline commit. Settled detection accepts
-  either signal (table row 1).
+  thread back to the specific mainline commit. The SHA is **validated before
+  writing**: it must resolve and be contained in the fetched default ref.
+  Settled detection accepts either signal (table row 1); on read, a `landed:`
+  whose SHA does not resolve or is not contained in default is treated as
+  invalid — a reconciliation case, never silent settlement.
 - **If the human closes the PR and deletes the handoff branch**, the slug
   pairing dissolves and the work resurfaces. Out-of-band PR closure usually
   means *rejection*, not reversal — so a resurfaced branch (one whose
   narrative reads ready-to-merge) is **surfaced at the next `converge` for
   re-decision, never auto-resumed by a scheduled `prepare`**.
-- **New commits after the decision** leave the branch pending (the slug
-  pairing still holds) — correct: post-decision commits appear in the open PR
-  where the human reviews them.
+- **New commits on the work branch after the decision** leave it pending (the
+  slug pairing still holds) — but they are **not** in the PR, which tracks the
+  handoff branch. `converge`'s awaiting-merge section flags the divergence
+  (a work tip with commits the handoff branch lacks): fold them into the
+  handoff branch (update it by **merge**, never rebase) or re-decide.
 - **Claims are derived from commits.** The 004 `claimed-by:`/`claimed-at:`
   fields are gone. Beginning active work means rewriting `context.md` (C2) —
   that commit's author and timestamp *are* the claim. The courtesy-yield rule
@@ -379,12 +405,16 @@ Containment checks are `git merge-base --is-ancestor` /
   courtesy yield (no lock — as in 004; v2 formalizes the staleness window).
   For a zero-commit claimed branch, recency comes from the coordination-ref
   commit that flipped its intake note to `claimed`.
-- **Zero-commit branches are never classified by containment.** A branch
-  whose tip still equals the default tip has no work to misread: with a
-  `claimed` intake note (slug join) it is interrupted work to resume; without
-  one it is a **request-by-branch** (a first-class 004 intake form — a human
-  pushes `prepare/look-into-X` as the ask) — a new, unclaimed candidate.
-  Neither is ever a cleanup target.
+- **Zero-commit branches are never classified by the table at all** — not by
+  containment, not by a stale same-slug record. A branch whose tip still
+  equals the default tip has no work to misread: with a `claimed` intake note
+  (slug join) it is interrupted work to resume; without one it is a
+  **request-by-branch** (a first-class 004 intake form — a human pushes
+  `prepare/look-into-X` as the ask) — a new, unclaimed candidate. Neither is
+  ever a cleanup target. **Slugs are never reused for new work** (any intake
+  form, generalizing B's dedup rule); a fresh ask whose slug collides with a
+  `done`/`dropped` note or a lingering handoff branch is surfaced at
+  `converge` as a naming conflict, not classified.
 - **Intake-note closing requires confirmed landing.** Flip `claimed → done`
   only on a confirmed landing — containment, or the `converge` confirmation
   that records `landed: <sha>` — and **before branch cleanup only** (C1): the
@@ -436,9 +466,10 @@ order (`git worktree remove` before branch delete).
   Prefixes` default becomes `prepare/* investigate/* review/*` — `public/*`
   retires into the handoff convention); `intake.md` gains the `landed:` field
   (write-once, recorded only when landing is not containment-derivable) and
-  keeps `linked-branch:` as a write-once breadcrumb; `packet.md`'s "Suggested
-  public branch" comment (written for the always-cut-fresh model) reworded
-  for both modes.
+  keeps `linked-branch:` as a write-once breadcrumb; `run.md`'s filename
+  convention becomes `runs/<slug>-<date-time>.md` (slug-keyed, so accumulated
+  runs on default stay attributable); `packet.md`'s "Suggested public branch"
+  comment (written for the always-cut-fresh model) reworded for both modes.
 - SKILL.md: frontmatter description (trigger surface: three routines, no
   "clean public form" framing) and the spine's legibility bullet
   (`branch.md` → `context.md`); init (schema stamp, migration decision, push
@@ -552,6 +583,7 @@ its next touch.
 | `skills/tsugu/templates/branch.md` → `templates/context.md` | renamed; pure narrative (no status/claim fields); work-branch and mainline forms |
 | `skills/tsugu/templates/intake.md` | `landed:` field (write-once, squash-forced landings only); `linked-branch:` kept as write-once breadcrumb |
 | `skills/tsugu/templates/packet.md` | "Suggested public branch" comment reworded for both modes |
+| `skills/tsugu/templates/run.md` | filename convention `runs/<slug>-<date-time>.md` (slug-keyed) |
 | `skills/tsugu/references/policy-and-intake.md` | new fields (incl. Handoff Prefixes, merge-method recommendation); intake recorded form, dedup + re-open scope, push-protected persistence, `landed:` semantics, reconciliation rule |
 | `skills/tsugu/references/git-recipes.md` | containment checks; slug-pairing enumeration; handoff-branch cut; include-mode merge-back; freshness rebase; `knowledge/` paths; clean-cut as `exclude` arm |
 | `skills/tsugu/references/notes-and-packet.md` | `context.md` pure-narrative per-ref semantics + own-files links + no-lineage rule; accumulated `runs/`/`packets/` load semantics; both-mode placement/durability; `knowledge/` as gate + location, no prescribed layout; packet wording |
@@ -589,12 +621,13 @@ its next touch.
    record.
 7. **No written branch state exists** — no `status:`, no `claimed-*`, no
    recorded lineage. The partition derives settled / awaiting-merge /
-   in-progress from containment + slug pairing alone; claims derive from
-   commit recency; zero-commit branches are new candidates (or interrupted
-   claimed work), never cleanup targets. Work branches are never renamed; the
-   only branches Tsugu creates beyond work branches are slug-paired
-   human-workflow handoff/public branches. Legacy `status:` files are still
-   read (folded into narrative on next touch).
+   in-progress from containment + slug pairing + the `landed:` record; claims
+   derive from commit recency; zero-commit branches are new candidates (or
+   interrupted claimed work), never cleanup targets. Work branches are never
+   renamed; the only branches Tsugu creates beyond work branches are
+   slug-paired human-workflow handoff/public branches and `init/*` policy
+   branches (B/D). Legacy `status:` files are still read (folded into
+   narrative on next touch).
 8. An intake note flips to `done` only on confirmed landing (containment, or
    converge-confirmed with `landed: <sha>`), after promotion and before
    branch cleanup (an interrupted tail re-enters via tidy); a `claimed` note
