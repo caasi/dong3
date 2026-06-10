@@ -121,7 +121,8 @@ classified.
 ## `runs/` — session notes
 
 Ephemeral, on the work branch as `runs/<slug>-<date-time>.md` (slug-keyed, so
-accumulated runs on the default branch stay attributable to their work item). One
+accumulated runs stay attributable to their work item wherever they land — on the
+default branch in `include` mode, off the public branch in `exclude`). One
 note per `prepare` session: an append-only, write-once trail of what an agent
 actually did, so a later agent (or human) can reconstruct the session without the
 transcript. Sections: `## Goal`, `## Context read`, `## Actions taken`,
