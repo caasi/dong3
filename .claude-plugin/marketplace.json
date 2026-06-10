@@ -60,7 +60,7 @@
     {
       "name": "tsugu",
       "source": "./plugins/tsugu",
-      "description": "Git-native preparation & convergence skill — prepare/converge/settle work over git's DAG; never auto-merges",
+      "description": "Git-native preparation & convergence skill — init/prepare/converge/settle work over git's DAG; never auto-merges",
       "version": "0.1.0"
     }
   ]

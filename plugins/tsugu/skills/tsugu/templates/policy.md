@@ -1,5 +1,5 @@
 ## Private Git Space (agent may do freely)
-create/commit/push `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write .tsugu/*;
+create/commit/push `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
 ## Public Coordination (ask first)
 open MR/PR; tracker comment / status change; assign reviewers; Slack; public
@@ -11,9 +11,9 @@ remote: origin                   # authoritative remote for fetch + branch enume
 default-branch:                  # optional; if blank, resolved from <remote>/HEAD
 ## Coordination ref
 coordination-ref: default        # where intake/ + context/shared/ are written.
-# `default` is a sentinel = the repo's default branch (resolves to <default>, not a
-# branch literally named "default"). Set to a branch (e.g. tsugu/coord) only if the
-# default branch is push-protected.
+<!-- `default` is a sentinel = the repo's default branch (resolves to <default>, not a
+branch literally named "default"). Set to a branch (e.g. tsugu/coord) only if the
+default branch is push-protected. -->
 ## Intake Sources
 None by default (git-native only). Add human-bridge sources here only if needed
 (e.g. gh issues, CI).
