@@ -15,7 +15,7 @@ description: Git-native preparation & convergence — carry work forward across 
 
 **Git's DAG is the medium of inheritance.** A branch is a unit of work one agent hands to the next; committed `.tsugu/` notes are the memory that outlives the session that produced them.
 
-Tsugu prepares the board. Workflow skills play the game with the human. Tsugu settles the result. It is **not** an implementation methodology — it does not debug, plan, test, review, or implement; it prepares their input and settles their output.
+Tsugu prepares the board. Workflow skills play the game with the human. Tsugu settles the result. It is **not** an implementation methodology — it does not define *how* to debug, plan, write tests, review, or implement; it prepares their input and settles their output. (It still *runs* builds/tests as evidence during `prepare`/`settle` — it just doesn't own the testing or debugging method.)
 
 ## The spine
 
