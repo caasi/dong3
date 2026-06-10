@@ -22,9 +22,10 @@ is a plain idempotent repair (stamp already current).
 The whole point of the file: where the agent may act freely vs where it must ask.
 
 - **`## Private Git Space (agent may do freely)`** — actions the agent performs
-  without approval: create/commit/push `prepare/*` / `investigate/*` / `review/*` branches,
-  worktrees, write `.tsugu/*`, run tests, try reversible patches, dispatch its own
-  built-in review subagents. All of this is git-local and reversible.
+  without approval: create/commit (push per `## Push`'s `push-prepare-branches:`)
+  `prepare/*` / `investigate/*` / `review/*` branches, worktrees, write `.tsugu/*`,
+  run tests, try reversible patches, dispatch its own built-in review subagents.
+  All of this is git-local and reversible.
 - **`## Public Coordination (ask first)`** — actions requiring human approval:
   open MR/PR, tracker comment / status change, assign reviewers, Slack, public
   commitments, moving findings into human-facing docs, irreversible cleanup.
