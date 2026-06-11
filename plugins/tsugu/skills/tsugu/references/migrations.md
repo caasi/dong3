@@ -176,14 +176,29 @@ folder; and `intake/`, `runs/`, `packets/`, and repo `templates/` are gone
 order on the `init/*` branch. A schema-1 repo runs **1→2→3**. Because 2→3 removes
 `intake/`, `runs/`, `packets/`, and `templates/` wholesale — and the shipped
 schema-3 plugin **no longer carries** the schema-2-only templates (`branch.md`,
-`intake.md`, `run.md`) that 1→2 step 6 would otherwise refresh — apply only the
-**durable** 1→2 changes (the `context/`→`knowledge/` rename, the surviving policy
-fields, the mainline `context.md`) and **skip materializing the transient
-`intake/`/`runs/`/`templates/` scaffolding that 2→3 immediately deletes**. The net
-effect is the schema-3 layout, and the path never depends on a template the plugin
-stopped shipping. (Carrying the scaffolding through and letting 2→3 delete it is
-also correct — just wasteful — but **only** where those schema-2 templates are
-still available; under the shipped plugin they are not, so skip.)
+`intake.md`, `run.md`) that 1→2 step 6 would otherwise refresh — apply the
+**durable** 1→2 changes and skip **only the *filesystem* scaffolding** that 2→3
+deletes. Concretely:
+
+- **Apply** (these survive into schema 3, or are required by 2→3): the
+  `context/`→`knowledge/` rename (1→2 step 5); the surviving policy fields
+  (`public-branch-tsugu`, `## Handoff Prefixes`, the merge-method line — steps 1–3);
+  the mainline `context.md` (step 7); **and 1→2 step 4 — re-wrapping
+  `## Intake Sources` into the structured `name`/`read:`/`notes` form.** Step 4 is
+  **not** optional on this path: 2→3 step 1 relocates those `## Intake Sources`
+  entries *verbatim* into the personal `config.md`, which requires that structure —
+  skipping it would copy unstructured legacy entries and leave the migrated sources
+  unusable.
+- **Skip** (transient; 2→3 deletes it, and the schema-3 plugin no longer ships it):
+  materializing the `intake/`/`runs/` directories, seeding `templates/`, and
+  refreshing the `branch.md`/`intake.md`/`run.md` templates (1→2 step 6's
+  unshipped parts).
+
+The net effect is the schema-3 layout, the migrated intake sources are
+well-formed, and the path never depends on a template the plugin stopped shipping.
+(Carrying the filesystem scaffolding through and letting 2→3 delete it is also
+correct — just wasteful — but **only** where those schema-2 templates are still
+available; under the shipped plugin they are not, so skip.)
 
 **1. Move personal sections out of `policy.md`.** Condition: either
 `## Intake Sources` or `## Skills Tsugu may use (this repo, opt-in)` is still
