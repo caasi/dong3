@@ -366,8 +366,9 @@ read *while the slug-paired ref survives*. So whenever the landing won't contain
 the work tip (a squash, or any exclude-mode cut):
 
 - **Disable the forge's auto-delete-head-branch for tsugu handoff/public branches**
-  (a common merge setting) so the pairing survives the merge and carries the
-  awaiting-merge state until the human's completion tail deletes both branches.
+  (a common merge setting) so the pairing survives the merge and **preserves the
+  disposition evidence** (settled-via-public-tip in exclude mode, awaiting-merge in
+  the squash case) until the human's completion tail deletes both branches.
   This is a recommendation, not a hard gate — squash-only forges stay supported.
 - **Narrative backstop** when the forge deletes the branch anyway: write
   "handed off — may have landed" into the work branch's `context.md`
