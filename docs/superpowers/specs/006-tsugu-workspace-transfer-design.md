@@ -196,21 +196,50 @@ need to persist**:
 - A repo using **merge commits** (tsugu's standing recommendation) is fully
   containment-derivable — no record ever needed.
 - A **non-containment-preserving landing** stays in **"decided, awaiting merge"**
-  (its slug-paired handoff branch still pairs) and **re-surfaces at each
-  `converge`**. There is no *derived* settled-state for it, by design. It keeps
-  re-appearing **only while its branches still exist**. The human ends it by
-  confirming the landing and running the **completion tail**: promote any reusable
-  findings to `knowledge/`, then delete **both** the work branch and the handoff
-  branch. Once both are gone the item **leaves the partition entirely** (no refs →
-  not classified, exactly like any cleaned-up settled item). The **durable landed
-  artifact is the squash commit itself** on the default branch — the work content
-  is there, just not containment-linked or slug-keyed. No slug→SHA mapping is
-  needed: the item is done and out of the partition, so there is nothing left to
-  classify. Re-surfacing and dropping are **sequenced, not in conflict**.
+  *because its slug-paired handoff branch still pairs* — and that pairing is the
+  only thing keeping the orphaned (squash-broken) work branch from looking
+  in-progress. So the forced-squash path has a **hard dependency on the handoff
+  branch surviving** the merge: see the retain-handoff requirement below. It
+  **re-surfaces at each `converge`** while it pairs; there is no *derived*
+  settled-state for it, by design. The human ends it by confirming the landing and
+  running the **completion tail**: promote any reusable findings to `knowledge/`,
+  then delete **both** the work branch and the handoff branch. Once both are gone
+  the item **leaves the partition entirely** (no refs → not classified, exactly
+  like any cleaned-up settled item). The **durable landed artifact is the squash
+  commit itself** on the default branch — the work content is there, just not
+  containment-linked or slug-keyed. No slug→SHA mapping is needed: the item is done
+  and out of the partition, so there is nothing left to classify. Re-surfacing and
+  dropping are **sequenced, not in conflict**.
+
+- **If the forge auto-deletes the handoff branch anyway** (a common merge setting),
+  a squash-broken work branch is neither contained nor slug-paired, so the
+  partition (C1) would call it **in-progress** — and a scheduled `prepare` must not
+  resume already-landed work. The **narrative backstop** closes this: the work
+  branch's `context.md` reads "handed off — may have landed via squash" (written at
+  the converge decision, before the PR is opened), and `prepare`'s **judgment**
+  reads that narrative and **leaves the branch for `converge`** rather than
+  resuming it. This stays within the orientation principle — *narrative informs
+  judgment, never classification*: the partition still classifies it in-progress;
+  the agent's judgment, not a written state field, declines to work it. The robust
+  path is still the retain-handoff requirement below; the narrative backstop is the
+  safety net for repos whose forge deletes the branch regardless.
+
+**Retain-handoff requirement (forced-squash path).** This extends the standing
+merge-method guidance recorded in `policy.md`'s `## Merge method` (prefer merge
+commits — do not squash-merge tsugu-managed branches). When a forge nonetheless
+forces a squash, the repo **should disable auto-delete-head-branch for tsugu
+handoff branches** so the slug pairing survives the merge and carries the
+"awaiting merge" state until the human's completion tail deletes both branches.
+This is a recommendation, not a hard gate (the rejected stricter alternative was to
+make merge-commit-or-retained-handoff a hard requirement that leaves squash-only
+forges unsupported). Where the forge deletes the branch regardless, the narrative
+backstop above is the fallback. `init` records this guidance alongside the
+merge-method line; it changes no chosen value.
 
 This **intentionally reverses 005 §C4's "the landed SHA has nowhere durable to
 live."** v2's answer: it does not need to live anywhere — settlement is
-containment, and the one lossy case re-surfaces live until the human drops it.
+containment, and the one lossy case re-surfaces live (held visible by the retained
+handoff branch, with the narrative backstop behind it) until the human drops it.
 
 The completion tail therefore loses its **intake-flip step**. It becomes: confirm
 landing (containment, or human confirmation for a forced squash) → promote to
@@ -399,10 +428,12 @@ schema-compat `branch.md`/`context.md` reads still apply).
    partition derives settled / awaiting-merge / in-progress from containment +
    slug pairing alone — no `status:`, no `linked-branch:`, no `landed:`.
 4. A merge-commit landing settles by **containment**. A forced-squash landing
-   stays "decided, awaiting merge" and **re-surfaces at each `converge`** until
-   the human confirms it and runs the completion tail (promote → delete both
-   branches); no SHA is persisted, and once both branches are gone the item leaves
-   the partition.
+   stays "decided, awaiting merge" via its **retained handoff branch** and
+   **re-surfaces at each `converge`** until the human confirms it and runs the
+   completion tail (promote → delete both branches); no SHA is persisted, and once
+   both branches are gone the item leaves the partition. Where the forge deletes
+   the handoff branch on merge, the work branch's `context.md` narrative keeps
+   `prepare` from resuming it (narrative informs judgment, never classification).
 5. `converge` reconstructs the status view **live** from `git fetch` + branch
    reads; the packet is regenerated as a **personal/derived** view (machine B
    needs no packet from machine A). No committed packet exists.
@@ -435,8 +466,12 @@ schema-compat `branch.md`/`context.md` reads still apply).
    interactive run (no history recovery, no breadcrumb).
 4. **Settlement of non-containment-preserving landings** → **re-surface live at
    each `converge`** until the human drops both branches (C3); the squash commit
-   is the durable artifact. (Prohibiting such landings was the rejected
-   alternative — it would constrain squash-forced forges.)
+   is the durable artifact. The forced-squash path **retains the handoff branch**
+   (recommendation extending the merge-method guidance) so the pairing carries the
+   awaiting-merge state, with the `context.md` **narrative backstop** when the
+   forge deletes it anyway. (Prohibiting such landings, and a hard
+   merge-commit-or-retained-handoff requirement, were the rejected stricter
+   alternatives — they would constrain squash-only forges.)
 5. **Source dedup after a landed item's branches are deleted** → **weakened,
    accepted** (C4): dedup is by live ref only; a re-imported done item surfaces at
    `converge` and the human drops it. No committed ledger.
