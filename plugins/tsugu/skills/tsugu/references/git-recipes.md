@@ -16,21 +16,22 @@ prefixes written below — the **work** prefixes `prepare/`, `investigate/`,
 shown); resolve them from the fetched policy when creating or matching branches,
 since `init` may have customized them, and discovery filters by the configured
 set. The `<slug>` after a prefix is the **join key** — one work item shares one
-slug across its work branch, intake note, packet, run notes, and handoff branch;
-Tsugu never renames a branch, so slug joins survive everything that rewrites
-commits. Examples use full-length CLI options on purpose (`--remotes`,
-`--message`, `--set-upstream`, `--force-with-lease`, `--delete`,
-`--extended-regexp`, `--prune`); the written recipe should read the same way the
-agent runs it.
+slug across its work branch, its `context.md`, its personal packet, and its
+handoff branch; Tsugu never renames a branch, so slug joins survive everything
+that rewrites commits. Examples use full-length CLI options on purpose
+(`--remotes`, `--message`, `--set-upstream`, `--force-with-lease`, `--delete`,
+`--extended-regexp`, `--prune`, `--ignore-unmatch`); the written recipe should
+read the same way the agent runs it.
 
 ---
 
 ## Read the queue (cold-start safe)
 
 A cold-start agent — no conversation transcript, only a clone — must reconstruct
-"what branches exist, why, and what's next" from git + `.tsugu/` alone. That
-only works if reads come from **fresh remote-tracking refs**, not whatever the
-local checkout happens to be sitting on.
+"what branches exist, why, and what's next" from git + `.tsugu/` alone. There is
+**no committed note layer**: the queue *is* the set of work branches. That only
+works if reads come from **fresh remote-tracking refs**, not whatever the local
+checkout happens to be sitting on.
 
 **1. Fetch first.** Before reading anything, refresh the remote-tracking refs —
 **with `--prune`**, so branches deleted upstream stop appearing in the queue:
@@ -91,7 +92,7 @@ the remote, but you need a remote to read policy):
 `investigate`, `review`) — derive the filter from the fetched policy, don't
 hardcode, since `init` may have customized them. **Also enumerate the configured
 `## Handoff Prefixes`** (defaults: `feat`, `fix`, plus legacy `public`) into a
-**separate handoff list** — these are not queue items but are needed in step 7 to
+**separate handoff list** — these are not queue items but are needed in step 6 to
 pair a work branch's slug against a decided handoff branch.
 
 ```bash
@@ -135,28 +136,14 @@ narrative on next touch; treat a legacy `status: settled` as **skip** (a cleanup
 candidate), and surface a legacy `status: converged` at **converge** for its
 pending decision to be re-anchored.
 
-**6. Discover intake notes.** Intake lives on the **coordination ref** (resolve
-`<coordination-ref>` from `policy.md`; default = `<default>`). List the tree,
-keep only `*.md`, and read each:
-
-```bash
-git ls-tree -r --name-only <remote>/<coordination-ref> -- .tsugu/intake/
-# for each *.md path:
-git show <remote>/<coordination-ref>:<path>
-```
-
-Treat a note as a queue item **only if it carries a `status:` field**. This skips
-seed files (`.gitkeep`, a `README`) that exist only to make git track the empty
-`intake/` directory.
-
-**7. Partition the queue.** There is **no written branch state** — classify each
-work branch `<work-prefix>/<slug>` by **two ref-level facts, checked in order**
-(this is the condensed canonical form of `SKILL.md`'s C4 table; the fuller
-wording lives there):
+**6. Partition the queue (single-layer — branches only).** There is **no written
+branch state of any kind** — classify each work branch `<work-prefix>/<slug>` by
+**two ref-level facts, checked in order** (this is the condensed canonical form of
+`SKILL.md`'s partition; the fuller wording lives there):
 
 | Fact | State | Disposition |
 | --- | --- | --- |
-| tip contained in `<remote>/<default>` (in `exclude` mode: the slug-paired public branch's tip) — or its intake note records a valid `landed:` | **settled** | skip; completion-tail / cleanup candidate |
+| tip contained in `<remote>/<default>` (in `exclude` mode: the slug-paired public branch's tip) | **settled** — the work landed | skip; completion-tail / cleanup candidate |
 | a branch with the **same slug** exists under a configured Handoff Prefix | **decided, awaiting merge** | skip as a candidate; shown in converge's awaiting-merge section |
 | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
 
@@ -183,16 +170,12 @@ case <public-branch-tsugu> in
   *)       landed_ref="$branch"  ;;
 esac
 
-# Classify by the FIRST matching table row, in order. A validated `landed:` in the
-# intake note (SHA resolves AND is contained in default — the forced-squash case)
-# counts as settled too; `note_has_valid_landed` stands for that documented check.
-# This snippet covers the structural rows (exempt / settled / pending / in progress);
-# the finer rules below — claim recency / courtesy-yield, zero-commit claim recency,
-# and reconciliation on an *invalid* `landed:` — are prose, applied on top of it.
+# Classify by the FIRST matching table row, in order. Settlement is pure
+# containment — no persisted SHA, no note. The finer rules below — zero-commit
+# exemption and claim recency — are prose, applied on top of this snippet.
 if   [ "$(git rev-parse "$branch")" = "$(git rev-parse <remote>/<default>)" ]
 then echo exempt         # zero-commit: tip == default tip — interrupted / request-by-branch, not classified by the table
-elif { [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null; } \
-  || note_has_valid_landed
+elif [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null
 then echo settled
 elif [ -n "$handoff" ]
 then echo pending        # a slug-paired handoff branch exists — decided, awaiting merge
@@ -202,42 +185,39 @@ fi
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
 pending state survives anything the forge does to commits (PR-branch rebases,
-squashes, force-pushes). Then, as prose rules (from C4):
+squashes, force-pushes). Then, as prose rules:
 
 - **Zero-commit branches are exempt from the whole table** — never classified by
   containment, never by a stale same-slug record. A branch whose tip still equals
-  the default tip has no work to misread: with a `claimed` intake note (slug join)
-  it is **interrupted work** to resume; without one it is a **request-by-branch**
-  (a human pushed `prepare/look-into-X` as the ask) — a new, unclaimed candidate.
-  Neither is ever a cleanup target.
+  the default tip has no work to misread: it is either **interrupted work** to
+  resume or a **request-by-branch** (a human pushed `prepare/look-into-X` as the
+  ask) — a new, unworked candidate. Neither is ever a cleanup target. A
+  zero-commit branch carries **no recency** until someone commits to it; the first
+  commit establishes recency, as for any branch.
 - **Slugs are never reused for new work.** A fresh ask whose slug collides with a
-  `done`/`dropped` note or a lingering handoff branch is surfaced at **converge**
-  as a naming conflict, not classified.
+  lingering handoff branch is surfaced at **converge** as a naming conflict, not
+  classified.
 - **Claims are derived from commits** — the `context.md` rewrite commit's author
   and timestamp *are* the claim. A work branch with recent commits is taken; one
   whose last commit is stale is free to pick up. Under one shared git identity
   (one human, two machines) authorship cannot distinguish agents and the rule
   **degrades to pure recency** (acceptable for a courtesy yield, no lock).
-- **Zero-commit claim recency** comes from the coordination-ref commit that
-  flipped that branch's intake note to `claimed`.
-- **A `landed:` SHA is validated on read:** it must resolve and be contained in
-  `<remote>/<default>`; otherwise it is **not** silent settlement but a
-  **reconciliation case** to surface at converge.
 
-Plus any **`open`** `intake/` note with no linked branch = unbranched work to
-consider. A **`claimed`** note whose linked branch has vanished is **not** queue
-work — it is a reconciliation case surfaced at converge, never auto-resumed by a
-scheduled prepare.
+A **forced squash** is the one landing not derivable from refs; it stays
+**pending** because its slug-paired handoff branch still pairs (never persisted as
+a SHA, re-surfacing at each converge) — see
+[Hand off for merge](#hand-off-for-merge-include-mode--default) for the
+retain-handoff requirement and the `context.md` narrative backstop.
 
 ---
 
-## Coordination-ref writes
+## Coordination-ref writes (for `knowledge/` promotion)
 
 The coordination ref (`coordination-ref` in `policy.md`, **default: the default
-branch**) holds the mutable shared inbox (`intake/`) and promoted
-`knowledge/`. A commit that touches **only `.tsugu/`** on this ref is
-**private-space** — it is coordination memory, not public coordination, and needs
-**no approval**.
+branch**) holds the promoted `knowledge/` — the team's shared brain, which lands
+**regardless of `public-branch-tsugu` mode**. A commit that touches **only
+`.tsugu/`** on this ref is **private-space** — it is coordination memory, not
+public coordination, and needs **no approval**.
 
 > **Resolving `coordination-ref`:** the literal value `default` is a **sentinel**
 > meaning "the default branch" — resolve it to `<default>` wherever the recipes
@@ -248,63 +228,101 @@ branch**) holds the mutable shared inbox (`intake/`) and promoted
 **Write protocol** — do this **from a dedicated checkout/worktree of the
 coordination ref**, never from a `prepare/*` worktree (pushing that branch's `HEAD`
 to the coordination ref would replay your private code commits onto it — possibly
-straight onto the default branch). Commit only the `.tsugu/` change, rebase onto
-the latest `<remote>/<coordination-ref>`, then push there **explicitly** (bare
-`git pull` / `git push` use the current branch's upstream, which may not be the
-configured `<remote>` or ref):
+straight onto the default branch). Commit only the `.tsugu/knowledge/` change,
+rebase onto the latest `<remote>/<coordination-ref>`, then push there
+**explicitly** (bare `git pull` / `git push` use the current branch's upstream,
+which may not be the configured `<remote>` or ref):
 
 ```bash
-git -C <coord-worktree> add .tsugu/ && git -C <coord-worktree> commit \
-  --message "tsugu: claim intake/<slug> → prepare/<slug>"
+git -C <coord-worktree> add .tsugu/knowledge/ && git -C <coord-worktree> commit \
+  --message "tsugu: promote knowledge/<topic>"
 git -C <coord-worktree> fetch <remote> && git -C <coord-worktree> rebase <remote>/<coordination-ref>
 git -C <coord-worktree> push <remote> HEAD:<coordination-ref>
 ```
 
 **On conflict, exercise judgment — do not blind-overwrite.** If the rebase
-conflicts over a *contended* intake note, re-read that note's **current lifecycle
-state** (`open → claimed → done | dropped`) and **reconsider** before reapplying.
-Never clobber a `claimed` or `done` another agent just wrote. The ref is
-append-mostly, so conflicts are rare; when one happens over a note someone else
-moved, that is exactly the signal to re-evaluate, not to force-resolve.
+conflicts over a `knowledge/` file another agent just promoted, re-read that
+file's **current content** and **reconsider** before reapplying — merge the two
+findings rather than clobbering one. `knowledge/` is a free-form wiki, so most
+edits are additive and conflicts are rare; when one happens over a finding
+someone else wrote, that is exactly the signal to integrate, not to force-resolve.
 
 **If the default branch is push-protected**, the agent cannot push `.tsugu/`
 coordination data to it. Point `coordination-ref` at a dedicated branch instead.
-**Prefer an orphan branch** (e.g. `tsugu/coord`) that holds **only** `intake/`
-and `knowledge/` — an orphan has no code history to drift, whereas a plain
+**Prefer an orphan branch** (e.g. `tsugu/coord`) that holds **only**
+`knowledge/` — an orphan has no code history to drift, whereas a plain
 `git branch tsugu/coord <remote>/<default>` would inherit a full copy of default
-(code, `policy.md`, `templates/`) that goes stale. Keep `policy.md` and
-`templates/` on the default branch so the coordination ref stays **discoverable**
-(no circularity — you always know where to find policy).
+(code, `policy.md`) that goes stale. Keep `policy.md` on the default branch so the
+coordination ref stays **discoverable** (no circularity — you always know where to
+find policy).
 
 Bootstrap once **in a dedicated worktree** — never switch the user's active
 checkout to the orphan (`git switch --orphan` there would blank the working tree,
 or fail outright against local modifications). Git can't track empty directories,
-so seed each with a real file:
+so seed `knowledge/` with a real file:
 
 ```bash
 git worktree add --detach <coord-worktree>          # isolated; doesn't touch the active checkout
 git -C <coord-worktree> switch --orphan <coordination-ref>   # the configured ref (e.g. tsugu/coord), not a literal
 ( cd <coord-worktree>
-  mkdir -p .tsugu/intake .tsugu/knowledge
-  touch .tsugu/intake/.gitkeep .tsugu/knowledge/.gitkeep )
+  mkdir -p .tsugu/knowledge
+  touch .tsugu/knowledge/.gitkeep )
 git -C <coord-worktree> add .tsugu
-git -C <coord-worktree> commit --message "tsugu: bootstrap coordination ref (intake/ + knowledge/)"
+git -C <coord-worktree> commit --message "tsugu: bootstrap coordination ref (knowledge/)"
 git -C <coord-worktree> push --set-upstream <remote> <coordination-ref>
 ```
 
 Thereafter the normal commit → `fetch` + `rebase <remote>/<coordination-ref>` →
 `push <remote> HEAD:<coordination-ref>` protocol applies (never a bare `git pull`
-— see the warning above). All queue reads resolve against
-`<remote>/<coordination-ref>`; always read `policy.md` / `templates/` from
-`<remote>/<default>`, never from the coord branch.
+— see the warning above). All `knowledge/` reads resolve against
+`<remote>/<coordination-ref>`; always read `policy.md` from `<remote>/<default>`,
+never from the coord branch.
+
+---
+
+## Personal-folder bootstrap
+
+Observation **sources** and **opt-in skills** are *one human's* setup, never
+committed (see `references/policy-and-intake.md`). They live in a global,
+project-keyed folder that **does not transfer across machines** — each machine
+seeds its own:
+
+```text
+~/.claude/tsugu/<project-key>/
+  config.md        # ## Intake Sources + ## Skills (opt-in), with confirmed-negative markers
+  packets/<slug>.md  # the converge decision-view — derived, personal, never pushed
+```
+
+**Derive `<project-key>` from the repo's absolute common git dir**, not the
+checkout path — tsugu routinely creates worktrees (different paths, same repo and
+work item), and keying on the cwd would split one repo's sources/skills/packets
+across several folders:
+
+```bash
+# --git-common-dir alone returns a bare `.git` in the main checkout but an
+# absolute path in a linked worktree — normalize to absolute *before* dashifying,
+# else the store still splits across worktrees:
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"   # e.g. /Users/me/proj/.git
+common_dir="${common_dir%/.git}"                                        # strip a trailing /.git → /Users/me/proj
+project_key="$(printf '%s' "$common_dir" | tr '/' '-')"                 # dashify path separators
+# personal folder: ~/.claude/tsugu/<project-key>/
+```
+
+The key is per-machine-per-human; it need not be portable, only **one key per
+repo per machine**. **Resolve every `read:` pointer in `config.md` with your own
+permissioned tools** — read a file, call an MCP tool, or (only where a command is
+genuinely needed) issue it as your own gated tool call. Tsugu never directly
+executes the pointer string (the no-force principle). A source signal becomes a
+`prepare/<slug>` branch directly — there is no committed note first.
 
 ---
 
 ## Hand off for merge (include mode — default)
 
-In `include` mode the work branch **is** what merges — its `.tsugu/` evidence
-(`runs/`, `packets/`, the rewritten `context.md`) lands on the default branch as
-durable shared memory. At converge, once the human accepts:
+In `include` mode the work branch **is** what merges — its committed WIP knowledge
+(the prep commit DAG plus the rewritten `context.md`) lands on the default branch
+as durable shared memory. (`knowledge/` lands via the coordination-ref write
+above, in **both** modes.) At converge, once the human accepts:
 
 **1. Freshness-rebase onto the fetched default, then verify.** Refresh against
 `<remote>/<default>` (see [Freshness](#freshness)) and re-run build/tests so the
@@ -326,7 +344,7 @@ git push --set-upstream <remote> <handoff-prefix>/<slug>
 ```
 
 The slug is identical, so the partition pairs work branch ↔ handoff branch **by
-name** (step 7) and the pending state survives whatever the forge does to commits.
+name** (step 6) and the pending state survives whatever the forge does to commits.
 
 **Update the handoff branch only by `merge`, never rebase.** When post-decision
 commits land on the work branch (a work tip with commits the handoff lacks),
@@ -334,6 +352,24 @@ converge's awaiting-merge section flags the **divergence**; fold them in by merg
 or re-decide. Pairs whose handoff tip **shares no history** with the work branch
 are flagged as a possible **name collision** to confirm. Both heuristics —
 divergence and no-shared-history collision — apply in **`include` mode only**.
+
+**Retain the handoff branch on the forced-squash path.** Settlement is pure
+containment, so a **forced squash** (where the forge collapses the PR to one
+commit that no longer contains the work tip) is **not** containment-derivable. It
+stays "decided, awaiting merge" *only because the slug-paired handoff branch still
+pairs*. So when a squash is anticipated:
+
+- **Disable the forge's auto-delete-head-branch for tsugu handoff branches**
+  (a common merge setting) so the pairing survives the merge and carries the
+  awaiting-merge state until the human's completion tail deletes both branches.
+  This is a recommendation, not a hard gate — squash-only forges stay supported.
+- **Narrative backstop** when the forge deletes the branch anyway: write
+  "handed off — may have landed via squash" into the work branch's `context.md`
+  **now** (at the converge decision, before the PR opens). The partition still
+  classifies the orphaned work branch in-progress, but `prepare`'s **judgment**
+  reads that narrative and **leaves the branch for `converge`** rather than
+  resuming already-landed work — *narrative informs judgment, never
+  classification*.
 
 **Opening/merging the PR is human-gated** — Tsugu prepares and yields; it does not
 open the PR or invoke `finishing-a-development-branch` / `review-loop`.
@@ -349,6 +385,7 @@ is "never introduced", not "stripped afterward"). It is named
 `<handoff-prefix>/<slug>` (same slug, so pending derives from the same name
 pairing), and landing is later confirmed via **this** branch's containment in
 default (the by-path application breaks the work branch's own containment).
+(`knowledge/` still lands via the coordination-ref write, regardless of mode.)
 
 **1. Cut from the fetched ref** — use the configured `<remote>`, never a hardcoded
 `origin`, and never a stale local default:
@@ -395,20 +432,22 @@ PR or invoke `finishing-a-development-branch` / `review-loop`.
 
 ## Completion tail
 
-Once landing is confirmed — containment, or the human's converge confirmation
-recording `landed: <sha>` where a squash was forced — run, in this order:
-1. promote reusable knowledge into `.tsugu/knowledge/` (coordination-ref write);
-2. flip the linked intake note `claimed → done` (+ `landed:` only when not
-   containment-derivable; validate the SHA before writing) — note-less
-   request-by-branch work skips this for a containment-derivable landing; a
-   forced-squash landing (containment lost) instead materializes a slug-keyed
-   intake note to carry the validated `landed:` SHA, then flips it;
-3. only then clean up: `git worktree remove <path>` before
-   `git branch --delete --force <branch>` — the handoff branch too, if the
-   forge didn't already delete it.
-Branch deletion comes last: the branch is the landing evidence. Idempotent —
-interrupted before the flip, the note stays claimed with its branch intact and
-a later tidy re-enters the whole tail.
+Once landing is confirmed — by **containment** in merge-commit repos, or by the
+human's in-session converge confirmation where a squash was forced — run, in this
+order:
+
+1. **promote** reusable findings into `.tsugu/knowledge/` (coordination-ref write);
+2. **clean up:** `git worktree remove <path>` before
+   `git branch --delete --force <branch>` — delete **both** the work branch and
+   the handoff branch (the handoff too, if the forge didn't already delete it).
+
+Once both refs are gone the item **leaves the partition entirely** (no refs → not
+classified, exactly like any cleaned-up settled item). The durable landed artifact
+is the squash commit itself on the default branch — the work content is there,
+just not containment-linked or slug-keyed. **No SHA is persisted, and there is no
+status to flip.** Branch deletion comes last: the branch is the landing evidence.
+**Idempotent** — interrupted before cleanup, the branches remain and a later tidy
+re-enters the whole tail.
 
 ---
 
@@ -456,35 +495,40 @@ checked out.
 ## init skeleton
 
 `init` runs when a repo has no `.tsugu/`. It writes the fixed metadata and the
-durable skeleton, idempotently.
+durable skeleton, idempotently. Committed `.tsugu/` collapses to **`policy.md` +
+`context.md` + `knowledge/`** — no `intake/`, no `runs/`, no `packets/`, no
+repo-seeded `templates/`.
 
-**1. Create the `.tsugu/` tree** and seed every directory with a real file (git
-can't track empty directories). `knowledge/`'s internal layout is unprescribed —
-seed the dir itself, nothing more:
+**1. Create the `.tsugu/` skeleton.** Only `knowledge/` is a tracked directory,
+and git can't track an empty one, so seed it with a real file. `knowledge/`'s
+internal layout is unprescribed — seed the dir itself, nothing more:
 
 ```bash
-mkdir -p .tsugu/intake .tsugu/knowledge .tsugu/templates
-touch .tsugu/intake/.gitkeep \
-      .tsugu/knowledge/.gitkeep \
-      .tsugu/templates/.gitkeep
+mkdir -p .tsugu/knowledge
+touch .tsugu/knowledge/.gitkeep
 ```
 
-**2. Write `policy.md` (with `tsugu-schema: 2`) + templates only if absent.** This
-makes re-running `init` an **idempotent repair**: it fills in any missing skeleton
-path and is otherwise a no-op. **Never overwrite a curated `policy.md`** — a re-run
-must not clobber rules a human already tuned. Re-running on an **older schema**
-applies `references/migrations.md` in order (N→N+1 until current) and stamps the
-new `tsugu-schema` **last**.
+Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
+them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**3. Land the metadata on the default branch.** `policy.md` and `templates/` must
-reach `<default>` so policy stays resolvable. If the default branch is
-**push-protected**, write them on an `init/*` branch and open a
+**2. Write `policy.md` (with `tsugu-schema: 3`) + the mainline `context.md` only
+if absent**, rendered from the skill's templates. This makes re-running `init` an
+**idempotent repair**: it fills in any missing skeleton path and is otherwise a
+no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules
+a human already tuned. Observation **sources** and **opt-in skills** are personal
+config (the global folder, not `policy.md`) — `init` does not write them into the
+repo. Re-running on an **older schema** applies `references/migrations.md` in
+order (N→N+1 until current) and stamps the new `tsugu-schema` **last**.
+
+**3. Land the metadata on the default branch.** `policy.md` and the mainline
+`context.md` must reach `<default>` so policy stays resolvable. If the default
+branch is **push-protected**, write them on an `init/*` branch and open a
 **human-approved PR**:
 
 ```bash
 git switch --create init/tsugu-bootstrap <remote>/<default>
 git add .tsugu
-git commit --message "chore(tsugu): bootstrap .tsugu policy + templates"
+git commit --message "chore(tsugu): bootstrap .tsugu policy + context"
 git push --set-upstream <remote> init/tsugu-bootstrap
 # then open the PR for human approval (human-gated)
 ```
