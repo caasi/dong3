@@ -60,8 +60,8 @@
     {
       "name": "tsugu",
       "source": "./plugins/tsugu",
-      "description": "Git-native preparation & convergence skill — init/prepare/converge work over git's DAG, state derived from refs; never auto-merges",
-      "version": "0.2.0"
+      "description": "Git-native preparation & convergence skill — committed .tsugu/ is a WIP-knowledge layer (policy.md + context.md + knowledge/); personal config (sources, opt-in skills, packets) never committed; state derived from refs, no intake layer; never auto-merges; invokes no user-installed skill by default",
+      "version": "0.3.0"
     }
   ]
 }
