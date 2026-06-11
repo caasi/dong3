@@ -92,7 +92,7 @@ All paths below are relative to the worktree root.
 
 - [ ] **Step 1: Rewrite `templates/policy.md` (shared sections only)**
 
-Stamp `tsugu-schema: 3` on line 1. **Remove** the `## Intake Sources` and `## Skills Tsugu may use (this repo, opt-in)` sections entirely (they relocate to `config.md`). **Keep** `## Skill use` (the shipped invariant). **Redefine** `## Public branch`'s comment to the WIP-knowledge framing (§E2): include = the work branch's prep DAG + its `context.md` land on the default branch as committed WIP knowledge; `knowledge/` lands on the coordination ref regardless of mode; exclude = clean public branch by path, no `.tsugu/` in the PR diff. **Rewrite** `## Merge method` to drop the `landed: <sha>` sentence and instead state the retain-handoff guidance (§C3): prefer merge commits; if a forced squash is unavoidable, also disable the forge's auto-delete-head-branch for tsugu handoff branches so the slug pairing survives until the human's completion tail. Keep `## Private Git Space`, `## Public Coordination`, `## Branch Prefixes`, `## Push`, `## Handoff Prefixes`, `## Housekeeping`, `## Remote`, `## Coordination ref`, `## Recursion` as-is.
+Stamp `tsugu-schema: 3` on line 1. **Remove** the `## Intake Sources` and `## Skills Tsugu may use (this repo, opt-in)` sections entirely (they relocate to `config.md`). **Keep** `## Skill use` (the shipped invariant). **Redefine** `## Public branch`'s comment to the WIP-knowledge framing (§E2): include = the work branch's prep DAG + its `context.md` land on the default branch as committed WIP knowledge; `knowledge/` lands on the coordination ref regardless of mode; exclude = clean public branch by path, no `.tsugu/` in the PR diff. **Rewrite** `## Merge method` to drop the `landed: <sha>` sentence and instead state the retain-handoff guidance (§C3): prefer merge commits; if a forced squash is unavoidable, also disable the forge's auto-delete-head-branch for tsugu handoff branches so the slug pairing survives until the human's completion tail. Keep `## Private Git Space`, `## Public Coordination`, `## Branch Prefixes`, `## Push`, `## Handoff Prefixes`, `## Remote` as-is. **Scrub the intake wording from three sections that are otherwise kept** — they are NOT "as-is": `## Housekeeping`'s comment says "open intake **notes**" → it surfaces stale **in-progress branches** only (intake notes are gone); `## Coordination ref`'s comment says "where intake/ + knowledge/ are written" → "where `knowledge/` is written"; `## Recursion` says "current goal / **intake** / branch" → "current goal / branch". Leaving them as-is would carry schema-2 vocabulary into the schema-3 policy and fail the Task 11 sweep.
 
 - [ ] **Step 2: Create `templates/config.md` (personal)**
 
@@ -272,14 +272,18 @@ git commit -m "feat(tsugu): notes-and-packet reference — context.md + free-for
 **Remove:** the coordination-ref **intake** write protocol, the `landed:` validation, and the completion-tail **intake flip** — the completion tail becomes promote → delete worktrees → delete both branches.
 **Add:** a short **personal-folder bootstrap recipe** — derive `<project-key>` via `git rev-parse --path-format=absolute --git-common-dir` (strip `/.git`, dashify), write `~/.claude/tsugu/<project-key>/config.md` and `packets/`; resolve `read:` pointers with permissioned tools. **Add** the retain-handoff note to the handoff-cut recipe (recommend disabling forge auto-delete-head-branch on the squash path; narrative backstop when it can't be).
 
-Note: `knowledge/` still lives on the coordination ref, so keep the coordination-ref **write protocol** for `knowledge/` promotion (it is no longer used for `intake/`, which is gone).
+Note: `knowledge/` still lives on the coordination ref, so keep the coordination-ref **write protocol** for `knowledge/` promotion (it is no longer used for `intake/`, which is gone). The current "Coordination-ref writes" section carries three **intake remnants that must be scrubbed**, since the protocol is kept but only for `knowledge/`:
+  1. the example commit message `tsugu: claim intake/<slug> → prepare/<slug>` → re-theme to a `knowledge/` promotion (e.g. `tsugu: promote knowledge/<topic>`);
+  2. the orphan-branch bootstrap that seeds `intake/` + `knowledge/` (`mkdir -p .tsugu/intake .tsugu/knowledge` / `touch .tsugu/intake/.gitkeep …`) → seed **`knowledge/` only**;
+  3. the conflict-resolution paragraph keyed to the intake note lifecycle (`open → claimed → done | dropped`) → rewrite it for `knowledge/` promotion conflicts (or drop it).
+  These survive the Step 2 grep below unless named explicitly (e.g. a bootstrap `mkdir .tsugu/intake` matches none of the slug-shaped patterns), so do them as part of this step.
 
 - [ ] **Step 2: Verify**
 
 Run:
 ```bash
 cd /Volumes/ramdisk/dong3/tsugu-v2
-grep -nE 'intake/<slug>|claim intake|landed:|note_has_valid_landed|flip the linked intake' plugins/tsugu/skills/tsugu/references/git-recipes.md || echo "NONE — clean"
+grep -nE '\.tsugu/intake|intake/<slug>|claim intake|landed:|note_has_valid_landed|flip the linked intake|status: (open|claimed|done|dropped)' plugins/tsugu/skills/tsugu/references/git-recipes.md || echo "NONE — clean"
 grep -c 'git-common-dir\|knowledge/\|--is-ancestor' plugins/tsugu/skills/tsugu/references/git-recipes.md
 ```
 Expected: first grep `NONE — clean`; second non-zero (partition + bootstrap + knowledge writes present).
