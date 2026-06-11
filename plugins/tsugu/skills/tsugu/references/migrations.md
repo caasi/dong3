@@ -156,3 +156,101 @@ is absent, fall back to `branch.md`; read a legacy `status:` once and fold it in
 the narrative on the branch's next touch (a legacy `settled` becomes a cleanup
 candidate; a legacy `converged` is surfaced at the next `converge`). Each branch
 converts to schema 2 on its own next touch — no central rewrite.
+
+## Migration 2→3
+
+Schema 3 is this spec's layout: the committed `.tsugu/` shrinks to
+`policy.md` + `context.md` + `knowledge/`; the personal observation config
+(intake sources + opted-in skills) moves to the migrating machine's global
+folder; and `intake/`, `runs/`, `packets/`, and repo `templates/` are gone
+(stopped going forward; existing history left intact). Apply these five steps in
+order on the `init/*` branch. A schema-1 repo runs **1→2→3**: the 1→2 steps
+(which create `intake/`, seed `templates/`, etc.) run first, then 2→3
+removes/relocates them — wasteful but correct under the sequential contract; an
+implementation MAY short-circuit but is not required to.
+
+**1. Move personal sections out of `policy.md`.** Condition: either
+`## Intake Sources` or `## Skills Tsugu may use (this repo, opt-in)` is still
+present in committed `policy.md`. Read both sections, write them into **the
+migrating machine's** personal folder `~/.claude/tsugu/<project-key>/config.md`
+(intake sources + opt-in skills); **then remove** both sections from `policy.md`.
+The shipped-invariant `## Skill use` section stays. `<project-key>` is the
+common-git-dir-derived key (stable across worktrees), not the raw checkout path.
+This step is **re-entrant, so an abandoned policy PR is safe.** The personal write
+is the durable copy and is **re-derivable from the old `policy.md` until the
+removal lands**: the write happens locally and outside git, while the section
+removal rides the `init/*` policy PR on a push-protected default. If that PR is
+rejected/abandoned, committed `policy.md` still carries the sections, so a re-run
+simply re-reads them and re-writes the (unchanged) personal copy — no
+double-source-of-truth survives a re-run, and the personal write happening first
+is harmless. **Other machines self-seed by re-asking:** once the migration merges,
+`policy.md` no longer carries these sections, so each other machine's next
+interactive `prepare`/`converge` re-asks (separately for sources and skills) via
+the bootstrap behavior and seeds *that machine's* personal folder. Observation
+config is per-machine and is not meant to transfer — there is **no git-history
+recovery and no in-repo breadcrumb**.
+
+**2. Remove the relocated/removed committed paths — per-path, idempotent, and
+history-preserving.** Condition: any of `.tsugu/intake`, `.tsugu/runs`,
+`.tsugu/packets`, `.tsugu/templates` still exists. This **stops writing them
+going forward; leave history intact — never rewrite history** (rewriting would
+violate the protect-primary-history invariant, and the old artifacts are
+harmless). Remove each path **only if present**, because a bare `git rm -r` fails
+if any pathspec matches nothing and a partial tree need not have all of them (the
+schema-2 skeleton seeds only `intake/`/`knowledge/`/`templates/`; `runs/` and
+`packets/` appear on first `prepare`, so a repo that never ran `prepare` has
+neither). Use a per-path guard or the `--ignore-unmatch` flag:
+
+```bash
+git rm -r --ignore-unmatch .tsugu/intake
+git rm -r --ignore-unmatch .tsugu/runs
+git rm -r --ignore-unmatch .tsugu/packets
+git rm -r --ignore-unmatch .tsugu/templates
+```
+
+It is `--ignore-unmatch` (no trailing `d`); `--ignore-unmatched` is not a valid
+git flag and aborts the command. With it, the step no-ops cleanly on a partial
+tree and an interrupted re-run re-enters. **Cross-ref placement:** only `intake/`
+lives on the **coordination ref**; `runs/`/`packets/` (accumulated on the default
+branch when work branches merge in `include` mode) and repo-seeded `templates/`
+live on the **default branch**. So the removal spans two refs whenever
+`coordination-ref != default` (the push-protected setup that 1→2 already handles
+for the `context/→knowledge/` rename): remove `intake/` on the coordination ref
+and `runs/`/`packets/`/`templates/` on the default branch, with the **coord-ref
+deletion confirmed before the step-5 schema stamp**, exactly as 1→2 orders its
+coord-ref rename ahead of the stamp. When `coordination-ref = default`, all of it
+rides the one `init/*` policy PR, stamp last. In-flight work branches simply
+**stop** writing `runs/`/`packets/` and convert on next touch; the `git rm`
+targets the copies already accumulated on default. Throughout the window a reader
+tolerates the old dirs still being present — they are inert once `prepare`/
+`converge` stop writing them.
+
+**3. Redefine `public-branch-tsugu` wording** in `policy.md` per E2 — **same
+value, only the description changes** to the WIP-knowledge framing (whether the
+work branch's committed WIP-knowledge layer — its prep commit DAG plus its
+`context.md` narrative — lands on the public/default branch; `knowledge/` lands on
+the coordination ref regardless of mode). Also remove any `landed:` / intake-flip
+wording from `## Merge method`, replacing it with the retain-handoff guidance: a
+forced-squash landing **retains the handoff branch** so the pairing carries the
+awaiting-merge state, with the `context.md` narrative as the backstop when the
+forge deletes the branch anyway. Condition: the old wording is present. **Never
+change the chosen value** — only its description.
+
+**4. Switch template reads to `${CLAUDE_PLUGIN_ROOT}`.** `init`/`prepare`/
+`converge` now read templates from
+`${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead of the repo's
+`.tsugu/templates/` (removed in step 2). The `context.md` template loses its
+`runs/`/`packets/` links. **No repo template files are written.**
+
+**5. Stamp `tsugu-schema: 3` — last.** Only after steps 1–4 have all succeeded,
+stamp `tsugu-schema: 3` as the first line of `policy.md`. This is what marks the
+migration complete; until it is written, a re-run re-enters migration 2→3 and the
+already-applied steps no-op. **Push-protected exception:** the stamp rides the
+`policy.md` PR, but that PR merges only **after** step 2's coordination-ref
+deletion (`intake/`) is confirmed on its ref — they share the PR when
+`coordination-ref = default`, otherwise the separate coord branch's deletion lands
+first. The stamp is gated on that confirmation, so the schema never reads complete
+while a step is still pending.
+
+Live work branches are not migrated centrally — they convert on next touch (the
+schema-compat `branch.md`/`context.md` reads still apply).
