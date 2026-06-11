@@ -64,7 +64,7 @@ The steps obey these rules, which hold for every migration (not just 1→2):
 ## Migration 1→2
 
 Schema 1 is the 004 layout: any `.tsugu/` without a `tsugu-schema` field is
-schema 1 by definition. Schema 2 is this spec's layout — the `tsugu-schema`
+schema 1 by definition. Schema 2 is the spec 005 layout — the `tsugu-schema`
 stamp itself, `public-branch-tsugu`, `## Handoff Prefixes` (with legacy `public/*`
 folded in), the structured `## Intake Sources` format, the pure-narrative
 `context.md` (work-branch + default-branch forms), the `landed:` intake field, and
