@@ -141,10 +141,13 @@ Run:
 ```bash
 cd /Volumes/ramdisk/dong3/tsugu-v2
 head -1 plugins/tsugu/skills/tsugu/templates/policy.md
-grep -rEl 'Intake Sources|Skills Tsugu may use|landed:|This work.s files|runs/<slug>' plugins/tsugu/skills/tsugu/templates/ || echo "NONE — clean"
+# policy.md must NOT carry the personal sections (they moved to config.md):
+grep -nE 'Intake Sources|Skills Tsugu may use' plugins/tsugu/skills/tsugu/templates/policy.md && echo "LEAK in policy.md" || echo "policy clean"
+# removed vocabulary must be absent from ALL templates (config.md's legit '## Intake Sources' is excluded by the patterns):
+grep -rEl 'landed:|This work.s files|runs/<slug>' plugins/tsugu/skills/tsugu/templates/ || echo "NONE — clean"
 ls plugins/tsugu/skills/tsugu/templates/
 ```
-Expected: line 1 = `tsugu-schema: 3`; the grep prints `NONE — clean`; `ls` shows `policy.md config.md context.md packet.md` (no `intake.md`, `run.md`).
+Expected: line 1 = `tsugu-schema: 3`; the first grep prints `policy clean`; the second prints `NONE — clean`; `ls` shows `policy.md config.md context.md packet.md` (no `intake.md`, `run.md`). (The first grep is scoped to `policy.md` on purpose — a recursive grep for `Intake Sources` would always match `config.md`, which is *supposed* to carry that heading.)
 
 - [ ] **Step 7: Commit**
 
@@ -323,7 +326,7 @@ grep -n 'ignore-unmatch' plugins/tsugu/skills/tsugu/references/migrations.md   #
 grep -nE 'Migration 1→2|Migration 2→3|tsugu-schema: 3' plugins/tsugu/skills/tsugu/references/migrations.md
 git rm --ignore-unmatched 2>&1 | head -1   # sanity: confirms the bad form errors
 ```
-Expected: the flag appears as `--ignore-unmatch`; both migration sections present; the last command prints `error: unknown option 'ignore-unmatched'` (proving the good form was chosen).
+Expected: the flag appears as `--ignore-unmatch`; both migration sections present; the last command **exits non-zero with an `unknown option` error** (the exact quoting around `ignore-unmatched` varies by git version — don't string-match it), proving `--ignore-unmatched` is invalid and the good `--ignore-unmatch` form was chosen.
 
 - [ ] **Step 3: Commit**
 
@@ -413,9 +416,9 @@ Run:
 ```bash
 cd /Volumes/ramdisk/dong3/tsugu-v2
 python3 -c "import json;json.load(open('plugins/tsugu/.claude-plugin/plugin.json'));json.load(open('.claude-plugin/marketplace.json'));print('JSON OK')"
-grep '"version"' .claude-plugin/marketplace.json | grep -A0 '0.3.0' && echo "version bumped"
+python3 -c "import json;d=json.load(open('.claude-plugin/marketplace.json'));v=[p['version'] for p in d['plugins'] if p['name']=='tsugu'];print('tsugu',v);assert v==['0.3.0'],'tsugu not bumped to 0.3.0'"
 ```
-Expected: `JSON OK`; the tsugu `version` reads `0.3.0`.
+Expected: `JSON OK`; then `tsugu ['0.3.0']` (the assert fails loudly if the tsugu entry — specifically, not some other plugin — is not at `0.3.0`).
 
 - [ ] **Step 3: Commit**
 
@@ -464,11 +467,11 @@ The removed vocabulary must not survive anywhere in the **shipped** skill except
 
 ```bash
 cd /Volumes/ramdisk/dong3/tsugu-v2
-rg -nE 'intake/|\blanded:|\bruns/|linked-branch|reconciliation case|status: (open|claimed)' \
+rg -n 'intake/|\blanded:|\bruns/|linked-branch|reconciliation case|\bstatus: (open|claimed|done|dropped)' \
    plugins/tsugu/skills/tsugu plugins/tsugu/commands \
    --glob '!plugins/tsugu/skills/tsugu/references/migrations.md'
 ```
-Expected: **no output** (every match would be a leak). Investigate and fix any hit before proceeding. Also confirm the templates dir no longer contains `intake.md`/`run.md` and that `config.md` exists.
+Expected: **no output** (every match would be a leak). Note: `rg -n` only — **not** `rg -nE`; in ripgrep `-E` is `--encoding` (it would consume the pattern as an encoding name and error). ripgrep's default regex already supports `\b` and alternation. Investigate and fix any hit before proceeding. Also confirm the templates dir no longer contains `intake.md`/`run.md` and that `config.md` exists.
 
 - [ ] **Step 2: Self-review the full diff for prose coherence**
 
