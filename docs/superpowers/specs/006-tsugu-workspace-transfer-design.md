@@ -111,10 +111,13 @@ alongside it.
   current checkout path, so it is **stable across worktrees**. tsugu routinely
   creates worktrees (different paths, same repo and work item); keying on the cwd
   would split one repo's sources/skills/packets across several personal folders.
-  Resolve the key from `git rev-parse --git-common-dir` (the shared `.git` of the
-  main checkout — identical from every linked worktree), reduced to the repo's main
-  path or a hash of it. The key need not be portable across machines (personal data
-  is per-machine-per-human); it only needs to be **one key per repo per machine**.
+  Resolve the key from `git rev-parse --path-format=absolute --git-common-dir`
+  (the shared `.git` of the main checkout as a **canonical absolute path** —
+  `--git-common-dir` alone returns a bare `.git` in the main checkout but an
+  absolute path in a linked worktree, so normalize to absolute *before* deriving
+  the key, else the store still splits), reduced to a stable hash or path. The key
+  need not be portable across machines (personal data is per-machine-per-human); it
+  only needs to be **one key per repo per machine**.
 - **Contents:** `sources` (observation config — the v1.1 `## Intake Sources`
   block), `skills` (opt-in skills — the v1.1 `## Skills Tsugu may use (this repo,
   opt-in)` block), and `packets/<slug>.md` (the converge decision-view — see D).
@@ -424,17 +427,21 @@ branch + human-approved PR). Steps:
      **only if present** (a per-path guard, or `git rm -r --ignore-unmatched
      <path>`), so the step no-ops cleanly on a partial tree and an interrupted
      re-run re-enters. Condition: any of these paths still exists.
-   - **Cross-ref placement.** `intake/`/`runs/`/`packets/` live on the
-     **coordination ref**; repo-seeded `templates/` lives on the **default
-     branch**. When `coordination-ref != default` (the push-protected setup that
-     1→2 already handles for the `context/→knowledge/` rename), these are on
-     *different refs* — one `git rm` cannot span both. Split the removal: the
-     coord-ref paths are removed on the coordination ref, `templates/` on default,
-     and the **coord-ref deletions are confirmed before the step-5 schema stamp**,
-     exactly as 1→2 orders its coord-ref rename ahead of the stamp. When
-     `coordination-ref = default`, all four ride the one `init/*` policy PR, stamp
-     last. Throughout the window a reader tolerates the old dirs still being
-     present (they are inert once `prepare`/`converge` stop writing them).
+   - **Cross-ref placement.** Only `intake/` lives on the **coordination ref**.
+     `runs/` and `packets/` live on **work branches** and, in `include` mode,
+     accumulate on the **default branch** when those branches merge; repo-seeded
+     `templates/` also lives on the **default branch**. So the removal spans two
+     refs whenever `coordination-ref != default` (the push-protected setup that
+     1→2 already handles for the `context/→knowledge/` rename): remove `intake/`
+     on the coordination ref and `runs/`/`packets/`/`templates/` on the default
+     branch, with the **coord-ref deletion confirmed before the step-5 schema
+     stamp**, exactly as 1→2 orders its coord-ref rename ahead of the stamp. When
+     `coordination-ref = default`, all of it rides the one `init/*` policy PR,
+     stamp last. (In-flight work branches simply **stop** writing `runs/`/
+     `packets/` and convert on next touch; the `git rm` targets the copies already
+     accumulated on default.) Throughout the window a reader tolerates the old dirs
+     still being present (they are inert once `prepare`/`converge` stop writing
+     them).
 3. **Redefine `public-branch-tsugu` wording** in `policy.md` (E2) — same values,
    updated description (WIP-knowledge framing). Remove any `landed:` / intake-flip
    wording. Condition: the old wording is present. Never change the chosen value.
@@ -444,7 +451,8 @@ branch + human-approved PR). Steps:
    `runs/`/`packets/` links. No repo template files are written.
 5. **Stamp `tsugu-schema: 3` — last**, after steps 1–4 succeed.
 
-`<project-key>` for step 1 may be the local repo path. A schema-1 repo runs
+`<project-key>` for step 1 is the common-git-dir-derived key from A2 (stable across
+worktrees), not the raw checkout path. A schema-1 repo runs
 1→2→3: the 1→2 steps (which create `intake/`, seed `templates/`, etc.) run first,
 then 2→3 removes/relocates them — wasteful but correct under the sequential
 contract; an implementation MAY short-circuit but is not required to.
