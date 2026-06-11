@@ -64,6 +64,11 @@ These are pinned here so the README and SKILL.md can reference a concrete path. 
 The repo's `CLAUDE.md` requires multi-task plan execution in a RAM-disk worktree, and code changes on a feature branch (never `main`). RAM disk is at `/Volumes/ramdisk`.
 
 ```bash
+# guard against a stale worktree/branch from an aborted prior run:
+git -C /Users/caasi/GitHub/caasi/dong3 worktree list | grep -q tsugu-v2 && \
+  git -C /Users/caasi/GitHub/caasi/dong3 worktree remove --force /Volumes/ramdisk/dong3/tsugu-v2
+git -C /Users/caasi/GitHub/caasi/dong3 branch --list feat/tsugu-schema-3   # if it exists, reuse with `git worktree add <path> feat/tsugu-schema-3` (no -b)
+
 git -C /Users/caasi/GitHub/caasi/dong3 worktree add /Volumes/ramdisk/dong3/tsugu-v2 -b feat/tsugu-schema-3 main
 cd /Volumes/ramdisk/dong3/tsugu-v2
 ```
@@ -311,7 +316,7 @@ git commit -m "feat(tsugu): git-recipes — single-layer partition, personal-fol
 
 Leave the migration contract and **Migration 1→2** intact (schema-1 repos still need it; they run 1→2→3). Add a **Migration 2→3** section transcribing §G's five steps verbatim in intent:
 1. Move `## Intake Sources` + `## Skills Tsugu may use (this repo, opt-in)` from `policy.md` into the migrating machine's `~/.claude/tsugu/<project-key>/config.md`; remove both from `policy.md`. Re-entrant (durable personal copy re-derivable from old `policy.md` until the removal lands). Other machines re-ask via the bootstrap behavior.
-2. Remove the relocated/removed committed paths **per-path / `git rm -r --ignore-unmatch <path>`** (idempotent on partial trees — `runs/`/`packets/` may never have been seeded), and **split across refs**: `intake/` on the coordination ref; `runs/`/`packets/`/`templates/` on the default branch; coord-ref deletion confirmed **before** the schema stamp (mirroring 1→2's rename ordering).
+2. Remove the relocated/removed committed paths **per-path / `git rm -r --ignore-unmatch <path>`** (idempotent on partial trees — `runs/`/`packets/` may never have been seeded). This **stops writing them going forward; leave history intact — never rewrite history** (the protect-primary-branch-history invariant; old artifacts are inert once nothing writes them). **Split across refs**: `intake/` on the coordination ref; `runs/`/`packets/`/`templates/` on the default branch; coord-ref deletion confirmed **before** the schema stamp (mirroring 1→2's rename ordering).
 3. Redefine `public-branch-tsugu` wording (§E2); remove `landed:`/intake-flip wording.
 4. Switch template reads to `${CLAUDE_PLUGIN_ROOT}` (no repo `templates/`); drop the `context.md` runs/packets links.
 5. Stamp `tsugu-schema: 3` **last**.
@@ -408,7 +413,7 @@ git commit -m "docs(tsugu): README for schema 3 — committed knowledge layer + 
 
 - [ ] **Step 1: Update descriptions and bump version**
 
-`plugin.json` description → schema-3 shape (committed `.tsugu/` = policy + context + knowledge; personal config; state derived; never auto-merges; no user-installed skill by default). `marketplace.json` tsugu entry: same-spirit description **and** `version` `0.2.0` → `0.3.0`. If the marketplace top-level `metadata.version` exists, bump it too (per the repo memory rule for adding/removing plugins — here it is a description/version change, so bump only if the convention covers content changes; otherwise leave).
+`plugin.json` description → schema-3 shape (committed `.tsugu/` = policy + context + knowledge; personal config; state derived; never auto-merges; no user-installed skill by default). `marketplace.json` tsugu entry: same-spirit description **and** `version` `0.2.0` → `0.3.0`. **Do NOT touch the top-level `metadata.version`** (currently `1.4.0`): the repo convention bumps it only when the **plugin set** changes (add/remove a plugin), and this is a content/version change to an existing plugin. Bump only the tsugu entry.
 
 - [ ] **Step 2: Verify JSON validity**
 
