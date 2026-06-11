@@ -353,18 +353,21 @@ or re-decide. Pairs whose handoff tip **shares no history** with the work branch
 are flagged as a possible **name collision** to confirm. Both heuristics —
 divergence and no-shared-history collision — apply in **`include` mode only**.
 
-**Retain the handoff branch on the forced-squash path.** Settlement is pure
-containment, so a **forced squash** (where the forge collapses the PR to one
-commit that no longer contains the work tip) is **not** containment-derivable. It
-stays "decided, awaiting merge" *only because the slug-paired handoff branch still
-pairs*. So when a squash is anticipated:
+**Retain the handoff/public branch whenever the work tip won't be contained.**
+Settlement is pure containment, so two cases leave the work branch's own tip
+**not** contained in default: a **forced squash** (the forge collapses the PR to
+one commit that no longer contains the work tip) and **`exclude` mode** (accepted
+code lands by path on a fresh public branch — the work branch never merges). In
+both, the item stays "decided, awaiting merge" *only because the slug-paired
+handoff/public branch still pairs*. So whenever the landing won't contain the work
+tip (a squash, or any exclude-mode cut):
 
-- **Disable the forge's auto-delete-head-branch for tsugu handoff branches**
+- **Disable the forge's auto-delete-head-branch for tsugu handoff/public branches**
   (a common merge setting) so the pairing survives the merge and carries the
   awaiting-merge state until the human's completion tail deletes both branches.
   This is a recommendation, not a hard gate — squash-only forges stay supported.
 - **Narrative backstop** when the forge deletes the branch anyway: write
-  "handed off — may have landed via squash" into the work branch's `context.md`
+  "handed off — may have landed" into the work branch's `context.md`
   **now** (at the converge decision, before the PR opens). The partition still
   classifies the orphaned work branch in-progress, but `prepare`'s **judgment**
   reads that narrative and **leaves the branch for `converge`** rather than
@@ -386,6 +389,9 @@ is "never introduced", not "stripped afterward"). It is named
 pairing), and landing is later confirmed via **this** branch's containment in
 default (the by-path application breaks the work branch's own containment).
 (`knowledge/` still lands via the coordination-ref write, regardless of mode.)
+Because the work branch never merges, **every** exclude-mode landing needs the
+*Retain the handoff/public branch* + narrative-backstop handling above — not just
+squashes — so an auto-deleted public branch can't make landed work look in-progress.
 
 **1. Cut from the fetched ref** — use the configured `<remote>`, never a hardcoded
 `origin`, and never a stale local default:
