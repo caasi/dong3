@@ -188,7 +188,8 @@ deletes. Concretely:
   **not** optional on this path: 2→3 step 1 relocates those `## Intake Sources`
   entries *verbatim* into the personal `config.md`, which requires that structure —
   skipping it would copy unstructured legacy entries and leave the migrated sources
-  unusable.
+  unusable. Finally **1→2 step 8 stamps `tsugu-schema: 2`**, completing 1→2 per the
+  N→N+1 contract; **only then** does 2→3 run and stamp `tsugu-schema: 3` last.
 - **Skip** (transient; 2→3 deletes it, and the schema-3 plugin no longer ships it):
   materializing the `intake/`/`runs/` directories, seeding `templates/`, and
   refreshing the `branch.md`/`intake.md`/`run.md` templates (1→2 step 6's
