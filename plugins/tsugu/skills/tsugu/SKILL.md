@@ -86,7 +86,7 @@ Then write committed `.tsugu/` from the plugin templates: `policy.md` (shared se
 
 ### `prepare` (human absent)
 
-The core routine. No human is present, so Tsugu does its own git work directly and may dispatch its **own built-in Task subagents** — but it invokes **no user-installed skill *by default*** (the one exception: skills a human explicitly opted into in the personal-folder `skills` section — see *Private vs public boundary & skill use*). Posture: **external silence, internal preparation.** Interrupt the human only if the task is unsafe, destructive, or blocked; when unsure, continue with reversible private git work.
+The core routine. No human is present, so Tsugu does its own git work directly and may dispatch its **own built-in Task subagents**; it invokes a user-installed skill **only when a human has explicitly opted one in** via the personal-folder `skills` section (see *Private vs public boundary & skill use*) — otherwise none. Posture: **external silence, internal preparation.** Interrupt the human only if the task is unsafe, destructive, or blocked; when unsure, continue with reversible private git work.
 
 `prepare` **does NOT self-wake** — a SKILL.md is a prompt loaded into a running agent and cannot schedule itself. Cadence always comes from an external `/schedule`/cron driver.
 
