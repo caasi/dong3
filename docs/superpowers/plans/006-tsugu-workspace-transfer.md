@@ -64,13 +64,19 @@ These are pinned here so the README and SKILL.md can reference a concrete path. 
 The repo's `CLAUDE.md` requires multi-task plan execution in a RAM-disk worktree, and code changes on a feature branch (never `main`). RAM disk is at `/Volumes/ramdisk`.
 
 ```bash
-# guard against a stale worktree/branch from an aborted prior run:
-git -C /Users/caasi/GitHub/caasi/dong3 worktree list | grep -q tsugu-v2 && \
-  git -C /Users/caasi/GitHub/caasi/dong3 worktree remove --force /Volumes/ramdisk/dong3/tsugu-v2
-git -C /Users/caasi/GitHub/caasi/dong3 branch --list feat/tsugu-schema-3   # if it exists, reuse with `git worktree add <path> feat/tsugu-schema-3` (no -b)
-
-git -C /Users/caasi/GitHub/caasi/dong3 worktree add /Volumes/ramdisk/dong3/tsugu-v2 -b feat/tsugu-schema-3 main
-cd /Volumes/ramdisk/dong3/tsugu-v2
+repo=/Users/caasi/GitHub/caasi/dong3
+wt=/Volumes/ramdisk/dong3/tsugu-v2
+# guard against a stale worktree from an aborted prior run:
+git -C "$repo" worktree list | grep -q tsugu-v2 && git -C "$repo" worktree remove --force "$wt"
+# create the worktree — REUSE the branch if it already exists (removing the
+# worktree leaves the branch), else create it with -b. An unconditional `-b`
+# would fail once the branch exists:
+if git -C "$repo" show-ref --verify --quiet refs/heads/feat/tsugu-schema-3; then
+  git -C "$repo" worktree add "$wt" feat/tsugu-schema-3
+else
+  git -C "$repo" worktree add "$wt" -b feat/tsugu-schema-3 main
+fi
+cd "$wt"
 ```
 
 - [ ] **Step 2: Verify you are on the feature branch in the worktree**
@@ -329,9 +335,13 @@ Run:
 cd /Volumes/ramdisk/dong3/tsugu-v2
 grep -n 'ignore-unmatch' plugins/tsugu/skills/tsugu/references/migrations.md   # must be --ignore-unmatch, NOT --ignore-unmatched
 grep -nE 'Migration 1→2|Migration 2→3|tsugu-schema: 3' plugins/tsugu/skills/tsugu/references/migrations.md
-git rm --ignore-unmatched 2>&1 | head -1   # sanity: confirms the bad form errors
+git rm --ignore-unmatched 2>&1 | head -1   # DISPLAY the error text (pipe status is head's, ignore it)
+# ASSERT the bad flag is rejected — read git's own status, not the pipeline's:
+git rm --ignore-unmatched >/dev/null 2>&1 \
+  && echo "UNEXPECTED: --ignore-unmatched accepted" \
+  || echo "OK: --ignore-unmatched rejected → use --ignore-unmatch"
 ```
-Expected: the flag appears as `--ignore-unmatch`; both migration sections present; the last command **exits non-zero with an `unknown option` error** (the exact quoting around `ignore-unmatched` varies by git version — don't string-match it), proving `--ignore-unmatched` is invalid and the good `--ignore-unmatch` form was chosen.
+Expected: the flag appears as `--ignore-unmatch` in migrations.md; both migration sections present; the first line prints an `unknown option` error (exact quoting varies by git version — don't string-match it); the assert prints `OK: --ignore-unmatched rejected → use --ignore-unmatch`. The assert uses `&&/||` on `git rm` directly (no pipe), so it reflects git's exit status, not `head`'s.
 
 - [ ] **Step 3: Commit**
 
