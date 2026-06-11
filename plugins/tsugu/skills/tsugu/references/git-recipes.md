@@ -357,10 +357,13 @@ divergence and no-shared-history collision — apply in **`include` mode only**.
 Settlement is pure containment, so two cases leave the work branch's own tip
 **not** contained in default: a **forced squash** (the forge collapses the PR to
 one commit that no longer contains the work tip) and **`exclude` mode** (accepted
-code lands by path on a fresh public branch — the work branch never merges). In
-both, the item stays "decided, awaiting merge" *only because the slug-paired
-handoff/public branch still pairs*. So whenever the landing won't contain the work
-tip (a squash, or any exclude-mode cut):
+code lands by path on a fresh public branch — the work branch never merges). The
+two then **differ**: `exclude` mode becomes **settled** once the public branch's
+tip is contained (a normal merge — partition row 1), while a **forced squash**
+stays "decided, awaiting merge" and re-surfaces until the human confirms (its own
+tip is never contained). What they **share** is that the disposition can only be
+read *while the slug-paired ref survives*. So whenever the landing won't contain
+the work tip (a squash, or any exclude-mode cut):
 
 - **Disable the forge's auto-delete-head-branch for tsugu handoff/public branches**
   (a common merge setting) so the pairing survives the merge and carries the
