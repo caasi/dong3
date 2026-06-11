@@ -424,7 +424,7 @@ branch + human-approved PR). Steps:
      matches nothing**, and the schema-2 `init` skeleton seeds only
      `intake/`/`knowledge/`/`templates/` — `runs/` and `packets/` are created on
      first use, so a repo that never ran `prepare` has neither. Remove each path
-     **only if present** (a per-path guard, or `git rm -r --ignore-unmatched
+     **only if present** (a per-path guard, or `git rm -r --ignore-unmatch
      <path>`), so the step no-ops cleanly on a partial tree and an interrupted
      re-run re-enters. Condition: any of these paths still exists.
    - **Cross-ref placement.** Only `intake/` lives on the **coordination ref**.
