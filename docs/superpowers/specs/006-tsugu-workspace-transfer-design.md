@@ -107,13 +107,39 @@ only cross-machine contract is the pushed git branches. Precedent: Claude Code's
 own auto-memory at `~/.claude/projects/<key>/`; tsugu's personal store sits
 alongside it.
 
-- **`<project-key>`** may be the local repo path. Personal data is
-  per-machine-per-human, so the key need not be portable.
+- **`<project-key>`** is derived from the **repo's common git dir**, not the
+  current checkout path, so it is **stable across worktrees**. tsugu routinely
+  creates worktrees (different paths, same repo and work item); keying on the cwd
+  would split one repo's sources/skills/packets across several personal folders.
+  Resolve the key from `git rev-parse --git-common-dir` (the shared `.git` of the
+  main checkout — identical from every linked worktree), reduced to the repo's main
+  path or a hash of it. The key need not be portable across machines (personal data
+  is per-machine-per-human); it only needs to be **one key per repo per machine**.
 - **Contents:** `sources` (observation config — the v1.1 `## Intake Sources`
-  block), `skills` (opt-in skills — the v1.1 `## Skills Tsugu may use` block), and
-  `packets/<slug>.md` (the converge decision-view — see D).
+  block), `skills` (opt-in skills — the v1.1 `## Skills Tsugu may use (this repo,
+  opt-in)` block), and `packets/<slug>.md` (the converge decision-view — see D).
 - **No repo footprint:** nothing under the working tree, so nothing to
   `.gitignore` and nothing to commit by accident.
+
+**Bootstrap (a new behavior, replacing v1.1's intake-only `prepare` backstop).**
+The personal folder does not transfer across machines, so each machine seeds its
+own. When the folder (or a given section of it) is absent on a machine that can ask
+(an **interactive `prepare` or `converge`**), the routine asks **once**, separately
+for the two sections:
+
+- **sources** — "Any observation sources to read besides git? (a file path, MCP
+  tool name, or where to look — I resolve the `read:` pointer with my own
+  permissioned tools, never auto-executed.)" A negative answer is recorded as a
+  **confirmed-negative marker** (`sources: git-native (confirmed)`) so it is never
+  re-asked; an unset folder is distinct from a confirmed-empty one.
+- **skills** — "Any user-installed skills you trust me to use here during
+  human-absent `prepare`? (default: none.)" Likewise recorded, negative included.
+
+When **headless/non-interactive**, never block: fall back to git-native (no
+sources, no opt-in skills) and surface "personal config unconfigured on this
+machine" at the next `converge`. This is the explicit, defined trigger — the v1.1
+skill only asked for sources during interactive `prepare` and never for skills, so
+schema 3 specifies the broader behavior rather than relying on it.
 
 ### A3 — The `policy.md` split
 
@@ -366,18 +392,26 @@ non-mechanical conflict stops and asks; push-protected default rides an `init/*`
 branch + human-approved PR). Steps:
 
 1. **Move personal sections out of `policy.md`.** Read `## Intake Sources` and
-   `## Skills Tsugu may use (opt-in)` from committed `policy.md`; write them into
-   **the migrating machine's** personal folder (`~/.claude/tsugu/<project-key>/`
-   `sources` + `skills`); then **remove** both sections from `policy.md`. The
-   shipped-invariant `## Skill use` section stays. Condition: either section is
-   still present in `policy.md`.
+   `## Skills Tsugu may use (this repo, opt-in)` from committed `policy.md`; write
+   them into **the migrating machine's** personal folder
+   (`~/.claude/tsugu/<project-key>/` `sources` + `skills`); then **remove** both
+   sections from `policy.md`. The shipped-invariant `## Skill use` section stays.
+   Condition: either section is still present in `policy.md`.
+   - **Re-entrant, so an abandoned policy PR is safe.** The personal-folder write
+     is the durable copy and is **idempotent and re-derivable from the old
+     `policy.md`** until the removal lands: the write happens locally and outside
+     git, while the section removal rides the `init/*` policy PR on a push-protected
+     default. If that PR is rejected/abandoned, committed `policy.md` still carries
+     the sections, so a re-run simply re-reads them and re-writes the (unchanged)
+     personal copy — no double-source-of-truth survives a re-run, and the personal
+     write being first is harmless.
    - **Other machines self-seed by re-asking.** After the migration merges,
      `policy.md` no longer carries these sections. On each other machine's next
-     interactive `prepare`/`converge`, the existing interactive backstop asks for
-     observation sources (and any opt-in skills) and records them in *that
-     machine's* personal folder. This is principle-aligned: observation config is
-     "how & what *I* observe" — inherently per-machine, not meant to transfer. No
-     git-history recovery and no in-repo breadcrumb.
+     interactive `prepare`/`converge`, the **bootstrap behavior defined in A2**
+     asks (separately for sources and skills, negative-markers recorded) and seeds
+     *that machine's* personal folder. This is principle-aligned: observation
+     config is "how & what *I* observe" — inherently per-machine, not meant to
+     transfer. No git-history recovery and no in-repo breadcrumb.
 2. **Remove the relocated/removed committed paths**, per-path and idempotently —
    this **stops writing them going forward; history is left intact** (no rewrite —
    it would violate the protect-primary-history invariant, and old artifacts are
@@ -441,7 +475,9 @@ schema-compat `branch.md`/`context.md` reads still apply).
    `packets/`, or `templates/` directory is created in the repo.
 2. Observation sources and opt-in skills are read from and written to the
    **personal global folder**, never committed `policy.md`. A `read:` pointer is
-   resolved by the agent's own permissioned tools (no-force principle intact).
+   resolved by the agent's own permissioned tools (no-force principle intact). The
+   `<project-key>` derives from the repo's common git dir, so every worktree of one
+   repo shares **one** personal folder on a given machine.
 3. A work item is a `prepare/<slug>` branch (no note-without-branch). The
    partition derives settled / awaiting-merge / in-progress from containment +
    slug pairing alone — no `status:`, no `linked-branch:`, no `landed:`.
@@ -465,8 +501,9 @@ schema-compat `branch.md`/`context.md` reads still apply).
    (history left intact); the stamp is written last; an interrupted migration
    re-enters safely; a schema-1 repo migrates 1→2→3.
 8. Other machines bootstrap their own personal folder by **re-asking** on first
-   interactive `prepare`/`converge`; no git-history recovery or in-repo breadcrumb
-   is used.
+   interactive `prepare`/`converge` — separately for sources and opt-in skills,
+   recording a confirmed-negative marker — and fall back without blocking when
+   headless; no git-history recovery or in-repo breadcrumb is used.
 9. The shipped skill is materially smaller: SKILL.md and references no longer
    describe intake-note lifecycle, `landed:`, reconciliation, `runs/`, or repo
    template-seeding; templates are referenced from `${CLAUDE_PLUGIN_ROOT}`.
