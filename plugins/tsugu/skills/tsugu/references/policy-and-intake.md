@@ -1,21 +1,25 @@
 # policy-and-intake
 
-`.tsugu/policy.md` records the per-repo rules a cold-start agent reads before any
-unattended preparation. It lives on the **default branch always** (so the
-coordination ref it points to stays discoverable — no circularity). This document
-gives the one-line semantics of every field, then explains the intake
-human-bridge.
+`.tsugu/policy.md` records the per-repo **shared** rules a cold-start agent reads
+before any unattended preparation. It lives on the **default branch always** (so
+the coordination ref it points to stays discoverable — no circularity), and it
+carries **only sections that transfer to any inheritor** — a coworker's agent, a
+different machine. Anything tied to *one* human's sources, tools, or moment is
+**personal config**, kept in a global folder, never committed (see the last
+section). This document gives the one-line semantics of every shared field, then
+the personal-config pointer.
 
-## `policy.md` fields
+## `policy.md` fields (shared — committed)
 
 ### `tsugu-schema:`
 
-The schema-version stamp (current: `2`). It is the first line of the file, and a
+The schema-version stamp (current: `3`). It is the first line of the file, and a
 migration **writes it last** — only after every N→N+1 rename and semantic change
 has been applied does `init` stamp the new number, so a half-applied migration is
 never mistaken for a completed one. Readers use it to decide whether a re-run of
-`init` must migrate (older stamp → apply `references/migrations.md` in order) or
-is a plain idempotent repair (stamp already current).
+`init` must migrate (older stamp → apply `references/migrations.md` in order,
+1→2→3 for a schema-1 repo) or is a plain idempotent repair (stamp already
+current).
 
 ### Private / Public boundary
 
@@ -33,8 +37,8 @@ The whole point of the file: where the agent may act freely vs where it must ask
 The boundary in one line:
 
 ```text
-Git branch / pushed branch / .tsugu notes  →  agent may do freely
-MR / PR / tracker / Slack / reviewer assignment  →  human approval required
+Git branch / pushed branch / committed .tsugu/    →  agent may do freely
+MR / PR / tracker / Slack / reviewer assignment   →  human approval required
 ```
 
 ### `## Branch Prefixes`
@@ -44,19 +48,17 @@ investigate/* review/*` — these are queue items: branches the partition reads 
 classifies. They must be **DISJOINT from `## Handoff Prefixes`** — `init` and
 migration validate this — because the partition pairs a work branch against a
 handoff branch by **shared slug**, and an overlapping prefix would make a branch
-both a queue item and its own handoff. `public/*` is **no longer** a work prefix;
-it retires into the handoff convention (see below).
+both a queue item and its own handoff.
 
 ### `## Handoff Prefixes`
 
 The **human-workflow** namespaces a converge cut hands work into for a PR.
-Default `feat/* fix/*` (a migration also folds legacy `public/*` here). A handoff
-branch is **not** a queue item; it exists so the partition can read one
-ref-level fact: a handoff branch whose **slug pairs** a work branch's slug means
-**that work is decided, awaiting merge** — skip it as a candidate, surface it in
-converge's awaiting-merge section. The pairing is by **name, not commits**, so it
-survives whatever the forge does to commits (PR-branch rebases, squashes,
-force-pushes). Must be disjoint from `## Branch Prefixes`.
+Default `feat/* fix/*`. A handoff branch is **not** a queue item; it exists so the
+partition can read one ref-level fact: a handoff branch whose **slug pairs** a
+work branch's slug means **that work is decided, awaiting merge** — skip it as a
+candidate, surface it in converge's awaiting-merge section. The pairing is by
+**name, not commits**, so it survives whatever the forge does to commits (PR-branch
+rebases, squashes, force-pushes). Must be disjoint from `## Branch Prefixes`.
 
 ### `## Push`
 
@@ -72,9 +74,7 @@ read remote-tracking refs, so a pushed branch is a cross-machine handoff. The
 default is **`yes`**. Answer `no` to keep work local — `prepare` then commits
 locally and stops for approval (single-machine by nature: the human and the next
 run share one clone). When the `## Push` section is **absent** (a repo
-initialized under schema 1, before this field existed), readers default to
-`yes`, falling back to any curated Private-Git-Space wording that already grants
-push there.
+initialized before this field existed), readers default to `yes`.
 
 ### `## Public branch`
 
@@ -83,34 +83,44 @@ push there.
 public-branch-tsugu: include
 ```
 
-Controls whether the agent's `.tsugu/` coordination metadata reaches the default
-branch. Two values, default **`include`**:
+Controls whether the committed **WIP-knowledge layer** reaches the default branch.
+Two values, default **`include`**:
 
 - **`include` (default):** the work branch **is** what merges — directly (solo
-  flow) or via a slug-paired handoff branch. Merging lands the branch's `.tsugu/`
-  evidence (`runs/`, `packets/`, the rewritten `context.md`) on the default
-  branch as durable shared memory; there is no by-path filtering and no separate
+  flow) or via a slug-paired handoff branch. Merging lands the work branch's
+  **prep commit DAG plus its `context.md` narrative** on the default branch as
+  committed WIP knowledge; there is no by-path filtering and no separate
   evidence-landing step. The trade-off, stated openly: mainline history carries
-  the agent's preparation commits and `.tsugu/` files — and in the agent-first
+  the agent's preparation commits and `context.md` — and in the agent-first
   orientation that history *is* the memory.
 - **`exclude` (opt-out):** cut a **fresh** public branch from the fetched default
   (handoff-named, same slug) and apply accepted changes **by path**, so the public
   diff introduces **no** `.tsugu/` changes (the guarantee is "never introduced",
   not "stripped afterward"). For collaborative repos where human reviewers should
   not see coordination metadata in the PR. Landing is then confirmed via the
-  public branch's containment, not the work branch's (by-path application breaks
+  **public branch's** containment, not the work branch's (by-path application breaks
   the work branch's own containment).
+
+**`knowledge/` lands on the coordination ref regardless of mode** — it is the
+team's shared brain in both `include` and `exclude`; the field governs only the
+WIP layer (`context.md` + prep DAG), not `knowledge/`.
 
 ### `## Merge method`
 
 Tsugu **recommends merge commits — do not squash-merge tsugu-managed branches.**
 Preserved history is what makes settlement, lineage, and evidence derivable from
-the DAG; the recommendation is recorded here and in the README. The consequence
-of a **forced squash:** the squash commit's parents contain none of the work
-commits, so the landing is **not derivable** — lineage is severed, not obscured.
-Exactly there, and only there, the fact is recorded out of band: the human
-confirms the landing at `converge` and the intake note records `landed: <sha>`
-(see the `landed:` semantics below).
+the DAG by containment. The consequence of a **forced squash:** the squash commit's
+parents contain none of the work commits, so the landing is **not** containment-
+derivable — the work stays "decided, awaiting merge" *because its slug-paired
+handoff branch still pairs*. So when a forge nonetheless forces a squash, the repo
+**should disable the forge's auto-delete-head-branch for tsugu handoff branches**,
+so the slug pairing survives the merge and carries the "awaiting merge" state
+until the human's completion tail deletes both branches. This is a recommendation,
+not a hard gate; where the forge deletes the branch regardless, the work branch's
+`context.md` **narrative backstop** ("handed off — may have landed via squash")
+keeps `prepare` from resuming it. **No settlement SHA is recorded out of band** —
+settlement is pure containment, and the one lossy case re-surfaces live at each
+`converge` until the human drops both branches.
 
 ### `## Housekeeping`
 
@@ -119,15 +129,14 @@ confirms the landing at `converge` and the intake note records `landed: <sha>`
 <!-- stale-after: 30 days -->
 ```
 
-`stale-after:` is the age threshold past which an in-progress branch or open
-intake note is **surfaced for cleanup**. It ships **commented** — `converge`
-records the threshold here progressively on first use (ask once), so it reflects
-a real decision rather than a hardcoded guess. Staleness itself is **derived**,
-never written: a branch is stale when its last commit (or, for a zero-commit
-claimed branch, the coordination-ref commit that flipped its note to `claimed`)
-is older than `stale-after`. Surfacing is for **human-decided cleanup** — the
-list of over-threshold branches / notes is shown at `converge` for a person to
-act on. **A scheduled `prepare` never cleans up** on its own.
+`stale-after:` is the age threshold past which an **in-progress** branch is
+**surfaced for cleanup**. It ships **commented** — `converge` records the
+threshold here progressively on first use (ask once), so it reflects a real
+decision rather than a hardcoded guess. Staleness itself is **derived**, never
+written: a branch is stale when its last commit is older than `stale-after`.
+Surfacing is for **human-decided cleanup** — the list of over-threshold branches
+is shown at `converge` for a person to act on. **A scheduled `prepare` never
+cleans up** on its own.
 
 ### `remote:`
 
@@ -143,21 +152,15 @@ Optional override for `<default>`. If blank, `<default>` is resolved from
 
 ### `coordination-ref:`
 
-The ref where the mutable inbox (`intake/`) and promoted `knowledge/` are
-written. **Default: `default`** (a sentinel meaning "the repo's default branch" —
-it resolves to `<default>`, not a branch literally named `default`). Point it at
-a dedicated branch (e.g. `tsugu/coord`, ideally an orphan) when the default
-branch is **push-protected** — the agent needs a writable home for `.tsugu/`
-coordination data, but in a human-collaborative repo the task **code** only ever
-reaches default through a human-merged PR, not an agent push. That right varies
-per environment, which is why it is a per-repo policy field.
-
-### `## Intake Sources`
-
-The human-bridge sources (if any) the repo observes. **Default: none** —
-git-native only. List sources (e.g. an issue tracker, a notes file, an RSS feed,
-a YARA/CVE watch, a CI query) here only if this repo needs to bridge a human-world
-signal into git. See the human-bridge section below for the recorded form.
+The ref where the promoted `knowledge/` wiki is written. **Default: `default`** (a
+sentinel meaning "the repo's default branch" — it resolves to `<default>`, not a
+branch literally named `default`). Point it at a dedicated branch (e.g.
+`tsugu/coord`, ideally an orphan) when the default branch is **push-protected** —
+the agent needs a writable home for `.tsugu/knowledge/`, but in a human-
+collaborative repo the task **code** only ever reaches default through a human-
+merged PR, not an agent push. That right varies per environment, which is why it
+is a per-repo policy field. (There is no longer an `intake/` inbox at this ref —
+schema 3 has no committed note layer.)
 
 ### `## Skill use`
 
@@ -165,152 +168,86 @@ States the shipped invariant: **Tsugu invokes no user-installed skill by
 default** — it uses native git plus its own built-in capabilities (Task subagents,
 Codex-as-a-tool, Claude's own reasoning). Humans trigger workflow skills
 (planning, debugging, review-loop, …) by keyword. This text reflects the shipped
-behavior and is the same in every repo.
-
-### `## Skills Tsugu may use (this repo, opt-in)`
-
-The **per-repo opt-in** — and the *only* place a skill name may appear. **Default:
-none.** A repo owner MAY list specific user-installed skills (e.g.
-`systematic-debugging`) that Tsugu may use during **human-absent `prepare`** in
-**this repo**. This is repo-local config: the shipped `SKILL.md` never names a
-skill, so the plugin stays universal while a repo extends it locally.
+behavior and is the same in every repo — it is the *shipped invariant*, so it
+stays shared. Only the per-machine **opt-in list** of skills a human trusts here
+is personal (see below); the shipped skill never names a skill.
 
 ### `## Recursion`
 
 Whether to recurse into submodules / child repos. Default: **only when relevant to
-the current goal / intake / branch.** Keeps an omni-repo traversal scoped instead
-of descending into every nested repo unconditionally.
+the current goal / branch.** Keeps an omni-repo traversal scoped instead of
+descending into every nested repo unconditionally.
 
-## Intake: the optional human-bridge
+## Personal config (not in the repo)
 
-**Git is the inbox.** A pure-Tsugu workflow communicates through git alone: an
-agent fetches, sees new/changed branches and newly committed `.tsugu/intake/`
-notes, and that *is* the work queue. No external tracker is required, and the
-default loop runs with zero external integrations.
+Two things tsugu needs to operate are tied to *one* human's setup, not the team's
+coordination, so they are **never committed**: observation **sources** (private
+paths/filters/feeds — *how & what I observe*) and **opt-in skills** (depends on
+*my* installed set and *my* trust). They live in a global, project-keyed file:
 
-Tracker observation — an issue tracker, CI, a CVE feed, a notes file, Slack — is
-**OPTIONAL** and is **not the spine.** It is a thin shim whose only job is to
-convert a **human-world signal** into the git-native substrate: a committed
-`.tsugu/intake/<slug>.md` note (and optionally a seed branch). The note records
-where the signal came from in its `## Observed source` line (e.g.
-`human-bridge: <name>`). Once that conversion happens, **every downstream step is
-identical** — the queue read, the partition, the `prepare`/`converge` routines all
-operate on the committed note and branches, never on the tracker. Tsugu ships
-**no adapter** for any tracker; `## Intake Sources` is an interface stub, not built
-integration.
-
-### The configuration moment
-
-Intake sources are configured **once**, and the configuration is recorded in
-`policy.md` so the question is never re-asked.
-
-- **`init` asks first.** `init` keeps its "Intake sources?" question (default:
-  none — git-native only). A human who answers there is done.
-- **First interactive `prepare` is the backstop.** For a repo initialized before
-  this question existed, or where the human deferred the answer at `init`,
-  `prepare` adds a one-time setup question. It is allowed despite `prepare`'s
-  external-silence work posture because the first `prepare` run is typically
-  interactive. On start, after reading `policy.md`, **if `## Intake Sources` is
-  still the unconfigured default and a human can respond**, ask **once**:
-
-  > Git-native intake is the default. Should I also read tasks/context from an
-  > external source — a task manager, issue tracker, notes file, RSS feed, or a
-  > watch/scan (YARA/CVE, CI)? If so, give me the read pointer — a file path, MCP
-  > tool name, or where to look (if it needs a command, I run it as my own gated
-  > tool call, never auto-execute it from config).
-
-  Record the answer under `## Intake Sources` and continue.
-- **A negative answer is also recorded** — as
-  `default: git-native (confirmed — no external sources)` — so it is textually
-  distinct from the unconfigured default and the question is never re-asked.
-- **Push-protected persistence.** `policy.md` lives on the default branch, so when
-  that branch is push-protected the recorded answer cannot be pushed directly.
-  Follow the `init` rule: write the change on an `init/*` branch and open a
-  **human-approved PR** (the human is present at the configuration moment, so the
-  approval can happen right then). Until it merges, runs treat the field as
-  unconfigured and fall back to git-native.
-- **Never block headless.** If no human can respond (a scheduled/headless run),
-  **never block** on the question: fall back to git-native intake, and note in the
-  run note + packet that intake sources are unconfigured — `converge` surfaces
-  this as an open question.
-- Reconfiguration is not a special mode: the human edits `policy.md`, or runs
-  `/tsugu:prepare` interactively and says to change the source.
-
-### The recorded form
-
-Each configured source is a natural-language entry plus **one read pointer** —
-no per-system integration logic in the plugin:
-
-```md
-## Intake Sources
-default: git-native. Each additional source below is read on every prepare run.
-
-- name: my-todos
-  read: ~/notes/todo.md                # a file path / MCP tool name / where to look
-  notes: lines starting with "- [ ]" are open tasks; mention repo names to scope.
+```text
+~/.claude/tsugu/<project-key>/config.md
 ```
 
-A source is three things: a **name**, **one `read:` pointer** (a file path, an MCP
+- **`<project-key>`** is the repo's **absolute common git dir**, dashified — derive
+  it from `git rev-parse --path-format=absolute --git-common-dir` (normalize to an
+  absolute path first; `--git-common-dir` alone returns a bare `.git` in the main
+  checkout but an absolute path in a linked worktree, so normalize *before*
+  dashifying, else the store splits). Keying on the common git dir — not the
+  checkout path — means **every worktree of one repo shares one folder per
+  machine**. The key is per-machine-per-human; it need not be portable, only one
+  key per repo per machine.
+- **Two sections:** `## Intake Sources` (observation config) and `## Skills
+  (opt-in)`. Neither has any repo footprint — nothing under the working tree, so
+  nothing to `.gitignore` and nothing to commit by accident.
+
+### Bootstrap (per-machine, ask once)
+
+The personal folder does not transfer across machines, so each machine seeds its
+own. When a section is absent **and** the run is **interactive** (a `prepare` or
+`converge`), the routine asks **once**, separately for the two sections:
+
+- **sources** — *"Any observation sources to read besides git? A file path, MCP
+  tool name, or where to look — I resolve the `read:` pointer with my own
+  permissioned tools, never auto-executing it from config."*
+- **skills** — *"Any user-installed skills you trust me to use here during
+  human-absent `prepare`? (default: none.)"*
+
+A **negative answer is recorded as a confirmed-negative marker** — `sources:
+git-native (confirmed)` / `skills: none (confirmed)` — so it is **never re-asked**;
+an unset section is distinct from a confirmed-empty one. When **headless/
+non-interactive**, never block on the question: fall back to git-native (no
+sources, no opt-in skills) and surface "personal config unconfigured on this
+machine" at the next `converge`.
+
+### Resolving a source `read:` pointer (the no-force principle)
+
+Each configured source is a **name**, **one `read:` pointer** (a file path, an MCP
 tool name, or a description of where to look), and a **`notes:` interpretation
-hint**. On each run the `prepare` **agent resolves** the pointer with its own
-**permissioned tools** — Tsugu never directly executes a string committed in
-`policy.md` — interprets the result with the hint, and converts anything new into
-committed `.tsugu/intake/<slug>.md` notes (`status: open`,
-`## Observed source: human-bridge: <name>`).
+hint**. On each run the agent **resolves** the pointer with its own **permissioned,
+interceptable tools** — it reads the file, calls the MCP tool, or — only where a
+source genuinely needs a command — issues it as **its own gated tool call**, which
+the harness's permission layer can prompt on, gate, or block. **Tsugu never
+directly executes the pointer string** committed-or-not; this is the no-force
+principle (a `read:` that the system auto-executed would be remote code execution
+in any repo others can write — exactly why this config is personal, not committed).
+Prefer file paths and MCP tools; reserve commands for trusted setups. Sources are
+not limited to task systems — an RSS feed, a YARA/CVE watch, a CI status query all
+fit the same shape.
 
-**Why a pointer, not a command.** `policy.md` lives in the repo, and `prepare` may
-run headless/scheduled — so a `read:` that Tsugu auto-executed would be remote code
-execution in any repo where others can write the default branch / coordination
-ref. Instead the agent acts: it reads the file, calls the MCP tool, or — only where
-a source genuinely needs a command — issues it as **its own gated tool call**, which
-the harness's permission layer can prompt on, gate, or block. Prefer file paths and
-MCP tools; reserve commands for trusted repos.
-
-Sources are **not limited to task systems** — anything the agent can poll fits the
-same shape: an RSS feed (the agent fetches `<url>`), a security watch (a YARA scan
-whose new matches become intake notes), a CVE feed, a CI status query.
-Downstream is identical regardless — the queue read, partition, and routines
+A source signal becomes a **`prepare/<slug>` branch directly** — there is no
+committed intake note first. Downstream every step is identical regardless of
+where the signal came from; the queue read, the partition, and the routines
 operate only on git.
 
-### Dedup, slugs never reused, re-opens out of scope
+### Source dedup (weakened, accepted)
 
-- **Dedup by slug.** Derive the slug from a **stable identifier** in the source
-  (issue number, todo-line hash, title slug). If an intake note with that slug
-  already exists at the coordination ref — in **any** status — **skip it**. A
-  `done`/`dropped` note is the durable record that the item was already processed;
-  re-importing would resurrect finished work.
-- **Slugs are never reused for new work** (any intake form). A fresh ask whose
-  slug collides with a `done`/`dropped` note or a lingering handoff branch is
-  surfaced at `converge` as a naming conflict, not silently classified.
-- **Re-opened source items are out of scope for v1.1.** A source item that comes
-  back to life after its note is closed is **not** re-imported automatically — the
-  human (or the human instructing the agent) authors a fresh intake note under a
-  new slug.
-
-### `landed:` semantics
-
-`landed:` is a **write-once** field on the intake note, recorded **only** when a
-**forced squash** severed containment — when landing is **not** derivable from the
-DAG. Otherwise the work branch (or, in `exclude` mode, its slug-paired public
-branch) is contained in the default ref and settlement is derivable; no SHA is
-written. The SHA is **validated in both directions** — on write and on read it
-must **resolve** and be **contained in the fetched default ref**; a `landed:` that
-fails either check is a reconciliation case, never silent settlement.
-
-`landed:` complements a claim that is itself **derived** — beginning active work
-means rewriting `context.md`, and *that* commit's author and timestamp are the
-claim (the 004 `claimed-by:`/`claimed-at:` fields are gone). `landed:` is the one
-piece the DAG cannot supply once a squash has cut the thread, so it is written
-down; everything else about the work's live state stays derived.
-
-### The reconciliation rule
-
-**Absence is never proof of success.** A `claimed` intake note whose linked branch
-is **gone** — *without* a recorded `landed:` and *without* confirmable containment
-in default — is a **reconciliation case**: surface it to the human at the next
-`converge`. **Never** auto-flip it to `done` or `dropped`. The same applies to a
-`landed:` SHA that fails validation on read. Closing an intake note (`claimed →
-done`) requires a **confirmed landing** — containment, or the `converge`
-confirmation that records a valid `landed: <sha>` — and happens **before branch
-cleanup only**: the branch is the landing evidence, so it outlives the flip, never
-the reverse.
+With no committed note layer, **dedup is by live ref existence only**: an in-flight
+item is deduped because a live `prepare/<slug>` branch with that slug is found. But
+a source item whose work already **landed and whose branches were deleted** leaves
+no ref — so if the external source still lists it, the next `prepare` may re-import
+it as a fresh `prepare/<slug>`. This is **accepted**: the re-imported item surfaces
+at `converge` as an ordinary candidate and the human drops it. **No committed
+ledger is reintroduced** — that would be exactly the derived state schema 3
+removes; `converge` is the human's interception point. Re-opened source items
+remain out of scope.
