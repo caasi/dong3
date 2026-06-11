@@ -253,6 +253,17 @@ need to persist**:
   path is still the retain-handoff requirement below; the narrative backstop is the
   safety net for repos whose forge deletes the branch regardless.
 
+- **`exclude` mode has the same exposure on *every* merge, not just squashes.** In
+  `exclude` mode the accepted code lands **by path** on a fresh public branch, so
+  the work branch's own tip is **never** contained in default — settlement reads
+  off the slug-paired public branch (C1). That makes exclude mode structurally
+  identical to the forced-squash case: it depends on the public branch surviving,
+  and if the forge auto-deletes it on a normal merge the work branch falls to
+  in-progress. So the **retain-handoff requirement and the narrative backstop apply
+  to every `exclude`-mode landing**, not only squashes — `converge` writes the
+  "handed off — may have landed" narrative into the work branch's `context.md` and
+  keeps the public branch alive until the completion tail removes both.
+
 **Retain-handoff requirement (forced-squash path).** This extends the standing
 merge-method guidance recorded in `policy.md`'s `## Merge method` (prefer merge
 commits — do not squash-merge tsugu-managed branches). When a forge nonetheless
