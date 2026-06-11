@@ -1,6 +1,6 @@
 {
   "name": "tsugu",
-  "description": "Git-native preparation & convergence — agents prepare work privately via git's DAG (init/prepare/converge), state derived from refs not files, evidence packaged for human–agent handoff. Never auto-merges; invokes no user-installed skill by default.",
+  "description": "Git-native preparation & convergence — committed .tsugu/ is a WIP-knowledge layer (policy.md + context.md + knowledge/); observation sources, opt-in skills, and packets are personal config never committed; state derived from refs (single-layer, no intake notes); never auto-merges; invokes no user-installed skill by default.",
   "author": { "name": "caasi" },
   "homepage": "https://github.com/caasi/dong3",
   "repository": "https://github.com/caasi/dong3",

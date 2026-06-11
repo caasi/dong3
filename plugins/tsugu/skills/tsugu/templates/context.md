@@ -14,6 +14,3 @@
      probe — over prose claims; the next inheritor re-runs instead of
      re-trusting -->
 ## Promotion candidates
-## This work's files
-<!-- links to this slug's packet and run notes, e.g.
-     packets/<slug>.md · runs/<slug>-<date-time>.md -->

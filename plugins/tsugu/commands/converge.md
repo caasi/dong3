@@ -8,8 +8,9 @@ argument-hint: "[branch]"
 Invoke the `tsugu` skill and run the **converge** routine. `$ARGUMENTS` may name
 a branch to converge directly, skipping the selection question.
 
-Load-bearing invariants the skill enforces: steps before the disposition are
-read-only — running this just to look (how many branches are workable, what
-awaits merge, what is stale) is a first-class use; merging/opening the PR is
-the human's act — Tsugu never auto-merges; housekeeping (stale branches) is
-human-decided per item.
+Load-bearing invariants the skill enforces: reads branches live (from
+remote-tracking refs after fetch) — the packet is a personal/derived view,
+never committed; steps before the disposition are read-only — running this just
+to look (how many branches are workable, what awaits merge, what is stale) is a
+first-class use; merging/opening the PR is the human's act — Tsugu never
+auto-merges; housekeeping (stale branches) is human-decided per item.

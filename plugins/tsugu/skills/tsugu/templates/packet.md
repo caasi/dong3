@@ -1,3 +1,4 @@
+<!-- Personal/derived view — written to ~/.claude/tsugu/<project-key>/packets/<slug>.md, regenerated live per machine; never committed. -->
 ## Intake source
 ## Branches prepared
 ## What was tried

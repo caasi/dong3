@@ -9,7 +9,9 @@ through as free-form context.
 
 Load-bearing invariants the skill enforces: external silence (interrupt only if
 unsafe, destructive, or blocked); state derived from refs and the DAG — no
-status fields; pushes by policy (default yes); asks where tasks come from once,
-only when interactive and unconfigured — a scheduled run never blocks; invokes
-no user-installed skill by default. Wire this routine to /schedule or cron — it
-cannot self-wake.
+status fields, single-layer (no committed status notes); pushes by policy
+(default yes); bootstraps personal config (observation sources + opt-in skills,
+in the global personal folder) once when interactive and a section is absent — a
+scheduled run never blocks; invokes no user-installed skill by default (opt-in
+via personal config only). Wire this routine to /schedule or cron — it cannot
+self-wake.
