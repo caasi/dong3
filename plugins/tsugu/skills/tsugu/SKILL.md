@@ -164,11 +164,11 @@ Workflow skills (planning, debugging, TDD, finishing-a-development-branch, revie
 
 ## Multi-agent: reserved
 
-v1 is a **single agent + its built-in subagents**. The discovery layer is honored (fetch, partition the queue from refs + the DAG, process it); concurrent arbitration is **not built**.
+Tsugu today is a **single agent + its built-in subagents**. The discovery layer is honored (fetch, partition the queue from refs + the DAG, process it); concurrent arbitration is **not built**.
 
 - **Claims are derived from commit recency — no claimed-by/claimed-at fields exist.** Beginning active work means rewriting `context.md`, and that commit's author and timestamp *are* the claim. A work branch with recent commits is treated as taken; a stale last commit = free to pick up. When agents share one git identity (one human, two machines — the primary scenario), authorship cannot distinguish them and the rule **degrades to pure recency**, acceptable for a courtesy yield. **No lock backs this.**
-- **No arbitration, no locks** (deferred to v2, which formalizes the staleness window). Two agents grabbing the same branch at once is undefined in v1 (doesn't arise with one agent).
-- The substrate (committed + pushed `.tsugu/`, branch-as-message, per-ref `context.md`, ref-and-DAG-derived state) is **forward-compatible** with multi-peer coordination; v1 introduces no design that assumes a single agent.
+- **No arbitration, no locks** (deferred to a future multi-agent iteration, which would formalize the staleness window). Two agents grabbing the same branch at once is undefined today (doesn't arise with one agent).
+- The substrate (committed + pushed `.tsugu/`, branch-as-message, per-ref `context.md`, ref-and-DAG-derived state) is **forward-compatible** with multi-peer coordination; this design introduces nothing that assumes a single agent.
 
 ## Scheduling & recursion
 
