@@ -95,8 +95,9 @@ from a one-time **setup question**, which is allowed because the first
 
   > Git-native intake is the default. Should I also read tasks/context from an
   > external source — a task manager, issue tracker, notes file, RSS feed, or
-  > a watch/scan (YARA/CVE, CI)? If so, give me the read instruction — a shell
-  > command, file path, or MCP tool name.
+  > a watch/scan (YARA/CVE, CI)? If so, give me the read pointer — a file path,
+  > MCP tool name, or where to look (if it needs a command, I run it as my own
+  > gated tool call, never auto-execute it from config).
 
   Record the answer in `policy.md` under `## Intake Sources` and continue. A
   **negative answer is also recorded** — as
@@ -117,25 +118,34 @@ from a one-time **setup question**, which is allowed because the first
 ### The recorded form
 
 Each configured source is a natural-language entry plus **one read
-instruction** — no per-system integration logic in the plugin:
+pointer** — no per-system integration logic in the plugin:
 
 ```md
 ## Intake Sources
 default: git-native. Each additional source below is read on every prepare run.
 
 - name: my-todos
-  read: `cat ~/notes/todo.md`          # shell command, file path, or MCP tool name
+  read: ~/notes/todo.md                # a file path / MCP tool name / where to look
   notes: lines starting with "- [ ]" are open tasks; mention repo names to scope.
 ```
 
-On each run, `prepare` executes the read instruction, interprets the result
-with the `notes:` hint, and converts anything new into committed
-`.tsugu/intake/<slug>.md` notes (`status: open`,
+On each run the `prepare` **agent resolves** the `read:` pointer with its own
+**permissioned tools** — **Tsugu never directly executes a string committed in
+`.tsugu/`** — interprets the result with the `notes:` hint, and converts anything
+new into committed `.tsugu/intake/<slug>.md` notes (`status: open`,
 `## Observed source: human-bridge: <name>`). Downstream is identical to 004 —
-the queue read, partition, and routines operate only on git. Sources are not
-limited to task systems: anything one read instruction can poll fits the same
-shape — an RSS feed (`curl --silent <url>`), a security watch (a YARA scan whose new
-matches become intake notes), a CVE feed, a CI status query.
+the queue read, partition, and routines operate only on git.
+
+`read:` is a **pointer, not a command**: `policy.md` is repo content and `prepare`
+may run headless, so a string Tsugu auto-executed would be remote code execution
+in any repo where others can write the default branch / coordination ref. The
+agent instead reads the file, calls the MCP tool, or — only where a command is
+genuinely needed — issues it as **its own gated tool call**, which the harness's
+permission layer can prompt on, gate, or block. This is the **no-force principle**:
+Tsugu offers data and trusts the agent's judgment; it never makes the agent run
+anything. Sources are not limited to task systems: anything the agent can poll
+fits the same shape — an RSS feed (the agent fetches `<url>`), a security watch (a
+YARA scan whose new matches become intake notes), a CVE feed, a CI status query.
 
 **Dedup rule:** derive the slug from a stable identifier in the source (issue
 number, todo line hash, title slug). If an intake note with that slug already
@@ -240,9 +250,13 @@ human-present session:
      Once landing is confirmed — by containment in merge-commit repos, or by
      the human's in-session confirmation where a squash was forced (C4's
      landing rules) — run the **completion tail**, in this order: promote
-     reusable knowledge into `.tsugu/knowledge/`; flip the intake note
-     `claimed → done` (recording `landed: <sha>` when the landing is not
-     containment-derivable); and **only then** clean up worktrees and branches
+     reusable knowledge into `.tsugu/knowledge/`; flip the **linked** intake
+     note `claimed → done` (recording `landed: <sha>` when the landing is not
+     containment-derivable) — note-less request-by-branch work skips this step
+     only when the landing is containment-derivable; a forced squash (containment
+     lost) needs the `landed: <sha>` record, so such note-less work first
+     materializes a slug-keyed intake note to carry the validated SHA, then flips
+     it; and **only then** clean up worktrees and branches
      (worktree remove before branch delete, as always — the handoff branch
      too, if the forge didn't already delete it). Branch deletion comes after
      the flip because the branch is landing evidence — a lingering merged
@@ -441,7 +455,11 @@ Containment checks are `git merge-base --is-ancestor` /
   `converge` as a naming conflict, not classified.
 - **Intake-note closing requires confirmed landing.** Flip `claimed → done`
   only on a confirmed landing — containment, or the `converge` confirmation
-  that records `landed: <sha>` — and **before branch cleanup only** (C1): the
+  that records `landed: <sha>` — and **before branch cleanup only** (C1); this
+  applies only when the work has a linked intake note. Note-less request-by-branch
+  work skips the flip for a containment-derivable landing, but a forced squash
+  (containment lost) materializes a slug-keyed note to carry `landed: <sha>`
+  before flipping — the SHA has nowhere else durable to live. The
   branch is landing evidence; it outlives the flip, never the reverse. A
   `prepare`/`converge` tidy pass re-enters the whole idempotent tail for
   sessions that ended mid-completion. **Absence is never proof of success:** a
@@ -560,35 +578,50 @@ deterministic, version-stamped migration.
 - A migration that cannot be applied mechanically (a curated section
   conflicting with the new structure) **stops and asks** — never force-resolve.
 - **Push-protected default branches:** the whole migration rides an `init/*`
-  branch + human-approved PR (the 004 `init` rule), and any coordination-ref
-  change (e.g. the `knowledge/` rename) is performed only **after** that PR
-  merges — otherwise schema-1 readers and the renamed coord ref would disagree
-  during the window. Until the migration completes, readers accept both
-  `context/` and `knowledge/` names.
+  branch + human-approved PR (the 004 `init` rule). Throughout the migration
+  window readers accept both `context/` and `knowledge/` names, so a schema-1
+  reader and the renamed coord ref never disagree. **The `tsugu-schema` stamp
+  lives in `policy.md` on the default branch, so it always rides the policy
+  `init/*` PR and is the last write to land — but that PR merges only *after* the
+  coordination-ref rename is confirmed on its own ref** (not one commit when the
+  coord ref is a separate branch): the rename and stamp share the PR when
+  `coordination-ref=default`, otherwise the separate pushable coord branch is
+  renamed first and confirmed, then the stamp PR merges. While the stamp is absent
+  a re-run re-enters, so the schema never reads complete over a half-applied
+  rename.
 
 ### Migration 1→2 (shipped with this spec)
 
 1. Add `public-branch-tsugu:` to `policy.md` (ask once, default `include`).
 2. Add `## Handoff Prefixes` to `policy.md` (default `feat/* fix/*`; ask once
-   if the repo's convention is visible to confirm) and update `## Branch
-   Prefixes` to the new work-only default — **legacy `public/*` is appended to
-   the Handoff Prefixes list**, so existing `public/*` branches keep their
-   meaning (pending/landed outputs, never work candidates).
+   if the repo's convention is visible to confirm) and narrow `## Branch
+   Prefixes` to work-only by **preserving the repo's configured work prefixes**
+   (the `prepare/* investigate/* review/*` set is the default only when never
+   customized) and removing only `public/*` from them — **legacy `public/*` is
+   appended to the Handoff Prefixes list**, so existing `public/*` branches keep
+   their meaning (pending/landed outputs, never work candidates).
 3. Add the merge-commit recommendation line to `policy.md`.
 4. Re-wrap any existing `## Intake Sources` content into the structured entry
    format (B), preserving listed sources. This re-wrap is **not** fully
    mechanical: a legacy free-prose entry (e.g. "gh issues") has no derivable
-   `read:` instruction — such entries take the ask-once path (or are carried
+   `read:` pointer — such entries take the ask-once path (or are carried
    over with an explicit `read: TODO (ask the human)` marker when no human is
    available).
 5. Rename `.tsugu/context/` → `.tsugu/knowledge/` on the coordination ref
    (`git mv`, contents preserved — existing tier subdirectories ride along as
-   plain folders, since no internal layout is prescribed anymore; deferred
-   until the policy PR merges when the default branch is push-protected).
+   plain folders, since no internal layout is prescribed anymore). On a
+   push-protected default branch the rename completes on its ref **before** the
+   step-8 stamp lands — in the same `init/*` PR when `coordination-ref=default`,
+   else on the separate coord branch first — never bundled into one commit with
+   the stamp.
 6. Update `.tsugu/templates/` from the plugin (`branch.md` template replaced
    by the pure-narrative `context.md`; `intake.md` gains `landed:`).
 7. Write the default branch's `.tsugu/context.md` (mainline form) if absent.
-8. Add `tsugu-schema: 2` — **last**, after steps 1–7 succeed.
+8. Add `tsugu-schema: 2` — **last**, after steps 1–7 succeed. The stamp rides
+   the `policy.md` PR, gated on step 5's rename being confirmed on its ref first
+   (same PR when `coordination-ref=default`; otherwise the separate coord branch
+   is renamed before the stamp PR merges), so the schema never reads complete
+   while a step is pending.
 
 Live work branches are **not** migrated centrally: agents read legacy
 `branch.md` per the C2 compatibility rules (legacy `status:` folded into
