@@ -16,11 +16,11 @@ schema-1 repo migrates 1→2→3 under the existing N→N+1 contract.
 | Line | Change | What it supersedes in 005 |
 | --- | --- | --- |
 | A | The storage-location split: committed `.tsugu/` holds only what transfers to *any* inheritor; everything tied to one human's session/sources/rhythm moves to a **personal global folder** | §B's `## Intake Sources` policy block and the `intake/<slug>.md` note form; §C6's `packets/`/`runs/` durable-memory rationale |
-| B | Committed `.tsugu/` collapses to **`policy.md` + `context.md` + `knowledge/`**; `intake/`, `runs/`, repo-seeded `templates/`, and `packets/` are removed or relocated | §C2's `runs/`/`packets/` links and load-via-active-branch archive semantics; §C3's `knowledge/` promotion gate; §D's repo template-seeding |
+| B | Committed `.tsugu/` collapses to **`policy.md` + `context.md` + `knowledge/`**; `intake/`, `runs/`, repo-seeded `templates/`, and `packets/` are removed or relocated | §C2's `runs/`/`packets/` links and load-via-active-branch archive semantics; §C3's `knowledge/` promotion gate; the 004 repo template-seeding that 005 §D refreshed |
 | C | **No intake notes.** Work-entry is a `prepare/<slug>` branch directly; the entire intake-note lifecycle (`open→claimed→done\|dropped`, `linked-branch:`, `landed:`, note-based reconciliation) is gone. State is single-layer (branches only) | §C4's `landed:`/reconciliation rules and the intake-note two-layer lifecycle; §B's dedup-by-note |
 | D | `converge` reads tsugu branches **live**; the packet is a **personal/derived** decision-view regenerated per human/machine, never a pushed artifact | §C1's pushed-packet presentation and the completion tail's intake-flip step |
 | E | `public-branch-tsugu` is **redefined** (not dropped): it governs whether the committed **WIP-knowledge layer** (`context.md` + prep DAG) lands on the public/default branch | §C6's durable-memory rationale resting on `packets/`/`runs/` |
-| F | The skill **shrinks substantially** to match; templates live in the skill, referenced not copied | §D's repo template-seeding; the references built for the two-layer intake/landed/runs lifecycle |
+| F | The skill **shrinks substantially** to match; templates live in the skill, referenced not copied | the 004 repo template-seeding (005 §D only refreshed it); the references built for the two-layer intake/landed/runs lifecycle |
 
 Everything in 004/005 not named here is unchanged.
 
@@ -150,7 +150,7 @@ The boundary is audience/privacy (the spine).
 |---|---|
 | `tsugu-schema`, Private-Git-Space / Public-Coordination boundary, `## Branch Prefixes`, `## Handoff Prefixes`, `## Public branch` (`public-branch-tsugu` — redefined, E), `## Merge method`, `## Housekeeping` (`stale-after`), `coordination-ref`, `remote:` / `default-branch:`, `## Recursion`, `## Skill use` (the shipped invariant), `## Push` (`push-prepare-branches` — pushed branches are messages to coworkers) | **shared** → stays in committed `.tsugu/policy.md` |
 | `## Intake Sources` | **personal** → global folder (`sources`) |
-| `## Skills Tsugu may use (opt-in)` | **personal** → global folder (`skills`) |
+| `## Skills Tsugu may use (this repo, opt-in)` | **personal** → global folder (`skills`) |
 
 `## Skill use` (the *shipped invariant* that tsugu invokes no user-installed skill
 by default) stays shared — it states behavior true in every repo. Only the
@@ -462,7 +462,7 @@ schema-compat `branch.md`/`context.md` reads still apply).
 | `skills/tsugu/references/git-recipes.md` | drop coordination-ref intake writes, `landed:` validation, completion-tail intake flip; simpler partition; init skeleton without `intake/`/`templates/` |
 | `skills/tsugu/references/migrations.md` | add migration 2→3 (keep 1→2) |
 | `skills/tsugu/templates/` | keep `policy.md` (shared only), `context.md` (no `runs/`/`packets/` links), `packet.md` (personal-folder form); **remove** `intake.md`, `run.md`; templates referenced not copied into repos |
-| `skills/tsugu/commands/{init,prepare,converge}.md` | reflect personal config + live-read converge where they mention intake/packets |
+| `commands/{init,prepare,converge}.md` | reflect personal config + live-read converge where they mention intake/packets |
 | `skills/tsugu/README.md` | `.tsugu/` diagram (`policy.md` + `context.md` + `knowledge/`); personal folder; state model; redefined `public-branch-tsugu`; add 006 link |
 | `plugins/tsugu/.claude-plugin/plugin.json` | description updated to the v2 shape |
 | `.claude-plugin/marketplace.json` | tsugu entry: description + **minor version bump** |
