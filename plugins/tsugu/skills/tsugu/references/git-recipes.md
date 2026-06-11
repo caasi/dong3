@@ -453,9 +453,11 @@ order:
 
 Once both refs are gone the item **leaves the partition entirely** (no refs → not
 classified, exactly like any cleaned-up settled item). The durable landed artifact
-is the squash commit itself on the default branch — the work content is there,
-just not containment-linked or slug-keyed. **No SHA is persisted, and there is no
-status to flip.** Branch deletion comes last: the branch is the landing evidence.
+is **the landed commits on the default branch** — the merge in a normal
+include/exclude landing, or the squash commit where a squash was forced (there the
+work content is present but not containment-linked or slug-keyed). **No SHA is
+persisted, and there is no status to flip.** Branch deletion comes last: the branch
+is the landing evidence.
 **Idempotent** — interrupted before cleanup, the branches remain and a later tidy
 re-enters the whole tail.
 
