@@ -86,7 +86,7 @@ Then write committed `.tsugu/` from the plugin templates: `policy.md` (shared se
 
 ### `prepare` (human absent)
 
-The core routine. No human is present, so Tsugu does its own git work directly and may dispatch its **own built-in Task subagents** — but it invokes **no user-installed skill**. Posture: **external silence, internal preparation.** Interrupt the human only if the task is unsafe, destructive, or blocked; when unsure, continue with reversible private git work.
+The core routine. No human is present, so Tsugu does its own git work directly and may dispatch its **own built-in Task subagents** — but it invokes **no user-installed skill *by default*** (the one exception: skills a human explicitly opted into in the personal-folder `skills` section — see *Private vs public boundary & skill use*). Posture: **external silence, internal preparation.** Interrupt the human only if the task is unsafe, destructive, or blocked; when unsure, continue with reversible private git work.
 
 `prepare` **does NOT self-wake** — a SKILL.md is a prompt loaded into a running agent and cannot schedule itself. Cadence always comes from an external `/schedule`/cron driver.
 
@@ -132,7 +132,7 @@ The human-attention phase. **Tsugu presents and yields, then completes the decid
    - a **housekeeping section** — in-progress branches whose last activity is older than `stale-after` (default 30 days; recorded progressively in `policy.md` by `converge` on first use). Staleness is **derived** (last-commit timestamp, the same recency mechanism as claims); cleanup is **human-decided per item** — resume, park with an updated narrative, drop (record the reason in the narrative, delete via the usual order), or keep. **A scheduled `prepare` never cleans on its own.**
 3. Regenerate the **personal packet** live from the branches and lay it out alongside the prepared branches/worktrees and a summary of what was tried / worked / failed / evidence / remaining uncertainties; surface open questions (including any personal config unconfigured on this machine).
 
-   Steps 1–3 are **read-only**, so running `/tsugu:converge` just to look is a first-class use — **looking and leaving is the morning status view**: how many prepared branches are workable today, what awaits merge, what's stale. Choosing nothing and leaving is a valid outcome; side effects begin only at step 4's disposition.
+   Steps 1–3 touch **no git or shared state** — they make no commits, no pushes, no public coordination; regenerating the personal packet writes only a derived, ephemeral view in the personal folder (not a shared artifact, so it is not a meaningful side effect). In that sense running `/tsugu:converge` just to look is a first-class use — **looking and leaving is the morning status view**: how many prepared branches are workable today, what awaits merge, what's stale. Choosing nothing and leaving is a valid outcome; **all shared/git side effects begin only at step 4's disposition**.
 4. **Decide *with* the human, then complete the disposition in-session:**
 
    - **Accepted (`include` mode):** freshness-rebase onto the fetched default → verify (build/tests) → rewrite `context.md` to the ready-to-merge mainline narrative → push → hand off:
