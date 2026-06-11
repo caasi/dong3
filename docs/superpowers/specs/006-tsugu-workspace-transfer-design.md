@@ -378,11 +378,29 @@ branch + human-approved PR). Steps:
      machine's* personal folder. This is principle-aligned: observation config is
      "how & what *I* observe" — inherently per-machine, not meant to transfer. No
      git-history recovery and no in-repo breadcrumb.
-2. **Remove the relocated/removed committed paths.**
-   `git rm -r .tsugu/intake .tsugu/runs .tsugu/packets .tsugu/templates`.
-   This **stops writing them going forward; history is left intact** (no rewrite —
+2. **Remove the relocated/removed committed paths**, per-path and idempotently —
+   this **stops writing them going forward; history is left intact** (no rewrite —
    it would violate the protect-primary-history invariant, and old artifacts are
-   harmless). Condition: any of these paths still exists in the tree.
+   harmless). Two subtleties the bare `git rm -r .tsugu/intake .tsugu/runs
+   .tsugu/packets .tsugu/templates` gets wrong:
+   - **Idempotency / partial trees.** A bare `git rm -r` **fails if any pathspec
+     matches nothing**, and the schema-2 `init` skeleton seeds only
+     `intake/`/`knowledge/`/`templates/` — `runs/` and `packets/` are created on
+     first use, so a repo that never ran `prepare` has neither. Remove each path
+     **only if present** (a per-path guard, or `git rm -r --ignore-unmatched
+     <path>`), so the step no-ops cleanly on a partial tree and an interrupted
+     re-run re-enters. Condition: any of these paths still exists.
+   - **Cross-ref placement.** `intake/`/`runs/`/`packets/` live on the
+     **coordination ref**; repo-seeded `templates/` lives on the **default
+     branch**. When `coordination-ref != default` (the push-protected setup that
+     1→2 already handles for the `context/→knowledge/` rename), these are on
+     *different refs* — one `git rm` cannot span both. Split the removal: the
+     coord-ref paths are removed on the coordination ref, `templates/` on default,
+     and the **coord-ref deletions are confirmed before the step-5 schema stamp**,
+     exactly as 1→2 orders its coord-ref rename ahead of the stamp. When
+     `coordination-ref = default`, all four ride the one `init/*` policy PR, stamp
+     last. Throughout the window a reader tolerates the old dirs still being
+     present (they are inert once `prepare`/`converge` stop writing them).
 3. **Redefine `public-branch-tsugu` wording** in `policy.md` (E2) — same values,
    updated description (WIP-knowledge framing). Remove any `landed:` / intake-flip
    wording. Condition: the old wording is present. Never change the chosen value.
