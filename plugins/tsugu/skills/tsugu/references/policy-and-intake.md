@@ -189,10 +189,12 @@ paths/filters/feeds — *how & what I observe*) and **opt-in skills** (depends o
 ~/.claude/tsugu/<project-key>/config.md
 ```
 
-- **`<project-key>`** is the repo's **absolute common git dir**, dashified — derive
-  it from `git rev-parse --path-format=absolute --git-common-dir` (normalize to an
-  absolute path first; `--git-common-dir` alone returns a bare `.git` in the main
-  checkout but an absolute path in a linked worktree, so normalize *before*
+- **`<project-key>`** is the repo's **absolute common git dir with a trailing
+  `/.git` removed**, dashified — derive it from `git rev-parse
+  --path-format=absolute --git-common-dir`, strip a trailing `/.git`, then dashify
+  (normalize to an absolute path first; `--git-common-dir` alone returns a bare
+  `.git` in the main checkout but an absolute path in a linked worktree, so
+  normalize *before*
   dashifying, else the store splits). Keying on the common git dir — not the
   checkout path — means **every worktree of one repo shares one folder per
   machine**. The key is per-machine-per-human; it need not be portable, only one

@@ -1,7 +1,7 @@
 <!-- Personal tsugu config — this repo, this machine. NEVER committed.
      Lives at ~/.claude/tsugu/<project-key>/config.md, where <project-key> is the
-     repo's absolute common-git-dir (path separators → dashes), so every worktree
-     of this repo shares one folder per machine.
+     repo's absolute common-git-dir with a trailing /.git removed (path separators
+     → dashes), so every worktree of this repo shares one folder per machine.
      Relocated here from policy.md in schema 3: observation sources and opt-in
      skills are personal (how & what *I* observe; *my* installed/trusted set),
      not shared coordination. -->
