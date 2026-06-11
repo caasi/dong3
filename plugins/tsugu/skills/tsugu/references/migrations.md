@@ -133,6 +133,15 @@ it gains the `landed:` field. Templates are plugin-owned scaffolding, not curate
 content, so refreshing them is safe. Condition: `branch.md` still exists, or
 `intake.md` lacks a `landed:` field.
 
+> **Under the shipped (schema-3) plugin, the schema-2-only templates
+> `branch.md`, `intake.md`, and `run.md` are no longer shipped.** Refresh only
+> the templates the current plugin actually provides, and **skip the rest** — do
+> not try to copy a template the plugin stopped shipping. This step exists for a
+> repo migrating *only* 1→2 under a schema-2 plugin; on the **1→2→3** path the
+> very next migration removes `templates/` (and `intake/`/`runs/`) wholesale, so
+> there is nothing to gain by materializing them (see the 1→2→3 note under
+> *Migration 2→3*).
+
 **7. Write the default branch's mainline `context.md` if absent.** Write the
 default-branch (mainline) form of `context.md` — the mainline note **file**
 `.tsugu/context.md`, distinct from the `context/` **directory** renamed in step 5.
@@ -164,10 +173,17 @@ Schema 3 is this spec's layout: the committed `.tsugu/` shrinks to
 (intake sources + opted-in skills) moves to the migrating machine's global
 folder; and `intake/`, `runs/`, `packets/`, and repo `templates/` are gone
 (stopped going forward; existing history left intact). Apply these five steps in
-order on the `init/*` branch. A schema-1 repo runs **1→2→3**: the 1→2 steps
-(which create `intake/`, seed `templates/`, etc.) run first, then 2→3
-removes/relocates them — wasteful but correct under the sequential contract; an
-implementation MAY short-circuit but is not required to.
+order on the `init/*` branch. A schema-1 repo runs **1→2→3**. Because 2→3 removes
+`intake/`, `runs/`, `packets/`, and `templates/` wholesale — and the shipped
+schema-3 plugin **no longer carries** the schema-2-only templates (`branch.md`,
+`intake.md`, `run.md`) that 1→2 step 6 would otherwise refresh — apply only the
+**durable** 1→2 changes (the `context/`→`knowledge/` rename, the surviving policy
+fields, the mainline `context.md`) and **skip materializing the transient
+`intake/`/`runs/`/`templates/` scaffolding that 2→3 immediately deletes**. The net
+effect is the schema-3 layout, and the path never depends on a template the plugin
+stopped shipping. (Carrying the scaffolding through and letting 2→3 delete it is
+also correct — just wasteful — but **only** where those schema-2 templates are
+still available; under the shipped plugin they are not, so skip.)
 
 **1. Move personal sections out of `policy.md`.** Condition: either
 `## Intake Sources` or `## Skills Tsugu may use (this repo, opt-in)` is still
