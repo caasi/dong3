@@ -315,7 +315,19 @@ Condition: `## Branch Prefixes` contains **more than** `prepare/*`. Migration
 **proposes** collapsing to the single `prepare/*` default and **asks the human to
 confirm**; it **never auto-changes a curated prefix set**. If the human **declines**,
 the multi-prefix set is kept as-is (fully supported going forward) and the
-migration completes with **only E1 applied** — skip E3 entirely.
+migration completes with **only E1 applied** — skip E3.
+
+**Order matters for restart-safety — do NOT rewrite `## Branch Prefixes` yet.**
+On confirmation, *first* **record the removed work prefixes** (every work prefix
+except `prepare/*`, read from the still-intact `## Branch Prefixes`) into the
+`## Legacy Work Prefixes` policy note, *then* run E3 against that recorded set.
+The actual collapse of `## Branch Prefixes` → `prepare/*` is **deferred to after
+E3** (step 3d). This ordering is what makes the migration re-entrant: if it is
+interrupted before the stamp, the next run either still sees the multi-prefix
+`## Branch Prefixes` (E2 re-proposes and re-derives) **or** finds the removed set
+preserved in `## Legacy Work Prefixes` — so the custom prefixes E3 needs are never
+lost. (Were the list collapsed first, an interruption would leave `prepare/*`
+alone in `## Branch Prefixes` with no way to recover what was removed.)
 
 **Post-collapse disjointness re-check.** The collapse can *introduce* an overlap a
 schema-3 repo did not have: a repo could legally have curated work prefixes
@@ -332,11 +344,12 @@ collapse; the collapse is **not committed until the two sets are disjoint**.
 If the human accepts the collapse, migration handles existing branches under
 **every work prefix the collapse removes** — not only the defaults
 `investigate/* review/*`, but **any custom work prefix** the schema-3 repo had
-configured (e.g. `research/*`). **Derive the removed-prefix set from the
-pre-collapse `## Branch Prefixes` (all work prefixes except `prepare/*`); never
-hardcode the old defaults**, or branches under a custom prefix silently escape
-discovery. Handle each such branch **without renaming any branch** — write-once
-identity is inviolate. For each, first check whether `prepare/<slug>` already
+configured (e.g. `research/*`). Use the **removed set recorded in step 2's
+`## Legacy Work Prefixes` note** (equivalently the pre-collapse `## Branch
+Prefixes`, still intact at this point — `## Branch Prefixes` is not collapsed
+until step 3d). **Never hardcode the old defaults**, or branches under a custom
+prefix silently escape discovery. Handle each such branch **without renaming any
+branch** — write-once identity is inviolate. For each, first check whether `prepare/<slug>` already
 exists, because in schema 3 a same-slug artifact (e.g. `review/<slug>`) is
 typically the **artifact** of an existing `prepare/<slug>`.
 
@@ -392,6 +405,13 @@ No legacy branch is touched without explicit per-branch confirmation. **Artifact
 (case 3b) the human declines to recreate** stops being discovered under the new
 single-prefix default — that is the human's explicit choice, surfaced as a
 one-line note so it is never *silently* dropped.
+
+**3d. Collapse `## Branch Prefixes` → `prepare/*` — now that every legacy branch
+is handled.** This is the deferred write from step 2: only after 3a/3b/3c have
+processed all branches under the removed prefixes is it safe to rewrite the work
+prefix list to `prepare/*` alone. (Any prefix still needed for an un-handled or
+human-retained branch remains recorded in `## Legacy Work Prefixes`, which the
+completion-tail sweep consults until it empties.)
 
 ### E4 — Stamp last (the final action of the whole 3→4 migration)
 
