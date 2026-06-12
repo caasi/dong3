@@ -535,7 +535,7 @@ touch .tsugu/knowledge/.gitkeep
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 3`) + the mainline `context.md` only
+**2. Write `policy.md` (with `tsugu-schema: 4`) + the mainline `context.md` only
 if absent**, rendered from the skill's templates. This makes re-running `init` an
 **idempotent repair**: it fills in any missing skeleton path and is otherwise a
 no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules
