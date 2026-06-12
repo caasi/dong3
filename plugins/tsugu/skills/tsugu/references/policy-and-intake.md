@@ -13,12 +13,12 @@ the personal-config pointer.
 
 ### `tsugu-schema:`
 
-The schema-version stamp (current: `3`). It is the first line of the file, and a
+The schema-version stamp (current: `4`). It is the first line of the file, and a
 migration **writes it last** — only after every N→N+1 rename and semantic change
 has been applied does `init` stamp the new number, so a half-applied migration is
 never mistaken for a completed one. Readers use it to decide whether a re-run of
 `init` must migrate (older stamp → apply `references/migrations.md` in order,
-1→2→3 for a schema-1 repo) or is a plain idempotent repair (stamp already
+1→2→3→4 for a schema-1 repo) or is a plain idempotent repair (stamp already
 current).
 
 ### Private / Public boundary
@@ -27,7 +27,7 @@ The whole point of the file: where the agent may act freely vs where it must ask
 
 - **`## Private Git Space (agent may do freely)`** — actions the agent performs
   without approval: create/commit (push per `## Push`'s `push-prepare-branches:`)
-  `prepare/*` / `investigate/*` / `review/*` branches, worktrees, write `.tsugu/*`,
+  `prepare/*` branches, worktrees, write `.tsugu/*`,
   run tests, try reversible patches, dispatch its own built-in review subagents.
   All of this is git-local and reversible.
 - **`## Public Coordination (ask first)`** — actions requiring human approval:

@@ -28,7 +28,9 @@ public-branch-tsugu: include
      knowledge/ still lands on the coordination ref. -->
 ## Merge method
 Prefer merge commits — settlement depends on containment-preserved history.
-Non-containment landings (squash / rebase / force-push) → `references/advanced.md`.
+Non-containment landings (squash / rebase / force-push) are an advanced path — see
+the tsugu skill's advanced reference (`${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/advanced.md`;
+this committed file does not ship that reference).
 Disable the forge's auto-delete-head-branch for tsugu branches so the slug
 pairing survives the merge — `exclude` mode settles via the public branch's
 containment, so that ref must survive too.
