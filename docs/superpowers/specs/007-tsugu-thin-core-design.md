@@ -1,4 +1,4 @@
-# 007 — Tsugu thin core: `prepare/*` is the work prefix, squash is advanced (schema 4)
+# 007 — Tsugu thin core: `prepare/*` is the work prefix, non-containment landings are advanced (schema 4)
 
 ## Relationship to 004 / 005 / 006
 
@@ -9,19 +9,19 @@ no-force principle, the storage split (committed `.tsugu/` vs personal global
 folder), and the multi-agent reservations all stand.
 
 007 is a **mental-model simplification**, not a storage change. It narrows what
-is *foreground* in the core skill and relocates the heaviest path (forced
-squash) to an advanced reference — **relocate, not remove**. No capability is
-dropped; the default surface shrinks. Captured from the homelab→MacBook workflow
-recorded in issue #38.
+is *foreground* in the core skill and relocates the heaviest path (settlement
+when a landing rewrites history) to an advanced reference — **relocate, not
+remove**. No capability is dropped; the default surface shrinks. Captured from
+the homelab→MacBook workflow recorded in issue #38.
 
 The new schema is **`tsugu-schema: 4`**, with a documented 3→4 migration. A
 schema-1/2 repo migrates 1→2→3→4 under the existing N→N+1 contract.
 
 | Line | Change | What it supersedes |
 | --- | --- | --- |
-| A | **Single `prepare/*` work prefix.** The default work-prefix set drops to `prepare/` alone; `investigate/ review/` leave the default. Built-in review/investigate subagents work *inside* the `prepare/` branch/worktree; their status lives in `context.md` narrative, not the branch namespace | 006/SKILL.md's default work prefixes `prepare/* investigate/* review/*` and the `review/<slug>` same-slug-artifact example |
-| B | **Forced-squash → advanced.** Core assumes merge commits (settlement = containment). The squash narrative-backstop / re-surface-until-confirmed machinery moves to a new `references/advanced.md` | SKILL.md's in-core squash handling inside the partition notes |
-| C | **`accepted-prefixes`.** policy section `## Handoff Prefixes` → `## Accepted Prefixes`; shape is a list, default `feature/ bugfix/ chore/`; handoff is framed as an *event* (translate `prepare/<slug>` → repo-native human branch), not a Tsugu-owned namespace | 006/policy's `## Handoff Prefixes` defaults `feat/* fix/*` |
+| A | **Single `prepare/*` work prefix.** The default work-prefix set drops to `prepare/*` alone; `investigate/* review/*` leave the default. Built-in review/investigate subagents work *inside* the `prepare/*` branch/worktree; their status lives in `context.md` narrative, not the branch namespace | 006/SKILL.md's default work prefixes `prepare/* investigate/* review/*` and the `review/<slug>` same-slug-artifact example |
+| B | **Non-containment landings → advanced.** Core assumes merge commits (settlement = containment). Include-mode landings that **rewrite history** — squash, rebase-before-merge, force-push — leave the work tip uncontained; that path (narrative-backstop / re-surface-until-confirmed) moves to a new `references/advanced.md` | SKILL.md's in-core squash handling across the partition notes, `converge` step 4, the completion tail, and the `## Merge method` template |
+| C | **`accepted-prefixes`.** policy section `## Handoff Prefixes` → `## Accepted Prefixes`; shape is a list, default `feature/* bugfix/* chore/*`; handoff is framed as an *event* (translate `prepare/<slug>` → repo-native human branch), not a Tsugu-owned namespace | 006/policy's `## Handoff Prefixes` defaults `feat/* fix/*` |
 | D | **converge dispositions stated as accept / park / drop**, with `continue` implicit and `promote` orthogonal | SKILL.md's accept/reject/park naming (rename `reject`→`drop`) |
 | E | **Migration 3→4** (interactive prefix-collapse proposal + per-branch legacy handling) | n/a (new) |
 
@@ -66,13 +66,15 @@ namespace.
 operate within the work branch / its worktree and record findings in the work
 branch's `context.md` (and promote durable findings to `knowledge/` as before).
 
-Consequence for the slug-as-join-key text: the concept **stays** (one slug ties
-the work branch, its `context.md`, and — when one exists — the accepted branch),
-but the **"same-slug branch under a *different work prefix* is that item's
-artifact"** example is removed from the core SKILL.md, because the default no
-longer produces such branches. A repo MAY still configure additional work
-prefixes (the mechanism is intact); when it does, the slug-artifact rule still
-holds and is documented in `references/advanced.md`.
+Consequence for the slug-as-join-key text: the concept **stays**. One slug still
+ties **four legs** — the work branch, its `context.md`, the personal packet
+(`packets/<slug>.md`), and the accepted branch when one exists; the SKILL.md edit
+must preserve all four. Only the **extra-work-prefix artifact leg** (the
+"same-slug branch under a *different work prefix* is that item's artifact"
+example) leaves the core, because the default no longer produces such branches. A
+repo MAY still configure additional work prefixes (the mechanism is intact); when
+it does, the slug-artifact rule still holds and is documented in
+`references/advanced.md`.
 
 ### A3 — Discovery filters by the configured prefixes (unchanged mechanism)
 
@@ -81,7 +83,7 @@ prefixes recorded in `policy.md`. With the new default this is just `prepare/*`.
 A repo that has curated extra prefixes keeps discovering them — nothing about the
 filter changes; only the shipped default shrinks.
 
-## B — Forced-squash moves to `references/advanced.md`
+## B — Non-containment landings move to `references/advanced.md`
 
 ### B1 — Core assumes merge commits
 
@@ -106,26 +108,42 @@ already containment-derivable via the public branch's tip).
 ### B2 — What moves to advanced
 
 The new `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/advanced.md` holds the
-**forced-squash** path, lifted out of the core partition notes:
+**non-containment-landing** path, lifted out of the core. This is the general
+class — **any include-mode landing that rewrites history so the work branch's
+own tip is not contained in default**: a forced squash (the squash commit's
+parents contain none of the work commits), but equally a rebase-before-merge or
+a force-push of the accepted branch (default then contains neither the original
+`prepare/*` tip nor its history). Squash is the canonical example; the path is
+the same for all three. It is lifted out of:
 
-- the narrative-backstop ("handed off — may have landed via squash" written into
-  `context.md` at the converge decision);
-- the re-surface-until-confirmed behavior (a forced squash's commit shares none
-  of the work commits, so the work branch's own tip is never contained — it
-  stays "decided, awaiting merge" and re-surfaces at each `converge` until the
-  human confirms the landing and runs the completion tail);
-- the "disable the forge's auto-delete-head-branch" recommendation for the
-  squash case;
-- the squash-specific completion-tail trigger (human's in-session confirmation
-  instead of containment).
+- the partition notes (the elaboration beyond the two core facts);
+- `converge` step 4's accept-include clause (the "handed off — may have landed"
+  narrative written at the decision when a rewrite is anticipated);
+- the completion-tail trigger (human's in-session confirmation instead of
+  containment, when the rewrite means containment can never settle the item).
 
-The core SKILL.md keeps a one-line pointer: *"Squash merges break
-containment-derived settlement; if a repo requires squash, see
-`references/advanced.md`."*
+The advanced path documents:
 
-The general **narrative backstop** for a *deleted* handoff/public ref (where the
-forge auto-deletes on merge) is shared by `exclude` mode too, so its core form is
-retained; only the squash-specific elaboration moves.
+- the narrative-backstop ("handed off — may have landed via squash/rebase"
+  written into `context.md` at the converge decision);
+- the re-surface-until-confirmed behavior (the work tip is never contained, so
+  the item stays "decided, awaiting merge" and re-surfaces at each `converge`
+  until the human confirms the landing and runs the completion tail);
+- the "disable the forge's auto-delete-head-branch" recommendation **for the
+  rewrite case** (so the slug-paired ref survives long enough to confirm);
+- the rewrite-specific completion-tail trigger (human confirmation, not
+  containment).
+
+The core SKILL.md keeps a one-line pointer: *"A landing that rewrites history
+(squash, rebase-before-merge, force-push) breaks containment-derived settlement;
+see `references/advanced.md`."*
+
+Two things stay in core because `exclude` mode (which stays in core) needs them
+independently of any rewrite: (a) the general **narrative backstop** for a
+*deleted* handoff/public ref (the forge auto-deletes on merge); and (b) the
+**retain-handoff / disable-auto-delete** recommendation — `exclude` mode settles
+via the public branch's containment, so that ref must survive too. Only the
+*rewrite-specific* elaboration moves to advanced.
 
 ## C — `accepted-prefixes` (handoff as an event)
 
@@ -252,30 +270,39 @@ default — surfaced as a one-line note so it is never silently orphaned.
 ## Affected surface
 
 - **`plugins/tsugu/skills/tsugu/SKILL.md`** — A (single prefix default, drop
-  review-artifact example), B (squash pointer, two-row core partition),
-  C (accepted-prefixes / handoff-as-event wording), D (accept/park/drop verbs,
-  continue implicit, promote orthogonal). Net: shorter.
-- **`plugins/tsugu/skills/tsugu/references/advanced.md`** — **new**: forced-squash
-  full path; the slug-artifact rule for repos that configure extra work prefixes.
+  review-artifact example), B (move **every** rewrite-landing touchpoint to a
+  pointer: the partition-note elaboration, the `converge` step-4 accept-include
+  "may have landed" clause, and the completion-tail rewrite trigger; keep the
+  three-row core table and the shared deleted-ref / retain-handoff lines for
+  `exclude`), C (accepted-prefixes / handoff-as-event wording), D
+  (accept/park/drop verbs, continue implicit, promote orthogonal). Net: shorter.
+- **`plugins/tsugu/skills/tsugu/references/advanced.md`** — **new**: the
+  non-containment-landing path (squash / rebase-before-merge / force-push); the
+  slug-artifact rule for repos that configure extra work prefixes.
 - **`plugins/tsugu/skills/tsugu/references/migrations.md`** — add `3→4` step (E).
 - **`plugins/tsugu/skills/tsugu/references/policy-and-intake.md`** — rename the
   handoff-prefixes section to accepted-prefixes; new defaults.
 - **`plugins/tsugu/skills/tsugu/templates/policy.md`** — `## Accepted Prefixes`
-  with `feature/ bugfix/ chore/`; `## Branch Prefixes` with `prepare/` only;
-  `tsugu-schema: 4`.
+  with `feature/* bugfix/* chore/*`; `## Branch Prefixes` with `prepare/*` only;
+  `tsugu-schema: 4`. **`## Merge method`** shrinks to "prefer merge commits;
+  non-containment landings (squash / rebase / force-push) → `advanced.md`" while
+  **keeping** the retain-handoff / disable-auto-delete line that `exclude` mode
+  relies on.
 - **`plugins/tsugu/commands/*.md`** — converge verb naming if referenced.
 - **`plugins/tsugu/skills/tsugu/README.md`** — user-facing wording.
-- **`CLAUDE.md`** (repo root, tsugu paragraph) — schema 4, lineage 004→005→006→007,
-  default work-prefix `prepare/*`, accepted-prefixes.
+- **`CLAUDE.md`** (repo root, tsugu paragraph) — `Schema 4 (lineage: 004 → 005 →
+  006 → 007)`, default work-prefix `prepare/*`, accepted-prefixes.
 - **`.claude-plugin/marketplace.json`** — bump tsugu plugin version.
 
 ## Success criteria
 
 1. A fresh `init` writes `## Branch Prefixes: prepare/`, `## Accepted Prefixes:
    feature/ bugfix/ chore/`, and `tsugu-schema: 4`.
-2. The core SKILL.md partition table has **two** core rows (settled / awaiting-
-   merge / in-progress) with **no squash elaboration**; squash lives only in
-   `references/advanced.md`, reachable by a one-line pointer.
+2. The core SKILL.md partition table has **three rows** (settled / awaiting-merge
+   / in-progress) derived from **two checked ref-level facts** (containment, then
+   slug-pairing), with **no rewrite-landing elaboration** in core; the
+   non-containment-landing path lives only in `references/advanced.md`, reachable
+   by a one-line pointer.
 3. exclude mode, multi-agent forward-compat, and omni-repo recursion remain
    documented **in core** (unchanged from 006).
 4. converge documents accept / park / drop as the named dispositions, states
@@ -286,16 +313,18 @@ default — surfaced as a one-line note so it is never silently orphaned.
    confirmation — proposes the prefix collapse; legacy `investigate/`/`review/`
    branches are handled per-branch with their tip hash shown, never auto-touched.
 6. A schema-1/2 repo migrates 1→2→3→4 under the existing N→N+1 contract.
-7. The slug-as-join-key concept survives; only the `review/<slug>` artifact
-   example leaves the core (it moves to advanced for configured-extra-prefix
-   repos).
+7. The slug-as-join-key concept survives with all four legs intact (work branch,
+   `context.md`, packet, accepted branch); only the `review/<slug>`
+   extra-work-prefix artifact example leaves the core (it moves to advanced for
+   configured-extra-prefix repos).
 
 ## Open questions (resolved in this spec)
 
 - *Collapse to `prepare/` only, or keep multi-prefix?* → Single `prepare/`
   default; multi-prefix stays configurable and documented in advanced (A).
-- *Which heavy mechanics leave the core?* → Only forced-squash (B). exclude,
-  multi-agent, recursion stay in core.
+- *Which heavy mechanics leave the core?* → Only the non-containment-landing
+  path — any include-mode landing that rewrites history (squash / rebase /
+  force-push) (B). exclude, multi-agent, recursion stay in core.
 - *`accepted-prefix` single value or list?* → List, default
   `feature/ bugfix/ chore/` (C).
 - *Are converge's five verbs peers?* → No: accept/park/drop are terminal
