@@ -179,8 +179,9 @@ same mechanism as today's handoff branch, reframed: "handoff" is the *act of
 translating at accept time*, not a prefix Tsugu owns. In the solo flow the human
 merges the work branch directly and there is no separate accepted ref to pair.
 
-When multiple accepted prefixes are configured, the human picks which one at
-`accept` time (or the slug/context implies it).
+When multiple accepted prefixes are configured, the human picks which one **when
+an accept takes the handoff path** (or the slug/context implies it); the solo
+direct merge needs no accepted prefix.
 
 ## D — converge dispositions
 
@@ -280,18 +281,23 @@ checks whether `prepare/<slug>` already exists, because in schema 3 a
 (T3-b):
 
 1. **`prepare/<slug>` already exists** → the legacy branch is that work item's
-   artifact. **No recreate** — `git branch prepare/<slug>` would fail, and there
-   is nothing new to preserve. But the artifact must not orphan: once the
-   prefixes are dropped, the work item's completion-tail sweep no longer
-   *discovers* `review/* investigate/*`, so "leave it" would strand the branch
-   indefinitely. So migration **offers to delete the artifact now** (with
-   confirmation; surface its tip hash) since it is redundant with the live
-   `prepare/<slug>`. If the human declines deletion, migration records the
-   dropped prefixes in a `## Legacy Work Prefixes` policy note that the
-   **completion-tail sweep also consults** until no branches remain under them.
-   Either way the artifact is reachable for cleanup; it is never silently
-   orphaned. *Self-emptying writes to `policy.md`:* pruning a prefix from the note
-   (or removing the empty note) is an optional tidy that follows the **same
+   artifact; **no recreate** (`git branch prepare/<slug>` would fail). Whether it
+   is safe to delete depends on whether it carries commits the work branch lacks,
+   so migration runs an **ancestry check** first
+   (`git merge-base --is-ancestor <legacy-tip> <remote>/prepare/<slug>`):
+   - **fully contained** (no unique commits) → truly redundant with the live work
+     branch: migration **offers to delete it now** (confirmation; tip hash shown).
+   - **has commits `prepare/<slug>` lacks** → **not** redundant — never
+     auto-delete; treat as **ambiguous (case 3)**: stop and ask the human (who may
+     merge the unique commits into `prepare/<slug>`, keep the branch, or drop it).
+
+   The artifact must not orphan: once the prefixes are dropped, the work item's
+   completion-tail sweep no longer *discovers* `review/* investigate/*`, so
+   "leave it" would strand the branch. So whenever a legacy artifact is **not**
+   deleted, migration records the dropped prefixes in a `## Legacy Work Prefixes`
+   policy note that the **completion-tail sweep also consults** until no branches
+   remain under them. *Writes to `policy.md`:* pruning a prefix from the note (or
+   removing the empty note) is an **optional** tidy following the **same
    policy-write path as any other `policy.md` edit** — direct on an unprotected
    default, or an `init/*` branch + human-approved PR where the default is
    push-protected. A stale-but-empty note is harmless (no branches under it → no
@@ -329,8 +335,9 @@ one-line note so it is never *silently* dropped.
   handling (artifact delete-or-record / standalone recreate / ambiguous ask).
 - **`plugins/tsugu/skills/tsugu/references/git-recipes.md`** (completion-tail / cleanup)
   — the sweep also consults a `## Legacy Work Prefixes` note (when present) so
-  artifacts under dropped prefixes stay reachable for cleanup; the note
-  self-empties when no branches remain under it.
+  artifacts under dropped prefixes stay reachable for cleanup; pruning the note
+  once no branches remain under it is **optional** (a stale-empty note is
+  harmless and may remain).
 - **`plugins/tsugu/skills/tsugu/references/policy-and-intake.md`** — rename the
   handoff-prefixes section to accepted-prefixes; new defaults.
 - **`plugins/tsugu/skills/tsugu/templates/policy.md`** — `## Accepted Prefixes`
