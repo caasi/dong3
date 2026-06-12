@@ -50,7 +50,7 @@ This spec applies that test to four core surfaces and moves what fails it.
 
 ```text
 ## Branch Prefixes
-prepare/
+prepare/*
 ```
 
 (was `prepare/* investigate/* review/*`). The branch name is **stable work
@@ -151,13 +151,11 @@ via the public branch's containment, so that ref must survive too. Only the
 
 ```text
 ## Accepted Prefixes
-feature/
-bugfix/
-chore/
+feature/*  bugfix/*  chore/*
 ```
 
-(was `## Handoff Prefixes` with defaults `feat/ fix/`.) The field is a **list**
-(`accepted-prefixes`), default `feature/ bugfix/ chore/`. Existing
+(was `## Handoff Prefixes` with defaults `feat/* fix/*`.) The field is a **list**
+(`accepted-prefixes`), default `feature/* bugfix/* chore/*`. Existing
 prefix-disjointness validation still applies: the work prefixes
 (`## Branch Prefixes`) and the accepted prefixes (`## Accepted Prefixes`) must be
 **disjoint sets**; `init` and migration refuse overlapping sets.
@@ -187,9 +185,14 @@ When multiple accepted prefixes are configured, the human picks which one at
 `converge` step 4 presents, per branch:
 
 - **accept** — translate `prepare/<slug>` into a repo-native human branch
-  (`<accepted-prefix>/<slug>`), verify, push, hand off (merge directly in the
-  solo flow, or cut the accepted branch + human-approved PR). Settlement is
-  containment-derived.
+  (`<accepted-prefix>/<slug>`), verify, push, hand off. Two arms, both unchanged
+  from 006 and both kept in core:
+  - *include mode* — merge directly in the solo flow (work tip then contained →
+    settled), or cut the accepted branch + human-approved PR;
+  - *exclude mode* — cut a clean public branch from the fetched default, same
+    slug, and apply the accepted code/test/doc/config **by path** (no `.tsugu/`
+    in the public diff); settlement reads off the **public branch's** containment,
+    not the work branch's.
 - **park** — write into `context.md` what is needed to resume ("blocked on X").
   No status field is set; a parked branch is simply a candidate whose narrative
   says it's blocked, de-prioritized by the staleness/housekeeping derivation.
@@ -234,7 +237,7 @@ Added to `references/migrations.md` as the `3→4` step.
 ### E1 — Always-applied, mechanical
 
 1. Rename the policy section `## Handoff Prefixes` → `## Accepted Prefixes`
-   (content preserved verbatim — a schema-3 repo's curated `feat/ fix/` stay as
+   (content preserved verbatim — a schema-3 repo's curated `feat/* fix/*` stay as
    they are; only the heading changes).
 2. Update the `tsugu-schema:` stamp to `4` — **written last**, after all other
    steps, so an interrupted migration re-enters safely.
@@ -317,8 +320,8 @@ default — surfaced as a one-line note so it is never silently orphaned.
 
 ## Success criteria
 
-1. A fresh `init` writes `## Branch Prefixes: prepare/`, `## Accepted Prefixes:
-   feature/ bugfix/ chore/`, and `tsugu-schema: 4`.
+1. A fresh `init` writes `## Branch Prefixes: prepare/*`, `## Accepted Prefixes:
+   feature/* bugfix/* chore/*`, and `tsugu-schema: 4`.
 2. The core SKILL.md partition table has **three rows** (settled / awaiting-merge
    / in-progress) derived from **two checked ref-level facts** (containment, then
    slug-pairing), with **no rewrite-landing elaboration** in core; the
@@ -347,7 +350,7 @@ default — surfaced as a one-line note so it is never silently orphaned.
   path — any include-mode landing that rewrites history (squash / rebase /
   force-push) (B). exclude, multi-agent, recursion stay in core.
 - *`accepted-prefix` single value or list?* → List, default
-  `feature/ bugfix/ chore/` (C).
+  `feature/* bugfix/* chore/*` (C).
 - *Are converge's five verbs peers?* → No: accept/park/drop are terminal
   dispositions; continue is the implicit default; promote is orthogonal (D).
 - *Does migration touch curated prefixes?* → Never auto; proposes collapse with
