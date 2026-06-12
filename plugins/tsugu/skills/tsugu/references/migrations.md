@@ -18,9 +18,9 @@ decisions by reading `policy.md`'s `tsugu-schema:` stamp:
   idempotent repair only: fill any missing skeleton path, never overwrite a
   curated `policy.md`.
 - **migrate** — `.tsugu/` present and the stamp is older → apply the documented
-  migration steps below **in order** (N→N+1 until current), then update the stamp
-  and commit. The commit message names the migration range (e.g.
-  `chore(tsugu): migrate .tsugu/ schema 1→2`).
+  migration steps below **in order** (N→N+1 until current — the full chain is
+  `1→2→3→4`), then update the stamp and commit. The commit message names the
+  migration range (e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`).
 
 The steps obey these rules, which hold for every migration (not just 1→2):
 
@@ -286,3 +286,112 @@ while a step is still pending.
 
 Live work branches are not migrated centrally — they convert on next touch (the
 schema-compat `branch.md`/`context.md` reads still apply).
+
+## Migration 3→4
+
+Schema 4 is the spec 007 layout: a **mental-model simplification**, not a storage
+change. Three things move: the policy section `## Handoff Prefixes` is renamed
+`## Accepted Prefixes` (E1); the default work prefix collapses from
+`prepare/* investigate/* review/*` to **`prepare/*` alone** — but only on human
+confirmation, never auto (E2); and existing branches under the removed prefixes
+are handled per-branch, never renamed (E3). Apply these steps in order on the
+`init/*` branch. A schema-1 repo runs **1→2→3→4** under the N→N+1 contract — 1→2,
+then 2→3, then 3→4, each stamping its own schema last before the next runs.
+
+### E1 — Always-applied, mechanical
+
+**1. Rename `## Handoff Prefixes` → `## Accepted Prefixes`.** The heading changes;
+the **content is preserved verbatim** — a schema-3 repo's curated `feat/* fix/*`
+stay exactly as they are. This renames a schema part only; it never overwrites
+curated content. Condition: a `## Handoff Prefixes` section is still present.
+
+**2. Stamp `tsugu-schema: 4` — last.** Only after every other step of this
+migration has succeeded, update the `tsugu-schema:` stamp to `4` as the first line
+of `policy.md`. This is what marks 3→4 complete; until it is written, the stamp
+still reads `3`, so an interrupted re-run re-enters migration 3→4 and the
+already-applied steps (whose conditions no longer hold) no-op. **Push-protected
+exception:** where the default branch is push-protected, the whole migration rides
+an `init/*` branch + human-approved PR, and the stamp rides as the **last** write
+to land — never a "complete" stamp over a half-applied migration.
+
+### E2 — Interactive prefix-collapse proposal
+
+**3. Propose collapsing `## Branch Prefixes` to `prepare/*` — ask the human.**
+Condition: `## Branch Prefixes` contains **more than** `prepare/*`. Migration
+**proposes** collapsing to the single `prepare/*` default and **asks the human to
+confirm**; it **never auto-changes a curated prefix set**. If the human **declines**,
+the multi-prefix set is kept as-is (fully supported going forward) and the
+migration completes with **only E1 applied** — skip E3 entirely.
+
+**Post-collapse disjointness re-check.** The collapse can *introduce* an overlap a
+schema-3 repo did not have: a repo could legally have curated work prefixes
+`investigate/* review/*` and accepted prefixes `prepare/* feat/*` (disjoint under
+schema 3). After E1's rename **and** this collapse, the work set becomes
+`prepare/*` while the renamed accepted set still contains `prepare/*` → **overlap**,
+violating the work ∩ accepted = ∅ invariant. So after the rename and collapse,
+migration **re-runs the work ∩ accepted = ∅ disjointness check**. On overlap it
+**stops and asks** the human to pick a different accepted prefix or to decline the
+collapse; the collapse is **not committed until the two sets are disjoint**.
+
+### E3 — Per-branch legacy handling (only if the collapse is accepted)
+
+If the human accepts the collapse, migration handles existing branches under the
+**removed** prefixes (`investigate/<slug>`, `review/<slug>`) **without renaming any
+branch** — write-once identity is inviolate. For each such legacy branch, it first
+checks whether `prepare/<slug>` already exists, because in schema 3 a
+`review/<slug>` is typically the **artifact** of an existing `prepare/<slug>`.
+
+**4a. `prepare/<slug>` already exists (the legacy branch is an artifact).** No
+recreate — `git branch prepare/<slug>` would fail against the live work branch.
+Whether deletion is safe depends on whether the legacy branch carries commits the
+work branch lacks, so migration runs an **ancestry check** first:
+
+```bash
+git merge-base --is-ancestor <legacy-tip> <remote>/prepare/<slug>
+```
+
+- **fully contained** (exit 0; no unique commits) → truly redundant with the live
+  work branch: migration **offers to delete it now** (confirmation; show the tip
+  hash).
+- **has commits `prepare/<slug>` lacks** (exit non-zero) → **not** redundant;
+  **never auto-delete** — treat as **ambiguous (case 4c)**: stop and ask the human
+  (who may merge the unique commits into `prepare/<slug>`, keep the branch, or drop
+  it).
+
+If the artifact is **not** deleted, migration records the dropped prefix in a
+`## Legacy Work Prefixes` policy note, which the **completion-tail sweep also
+consults** until no branches remain under it — otherwise, once the prefixes are
+dropped, the sweep no longer *discovers* `review/* investigate/*` and the branch
+would strand. *Writes to `policy.md`:* pruning a prefix from the note (or removing
+the now-empty note) is an **optional** tidy following the **same policy-write path
+as any other `policy.md` edit** — direct on an unprotected default, or an `init/*`
+branch + human-approved PR where the default is push-protected. A stale-but-empty
+note is harmless (no branches under it → no sweep effect), so leaving it is always
+acceptable; removal is never required.
+
+**4b. No `prepare/<slug>` (a standalone legacy branch).** List the branch **name
+and its tip commit hash**, and ask the human whether to **recreate** it as
+`prepare/<slug>` pointing at that commit — a *copy*, not a rename, so write-once
+identity holds:
+
+```bash
+git branch prepare/<slug> <tip-sha>   # then push
+```
+
+After the copy the old ref is redundant: **delete it** (recommended), **or**, if
+the human keeps it, **record its dropped prefix in `## Legacy Work Prefixes`**
+exactly as in case 4a — otherwise the retained old ref strands under the
+collapsed-away prefix and is omitted from future completion-tail sweeps.
+
+**4c. Ambiguous.** Multiple divergent legacy branches share one slug, or the human
+wants to keep both the legacy branch and an existing `prepare/<slug>` → **stop and
+ask**; the human resolves by hand (rename/drop as they choose). Migration never
+picks for them and never force-overwrites a ref.
+
+No legacy branch is touched without explicit per-branch confirmation. **Artifacts
+(case 4a) are delete-or-record**, so they never strand. A **standalone branch
+(case 4b) the human declines to recreate** stops being discovered under the new
+single-prefix default — that is the human's explicit choice, surfaced as a
+one-line note so it is never *silently* dropped.
+
+Live work branches are not migrated centrally — they convert on next touch.
