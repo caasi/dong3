@@ -402,8 +402,9 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   default driver runs on the **provisioned machine** (holding both the
   personal-folder source config and the MCP/connector credentials — typically the
   local homelab), not a generic cloud agent; revise the "a *cloud* agent runs it
-  daily" line, keep the unprovisioned-run-degrades-to-git-native fallback and its
-  per-machine (same-machine) surfacing.
+  daily" line, keep the unprovisioned-run-degrades-to-git-native fallback —
+  config-missing surfaces at a *same-machine* `converge` (the existing notice), an
+  auth failure only in the run's own log (no new `converge` scope).
 - **`plugins/tsugu/commands/prepare.md`** — F: if it mentions `/schedule`/cron as
   the wiring, note the **provisioned-machine** default (an external driver — local
   cron / `/loop` — on the machine holding source config + credentials) and that
@@ -463,10 +464,11 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   The **provisioned machine** (typically the local homelab) — the one holding
   *both* the personal-folder source config *and* the live MCP/connector
   credentials, neither of which transfers across machines. An unprovisioned
-  cloud/headless run is allowed but degrades to git-native, reported in its own
-  output and surfaced only at a *same-machine* `converge`; a provisioned cloud
-  machine does not degrade (the distinction is provisioning, not cloud-vs-local)
-  (F).
+  cloud/headless run is allowed but degrades to git-native: config-missing
+  surfaces at a *same-machine* `converge` (the existing notice), while an auth
+  failure appears only in the run's own log (no new `converge` scope); a
+  provisioned cloud machine does not degrade (the distinction is provisioning, not
+  cloud-vs-local) (F).
 
 ## Deferred (unchanged from 004/005/006)
 
