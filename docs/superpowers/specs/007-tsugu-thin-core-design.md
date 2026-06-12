@@ -350,17 +350,19 @@ branches; a generic cloud agent typically has neither. Hence:
   - **source config missing** (no sources section in the personal folder) →
     detectable directly at any *same-machine* `converge` — exactly the existing
     006/SKILL.md "personal config unconfigured on this machine" notice;
-  - **credentials missing / MCP auth fails despite config present** → a **new**
-    per-machine behavior this spec adds (not an existing 006 fallback): the
-    degraded run reports it **in its own run output**, and a same-machine
-    `converge` re-probes the source live when it reads it, so the failure shows up
-    there. **No committed or cross-run diagnostic is persisted** — state stays
-    single-layer, so the failure is not recorded anywhere git-visible.
+  - **credentials missing / MCP auth fails despite config present** → the
+    degraded run reports it **in its own run output** — the driver's log on that
+    machine, where any cron / `/loop` health is observed. It is **not**
+    auto-surfaced at a later `converge`: **no committed or cross-run diagnostic is
+    persisted** (state stays single-layer), and `converge` is not given new
+    source-probing scope — so this needs no change to the `converge` flow.
 
-  Neither gap can appear at a *different* machine's `converge` (personal state
-  does not cross machines). A cloud machine independently provisioned with both
-  does **not** degrade: the distinction is **provisioning, not cloud-vs-local**
-  per se.
+  The config-missing gap aside, neither failure appears at a *different* machine's
+  `converge` (personal state does not cross machines), and in the homelab→MacBook
+  workflow the converging machine usually *is* different — so the run log, not
+  `converge`, is the channel for an auth failure. A cloud machine independently
+  provisioned with both does **not** degrade: the distinction is **provisioning,
+  not cloud-vs-local** per se.
 - **Substrate unchanged:** git is still the message bus, so any run that can read
   git still works — it just does less without the sources. Nothing here assumes a
   particular driver; only the *recommended default* changes.
@@ -437,8 +439,10 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
    configured-extra-prefix repos).
 8. `prepare`'s documented default driver is the **provisioned machine** (holding
    source config + credentials, typically the local homelab); an unprovisioned
-   cloud/headless run degrades to git-native (no source intake) and reports the
-   gap on that same machine, and the **no-self-wake** rule is unchanged.
+   cloud/headless run degrades to git-native (no source intake), reporting an auth
+   failure in its own run output (config-missing remains the existing same-machine
+   `converge` notice; the `converge` flow gains no new probing scope), and the
+   **no-self-wake** rule is unchanged.
 
 ## Open questions (resolved in this spec)
 
