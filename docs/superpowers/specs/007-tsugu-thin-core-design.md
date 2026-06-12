@@ -163,17 +163,21 @@ prefix-disjointness validation still applies: the work prefixes
 ### C2 — Handoff is an event, not a namespace
 
 Tsugu owns the **agent-side preparation queue** (`prepare/*`). The repo's
-existing human git flow owns public branches, PRs, and merges. At converge
-`accept`, Tsugu *translates* from the preparation queue into the human flow:
+existing human git flow owns public branches, PRs, and merges. The translation
+into the human flow happens **only on the PR/handoff path** (and the exclude-mode
+public-branch path) — *not* on the include-mode solo direct merge:
 
 ```text
-prepare/<slug>   --accept-->   <accepted-prefix>/<slug>   (e.g. feature/<slug>)
+prepare/<slug>   --accept (handoff)-->   <accepted-prefix>/<slug>   (e.g. feature/<slug>)
+prepare/<slug>   --accept (solo merge)-->  merged into default directly, no translation
 ```
 
-Same commits, a second name, **same slug** — the partition pairs the two by
-shared slug, so the "decided, awaiting merge" state survives anything the forge
-does to commits. This is the same mechanism as today's handoff branch, reframed:
-"handoff" is the *act of translating at accept time*, not a prefix Tsugu owns.
+On the handoff path the accepted branch is the same commits, a second name,
+**same slug** — the partition pairs the two by shared slug, so the "decided,
+awaiting merge" state survives anything the forge does to commits. This is the
+same mechanism as today's handoff branch, reframed: "handoff" is the *act of
+translating at accept time*, not a prefix Tsugu owns. In the solo flow the human
+merges the work branch directly and there is no separate accepted ref to pair.
 
 When multiple accepted prefixes are configured, the human picks which one at
 `accept` time (or the slug/context implies it).
@@ -274,9 +278,17 @@ checks whether `prepare/<slug>` already exists, because in schema 3 a
 (T3-b):
 
 1. **`prepare/<slug>` already exists** → the legacy branch is that work item's
-   artifact. Leave it to the work item's lifecycle (the completion tail already
-   sweeps same-slug artifacts). **No recreate** — `git branch prepare/<slug>`
-   would fail, and there is nothing to preserve.
+   artifact. **No recreate** — `git branch prepare/<slug>` would fail, and there
+   is nothing new to preserve. But the artifact must not orphan: once the
+   prefixes are dropped, the work item's completion-tail sweep no longer
+   *discovers* `review/* investigate/*`, so "leave it" would strand the branch
+   indefinitely. So migration **offers to delete the artifact now** (with
+   confirmation; surface its tip hash) since it is redundant with the live
+   `prepare/<slug>`. If the human declines deletion, migration records the
+   dropped prefixes in a `## Legacy Work Prefixes` policy note that the
+   **completion-tail sweep also consults** until no branches remain under them,
+   at which point the note self-empties. Either way the artifact is reachable for
+   cleanup; it is never silently orphaned.
 2. **No `prepare/<slug>`** (a standalone legacy branch) → list the branch name and
    its **tip commit hash**, and ask the human whether to **recreate** it as
    `prepare/<slug>` pointing at that commit (`git branch prepare/<slug> <tip-sha>`,
@@ -303,7 +315,13 @@ default — surfaced as a one-line note so it is never silently orphaned.
 - **`plugins/tsugu/skills/tsugu/references/advanced.md`** — **new**: the
   non-containment-landing path (squash / rebase-before-merge / force-push); the
   slug-artifact rule for repos that configure extra work prefixes.
-- **`plugins/tsugu/skills/tsugu/references/migrations.md`** — add `3→4` step (E).
+- **`plugins/tsugu/skills/tsugu/references/migrations.md`** — add `3→4` step (E),
+  including the post-collapse disjointness re-check and the per-branch legacy
+  handling (artifact delete-or-record / standalone recreate / ambiguous ask).
+- **`plugins/tsugu/skills/tsugu/references/git-recipes.md`** (completion-tail / cleanup)
+  — the sweep also consults a `## Legacy Work Prefixes` note (when present) so
+  artifacts under dropped prefixes stay reachable for cleanup; the note
+  self-empties when no branches remain under it.
 - **`plugins/tsugu/skills/tsugu/references/policy-and-intake.md`** — rename the
   handoff-prefixes section to accepted-prefixes; new defaults.
 - **`plugins/tsugu/skills/tsugu/templates/policy.md`** — `## Accepted Prefixes`
