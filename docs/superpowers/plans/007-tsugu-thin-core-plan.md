@@ -471,8 +471,10 @@ echo "--- stale '## Handoff Prefixes' outside migrations.md (expect none) ---"
 # migrations.md LEGITIMATELY references '## Handoff Prefixes' — it documents the
 # 3→4 rename FROM that heading and older-schema state — so exclude it.
 rg -n 'Handoff Prefixes' plugins/tsugu --glob '!**/migrations.md' || echo "clean"
-echo "--- stale multi-prefix default (expect none in shipped files) ---"
-rg -n 'prepare/\* investigate/\* review/\*' plugins/tsugu || echo "clean"
+echo "--- stale multi-prefix default outside migrations.md (expect none) ---"
+# migrations.md legitimately shows 'prepare/* investigate/* review/*' when
+# documenting the schema-2→3 state — exclude it, same as the Handoff sweep.
+rg -n 'prepare/\* investigate/\* review/\*' plugins/tsugu --glob '!**/migrations.md' || echo "clean"
 echo "--- schema stamp is 4 in the template (expect match) ---"
 rg -n 'tsugu-schema: 4' plugins/tsugu/skills/tsugu/templates/policy.md
 echo "--- no schema-3 stamp lingering in templates (expect none) ---"
