@@ -246,22 +246,43 @@ Renames/restructures schema parts only; **never overwrites curated content**.
 
 ### E2 — Interactive prefix-collapse proposal
 
-If `## Branch Prefixes` contains more than `prepare/`, migration **proposes**
-collapsing to single `prepare/` and **asks the human to confirm**. It never
+If `## Branch Prefixes` contains more than `prepare/*`, migration **proposes**
+collapsing to single `prepare/*` and **asks the human to confirm**. It never
 auto-changes a curated prefix set. If the human declines, the multi-prefix set is
 kept as-is (fully supported) and the migration completes with only E1 applied.
+
+**Post-collapse disjointness re-check (T3-c).** The collapse can *introduce* an
+overlap the schema-3 repo did not have: a repo could legally have curated work
+prefixes `investigate/* review/*` and accepted prefixes `prepare/* feat/*`
+(disjoint under schema 3). After the collapse, the work set is `prepare/*` and
+the renamed accepted set still contains `prepare/*` → **overlap**, violating the
+invariant C1 enforces. So after E1's rename **and** E2's collapse, migration
+**re-runs the work ∩ accepted = ∅ check**; on overlap it stops and asks the human
+to pick a different accepted prefix or decline the collapse. The collapse is not
+committed until the sets are disjoint.
 
 ### E3 — Per-branch legacy handling
 
 If the human accepts the collapse, migration handles existing branches under the
 *removed* prefixes (`investigate/<slug>`, `review/<slug>`) **without renaming any
-branch** (write-once identity is inviolate). For each such branch it:
+branch** (write-once identity is inviolate). For each such branch, it first
+checks whether `prepare/<slug>` already exists, because in schema 3 a
+`review/<slug>` is typically the **artifact** of an existing `prepare/<slug>`
+(T3-b):
 
-1. lists the branch name and its **tip commit hash**;
-2. asks the human whether to **recreate** it as `prepare/<slug>` pointing at that
-   commit (`git branch prepare/<slug> <tip-sha>`, push, then optionally delete
-   the old ref) — a *copy*, not a rename, so write-once identity holds;
-3. does nothing to any branch the human does not explicitly choose to recreate.
+1. **`prepare/<slug>` already exists** → the legacy branch is that work item's
+   artifact. Leave it to the work item's lifecycle (the completion tail already
+   sweeps same-slug artifacts). **No recreate** — `git branch prepare/<slug>`
+   would fail, and there is nothing to preserve.
+2. **No `prepare/<slug>`** (a standalone legacy branch) → list the branch name and
+   its **tip commit hash**, and ask the human whether to **recreate** it as
+   `prepare/<slug>` pointing at that commit (`git branch prepare/<slug> <tip-sha>`,
+   push, then optionally delete the old ref) — a *copy*, not a rename, so
+   write-once identity holds.
+3. **Ambiguous** — multiple divergent legacy branches share one slug, or the
+   human wants to keep both the legacy branch and an existing `prepare/<slug>` →
+   **stop and ask**; the human resolves by hand (rename/drop as they choose).
+   Migration never picks for them and never force-overwrites a ref.
 
 No legacy branch is touched without explicit per-branch confirmation. A branch
 the human leaves alone simply stops being discovered under the new single-prefix
@@ -330,8 +351,9 @@ default — surfaced as a one-line note so it is never silently orphaned.
 - *Are converge's five verbs peers?* → No: accept/park/drop are terminal
   dispositions; continue is the implicit default; promote is orthogonal (D).
 - *Does migration touch curated prefixes?* → Never auto; proposes collapse with
-  confirmation; legacy branches handled per-branch by recreate-at-hash, never
-  renamed (E).
+  confirmation, re-checks work ∩ accepted = ∅ after collapse, and handles legacy
+  branches per-branch (artifact → leave; standalone → recreate-at-hash;
+  ambiguous → stop and ask), never renaming (E).
 
 ## Deferred (unchanged from 004/005/006)
 
