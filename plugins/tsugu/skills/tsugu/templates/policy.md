@@ -31,9 +31,10 @@ Prefer merge commits — settlement depends on containment-preserved history.
 Non-containment landings (squash / rebase / force-push) are an advanced path — see
 the tsugu skill's advanced reference (`${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/advanced.md`;
 this committed file does not ship that reference).
-Disable the forge's auto-delete-head-branch for tsugu branches so the slug
-pairing survives the merge — `exclude` mode settles via the public branch's
-containment, so that ref must survive too.
+Disable the forge's auto-delete-head-branch for the slug-paired **accepted /
+public branch** (not `prepare/*`) so the slug pairing survives the merge —
+`exclude` mode settles via the public branch's containment, so that ref must
+survive too.
 ## Housekeeping
 <!-- stale-after: 30 days -->
 <!-- commented default — converge records the threshold here progressively on

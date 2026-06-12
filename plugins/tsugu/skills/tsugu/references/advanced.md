@@ -73,14 +73,14 @@ Two of these look like they could move wholesale, but they **stay in core**
 because `exclude` mode (which stays in core) needs them **independently of any
 rewrite**:
 
-- **(a) the general deleted-ref narrative backstop** — for a *deleted* handoff /
+- **(a) the general deleted-ref narrative backstop** — for a *deleted* accepted /
   public ref (the forge auto-deletes on merge), so landed work doesn't read as
   in-progress; and
-- **(b) the retain-handoff / disable-auto-delete recommendation** — `exclude` mode
+- **(b) the retain-the-ref / disable-auto-delete recommendation** — `exclude` mode
   settles via the **public branch's** containment, so that ref must survive too.
 
 Advanced only adds the **rewrite-specific** elaboration on top of these — the
-deleted-ref backstop and the retain-handoff recommendation themselves are core,
+deleted-ref backstop and the retain-the-ref recommendation themselves are core,
 shared with `exclude`.
 
 ### The concrete forced-squash procedure
