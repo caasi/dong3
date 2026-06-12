@@ -57,7 +57,7 @@ Every piece of one work item shares one slug: the work branch (`prepare/<slug>`)
 
 Mechanics are deferred — do not re-derive git commands here:
 
-- Exact git (fetch → read-queue-from-remote-refs, containment + slug-pairing partition, handoff-branch cut, include-mode merge-back, exclude-mode clean-cut, freshness rebase, completion tail, cleanup order, init skeleton) → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/git-recipes.md`.
+- Exact git (fetch → read-queue-from-remote-refs, containment + slug-pairing partition, accepted-branch cut, include-mode merge-back, exclude-mode clean-cut, freshness rebase, completion tail, cleanup order, init skeleton) → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/git-recipes.md`.
 - Shared `policy.md` fields + the personal-config pointer (sources + opt-in skills in the global folder) → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/policy-and-intake.md`.
 - `context.md` / `knowledge/` structure + the personal/derived packet → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/notes-and-packet.md`.
 - `init` re-run migration steps (schema N→N+1, including 2→3) → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/migrations.md`.

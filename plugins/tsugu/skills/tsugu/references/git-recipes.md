@@ -9,15 +9,15 @@ away.
 
 Throughout, `<remote>` and `<default>` are **resolved**, never hardcoded — see
 [Read the queue](#read-the-queue-cold-start-safe) for how. Likewise the branch
-prefixes written below — the **work** prefixes `prepare/`, `investigate/`,
-`review/` (policy's `## Branch Prefixes`) and the **handoff** prefixes `feat/`,
-`fix/` (policy's `## Handoff Prefixes`, plus legacy `public/`) — are
+prefixes written below — the **work** prefix `prepare/` (policy's
+`## Branch Prefixes`) and the **accepted** prefixes `feature/`, `bugfix/`,
+`chore/` (policy's `## Accepted Prefixes`, plus legacy `public/`) — are
 **placeholders for the prefixes configured in `policy.md`** (the defaults are
 shown); resolve them from the fetched policy when creating or matching branches,
 since `init` may have customized them, and discovery filters by the configured
 set. The `<slug>` after a prefix is the **join key** — one work item shares one
 slug across its work branch, its `context.md`, its personal packet, and its
-handoff branch; Tsugu never renames a branch, so slug joins survive everything
+accepted branch; Tsugu never renames a branch, so slug joins survive everything
 that rewrites commits. Examples use full-length CLI options on purpose
 (`--remotes`, `--message`, `--set-upstream`, `--force-with-lease`, `--delete`,
 `--extended-regexp`, `--prune`, `--ignore-unmatch`); the written recipe should
@@ -85,28 +85,30 @@ the remote, but you need a remote to read policy):
   (`git rev-parse --abbrev-ref --symbolic-full-name @{upstream}`, stripped to the
   branch name) or, failing that, ask the human to set `default-branch:` in policy.
 
-**4. Enumerate work branches — and, separately, handoff branches.** Filter to
+**4. Enumerate work branches — and, separately, accepted branches.** Filter to
 **`<remote>/`** (the configured remote only — a multi-remote repo must not pull
 `upstream/prepare/foo` into an `origin` queue) **plus** the **work** prefixes
-**declared in `policy.md`'s `## Branch Prefixes`** (defaults: `prepare`,
-`investigate`, `review`) — derive the filter from the fetched policy, don't
-hardcode, since `init` may have customized them. **Also enumerate the configured
-`## Handoff Prefixes`** (defaults: `feat`, `fix`, plus legacy `public`) into a
-**separate handoff list** — these are not queue items but are needed in step 6 to
-pair a work branch's slug against a decided handoff branch.
+**declared in `policy.md`'s `## Branch Prefixes`** (default: `prepare`) — derive
+the filter from the fetched policy, don't hardcode, since `init` may have
+customized them. **Also enumerate the configured `## Accepted Prefixes`**
+(defaults: `feature`, `bugfix`, `chore`, plus legacy `public`) into a
+**separate accepted list** — these are not queue items but are needed in step 6 to
+pair a work branch's slug against a decided accepted branch. (A repo that
+configures extra work prefixes also surfaces a `## Legacy Work Prefixes` note;
+see [Completion tail](#completion-tail) for how the cleanup sweep consults it.)
 
 ```bash
-# work queue — configured remote + work prefixes (defaults shown); never raw --remotes
+# work queue — configured remote + work prefixes (default shown); never raw --remotes
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(prepare|investigate|review)/"   # pushed mode
+  | grep --extended-regexp "^<remote>/(prepare)/"   # pushed mode
 
-# handoff list — same remote, the configured handoff prefixes (for slug pairing)
+# accepted list — same remote, the configured accepted prefixes (for slug pairing)
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feat|fix|public)/"              # configured handoff prefixes
+  | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/"   # configured accepted prefixes
 ```
 
 The `public/*` prefix is **retired as a work prefix**; legacy `public/*` branches
-now arrive through the **Handoff Prefixes** list (where a migration appends them
+now arrive through the **Accepted Prefixes** list (where a migration appends them
 — see `references/migrations.md`), so they read as decided/landed outputs, never
 work candidates.
 
@@ -144,7 +146,7 @@ branch state of any kind** — classify each work branch `<work-prefix>/<slug>` 
 | Fact | State | Disposition |
 | --- | --- | --- |
 | tip contained in `<remote>/<default>` (in `exclude` mode: the slug-paired public branch's tip) | **settled** — the work landed | skip; completion-tail / cleanup candidate |
-| a branch with the **same slug** exists under a configured Handoff Prefix | **decided, awaiting merge** | skip as a candidate; shown in converge's awaiting-merge section |
+| a branch with the **same slug** exists under a configured Accepted Prefix | **decided, awaiting merge** | skip as a candidate; shown in converge's awaiting-merge section |
 | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
 
 The exact checks:
@@ -153,21 +155,22 @@ The exact checks:
 branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
 slug="${branch##*/}"                   # basename: drop the remote and work prefix
 
-# Resolve this item's slug-paired handoff ref (if any) from $handoff_refs — the
-# configured `## Handoff Prefix` branches enumerated in "Read the queue" step 4
-# (not hardcoded feat/fix/public). Match the final path component *literally* — a
-# slug may contain `.`/`+`, which a regex would mis-glob — and take the first match:
-handoff=""
+# Resolve this item's slug-paired accepted ref (if any) from $accepted_refs — the
+# configured `## Accepted Prefix` branches enumerated in "Read the queue" step 4
+# (not hardcoded feature/bugfix/chore/public). Match the final path component
+# *literally* — a slug may contain `.`/`+`, which a regex would mis-glob — and take
+# the first match:
+accepted=""
 while IFS= read -r ref; do
-  [ "${ref##*/}" = "$slug" ] && { handoff="$ref"; break; }
-done <<<"$handoff_refs"
+  [ "${ref##*/}" = "$slug" ] && { accepted="$ref"; break; }
+done <<<"$accepted_refs"
 
 # settled? Containment is mode-dependent (`public-branch-tsugu` in policy.md):
 #   include (default) → the work branch is what merges
-#   exclude           → its slug-paired handoff branch is what lands
+#   exclude           → its slug-paired accepted branch is what lands
 case <public-branch-tsugu> in
-  exclude) landed_ref="$handoff" ;;    # empty until the handoff branch is cut
-  *)       landed_ref="$branch"  ;;
+  exclude) landed_ref="$accepted" ;;   # empty until the accepted branch is cut
+  *)       landed_ref="$branch"   ;;
 esac
 
 # Classify by the FIRST matching table row, in order. Settlement is pure
@@ -177,8 +180,8 @@ if   [ "$(git rev-parse "$branch")" = "$(git rev-parse <remote>/<default>)" ]
 then echo exempt         # zero-commit: tip == default tip — interrupted / request-by-branch, not classified by the table
 elif [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null
 then echo settled
-elif [ -n "$handoff" ]
-then echo pending        # a slug-paired handoff branch exists — decided, awaiting merge
+elif [ -n "$accepted" ]
+then echo pending        # a slug-paired accepted branch exists — decided, awaiting merge
 else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
 fi
 ```
@@ -195,7 +198,7 @@ squashes, force-pushes). Then, as prose rules:
   zero-commit branch carries **no recency** until someone commits to it; the first
   commit establishes recency, as for any branch.
 - **Slugs are never reused for new work.** A fresh ask whose slug collides with a
-  lingering handoff branch is surfaced at **converge** as a naming conflict, not
+  lingering accepted branch is surfaced at **converge** as a naming conflict, not
   classified.
 - **Claims are derived from commits** — the `context.md` rewrite commit's author
   and timestamp *are* the claim. A work branch with recent commits is taken; one
@@ -203,11 +206,11 @@ squashes, force-pushes). Then, as prose rules:
   (one human, two machines) authorship cannot distinguish agents and the rule
   **degrades to pure recency** (acceptable for a courtesy yield, no lock).
 
-A **forced squash** is the one landing not derivable from refs; it stays
-**pending** because its slug-paired handoff branch still pairs (never persisted as
-a SHA, re-surfacing at each converge) — see
-[Hand off for merge](#hand-off-for-merge-include-mode--default) for the
-retain-handoff requirement and the `context.md` narrative backstop.
+A landing that **rewrites history** (forced squash, rebase-before-merge,
+force-push) is the one case not derivable from containment — it stays **pending**
+on the slug-paired accepted branch and re-surfaces until the human confirms; the
+full procedure (narrative backstop, retain-the-ref, human-confirmed completion
+tail) lives in `references/advanced.md`.
 
 ---
 
@@ -335,41 +338,41 @@ clean up (awaiting-merge lives in the ref namespace, not the file).
 
 **3. Push, then hand off.** Either the human merges the work branch **directly**
 (solo flow — its tip then contained in default, settlement immediate), or cut a
-**slug-paired handoff branch** named for the human workflow:
+**slug-paired accepted branch** named for the human workflow (an accepted-branch
+cut):
 
 ```bash
-git branch <handoff-prefix>/<slug> <work-branch>     # same commits, second name, same slug
-git push --set-upstream <remote> <handoff-prefix>/<slug>
-# the human opens/approves the PR on the handoff branch
+git branch <accepted-prefix>/<slug> <work-branch>     # same commits, second name, same slug
+git push --set-upstream <remote> <accepted-prefix>/<slug>
+# the human opens/approves the PR on the accepted branch
 ```
 
-The slug is identical, so the partition pairs work branch ↔ handoff branch **by
+The slug is identical, so the partition pairs work branch ↔ accepted branch **by
 name** (step 6) and the pending state survives whatever the forge does to commits.
 
-**Update the handoff branch only by `merge`, never rebase.** When post-decision
-commits land on the work branch (a work tip with commits the handoff lacks),
-converge's awaiting-merge section flags the **divergence**; fold them in by merge
-or re-decide. Pairs whose handoff tip **shares no history** with the work branch
-are flagged as a possible **name collision** to confirm. Both heuristics —
-divergence and no-shared-history collision — apply in **`include` mode only**.
+**Update the accepted branch only by `merge`, never rebase.** When post-decision
+commits land on the work branch (a work tip with commits the accepted branch
+lacks), converge's awaiting-merge section flags the **divergence**; fold them in
+by merge or re-decide. Pairs whose accepted tip **shares no history** with the
+work branch are flagged as a possible **name collision** to confirm. Both
+heuristics — divergence and no-shared-history collision — apply in **`include`
+mode only**.
 
-**Retain the handoff/public branch whenever the work tip won't be contained.**
-Settlement is pure containment, so two cases leave the work branch's own tip
-**not** contained in default: a **forced squash** (the forge collapses the PR to
-one commit that no longer contains the work tip) and **`exclude` mode** (accepted
-code lands by path on a fresh public branch — the work branch never merges). The
-two then **differ**: `exclude` mode becomes **settled** once the public branch's
-tip is contained (a normal merge — partition row 1), while a **forced squash**
-stays "decided, awaiting merge" and re-surfaces until the human confirms (its own
-tip is never contained). What they **share** is that the disposition can only be
-read *while the slug-paired ref survives*. So whenever the landing won't contain
-the work tip (a squash, or any exclude-mode cut):
+**This section assumes a merge-commit landing** — the work branch's commits reach
+default verbatim, so settlement is pure containment. A landing that **rewrites
+history** (forced squash, rebase-before-merge, force-push) breaks that derivation;
+its full handling lives in `references/advanced.md`.
 
-- **Disable the forge's auto-delete-head-branch for tsugu handoff/public branches**
+**Retain the accepted/public branch whenever the work tip won't be contained.**
+The case that stays in core is **`exclude` mode**: accepted code lands by path on a
+fresh public branch, so the work branch never merges and settlement reads off the
+**public branch's** containment instead. That disposition can only be read *while
+the slug-paired ref survives*, so for any exclude-mode cut:
+
+- **Disable the forge's auto-delete-head-branch for tsugu accepted/public branches**
   (a common merge setting) so the pairing survives the merge and **preserves the
-  disposition evidence** (settled-via-public-tip in exclude mode, awaiting-merge in
-  the squash case) until the human's completion tail deletes both branches.
-  This is a recommendation, not a hard gate — squash-only forges stay supported.
+  disposition evidence** (settled-via-public-tip) until the human's completion tail
+  deletes both branches. A recommendation, not a hard gate.
 - **Narrative backstop** when the forge deletes the branch anyway: write
   "handed off — may have landed" into the work branch's `context.md`
   **now** (at the converge decision, before the PR opens). The partition still
@@ -389,19 +392,19 @@ For repos that opt out (`public-branch-tsugu: exclude`), the reviewed public
 branch must be **cut fresh from the default branch** and carry **only** accepted
 code — its diff vs default must introduce **no `.tsugu/` changes** (the guarantee
 is "never introduced", not "stripped afterward"). It is named
-`<handoff-prefix>/<slug>` (same slug, so pending derives from the same name
+`<accepted-prefix>/<slug>` (same slug, so pending derives from the same name
 pairing), and landing is later confirmed via **this** branch's containment in
 default (the by-path application breaks the work branch's own containment).
 (`knowledge/` still lands via the coordination-ref write, regardless of mode.)
 Because the work branch never merges, **every** exclude-mode landing needs the
-*Retain the handoff/public branch* + narrative-backstop handling above — not just
-squashes — so an auto-deleted public branch can't make landed work look in-progress.
+*Retain the accepted/public branch* + narrative-backstop handling above, so an
+auto-deleted public branch can't make landed work look in-progress.
 
 **1. Cut from the fetched ref** — use the configured `<remote>`, never a hardcoded
 `origin`, and never a stale local default:
 
 ```bash
-git switch --create <handoff-prefix>/<slug> <remote>/<default>
+git switch --create <accepted-prefix>/<slug> <remote>/<default>
 ```
 
 **2. Apply only accepted paths via a path-scoped diff.** Generate the diff between
@@ -414,7 +417,7 @@ index:
 # after the work branch diverged). Rebasing the work branch onto <remote>/<default>
 # first is the robust alternative.
 git diff --binary <remote>/<default>...<work-branch> -- <code paths> | git apply --index --binary
-git commit --message "tsugu: <handoff-prefix>/<slug> — accepted code"
+git commit --message "tsugu: <accepted-prefix>/<slug> — accepted code"
 ```
 
 `git apply --index` only **stages** the patch — it does **not** advance the branch,
@@ -431,7 +434,7 @@ the public branch.
 Sanity-check that no Tsugu metadata leaked in:
 
 ```bash
-git diff <remote>/<default>..<handoff-prefix>/<slug> -- .tsugu/    # must be empty
+git diff <remote>/<default>..<accepted-prefix>/<slug> -- .tsugu/    # must be empty
 ```
 
 **4. Verify, then stop.** Build and run tests on the public branch. **Opening the
@@ -442,22 +445,31 @@ PR or invoke `finishing-a-development-branch` / `review-loop`.
 
 ## Completion tail
 
-Once landing is confirmed — by **containment** in merge-commit repos, or by the
-human's in-session converge confirmation where a squash was forced — run, in this
-order:
+Once landing is confirmed — by **containment** in merge-commit repos, or, for a
+history-rewriting landing, by the human's in-session converge confirmation (see
+`references/advanced.md`) — run, in this order:
 
 1. **promote** reusable findings into `.tsugu/knowledge/` (coordination-ref write);
-2. **clean up:** `git worktree remove <path>` before
+2. **sweep for the item's branches.** Enumerate the work branches as in
+   [Read the queue](#read-the-queue-cold-start-safe) step 4. When `policy.md`
+   carries a **`## Legacy Work Prefixes`** note (a migration that dropped a work
+   prefix records the dropped prefixes there), **also** match branches under those
+   legacy prefixes so a settled item's artifact under a dropped prefix stays
+   reachable for cleanup. Pruning a prefix from the note once no branches remain
+   under it is **optional** — a stale-but-empty note has no sweep effect and may
+   remain.
+3. **clean up:** `git worktree remove <path>` before
    `git branch --delete --force <branch>` — delete **both** the work branch and
-   the handoff branch (the handoff too, if the forge didn't already delete it).
+   the accepted branch (the accepted branch too, if the forge didn't already delete
+   it), plus any legacy-prefixed artifact the sweep surfaced.
 
 Once both refs are gone the item **leaves the partition entirely** (no refs → not
 classified, exactly like any cleaned-up settled item). The durable landed artifact
 is **the landed commits on the default branch** — the merge in a normal
-include/exclude landing, or the squash commit where a squash was forced (there the
-work content is present but not containment-linked or slug-keyed). **No SHA is
-persisted, and there is no status to flip.** Branch deletion comes last: the branch
-is the landing evidence.
+include/exclude landing, or the rewritten commit where history was rewritten
+(there the work content is present but not containment-linked or slug-keyed). **No
+SHA is persisted, and there is no status to flip.** Branch deletion comes last: the
+branch is the landing evidence.
 **Idempotent** — interrupted before cleanup, the branches remain and a later tidy
 re-enters the whole tail.
 
@@ -471,10 +483,10 @@ stale **local** default:
 
 ```bash
 git fetch <remote>
-git rebase <remote>/<default>        # scratch prepare/* investigate/* branches
+git rebase <remote>/<default>        # scratch prepare/* (and any configured work prefixes)
 ```
 
-- **Scratch branches** (`prepare/*`, `investigate/*`): rebase freely. If the
+- **Scratch branches** (`prepare/*`, and any extra work prefixes configured): rebase freely. If the
   branch was already pushed, the rebase rewrites it, so update the remote with
   lease protection — **never** a plain `--force`:
 
