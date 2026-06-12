@@ -67,8 +67,9 @@ grep -q '## Accepted Prefixes' "$f" && ! grep -q '## Handoff Prefixes' "$f" && e
 grep -A2 '## Branch Prefixes' "$f" | grep -q 'prepare/\*' && ! grep -A2 '## Branch Prefixes' "$f" | grep -qE 'investigate/\*|review/\*' && echo "single prefix OK"
 grep -A2 '## Accepted Prefixes' "$f" | grep -q 'feature/\*' && echo "accepted defaults OK"
 grep -iq 'advanced.md' "$f" && echo "merge-method pointer OK"
-grep -iq 'auto-delete' "$f" && echo "retain-handoff retained OK"
+grep -iq 'auto-delete' "$f" && grep -iq 'exclude' "$f" && echo "retain-handoff (exclude) retained OK"
 ```
+(The `exclude` conjunct distinguishes the *retained* exclude-mode recommendation from a leftover squash line — the squash-specific framing must be gone from `## Merge method`, only the exclude retain-handoff line stays.)
 Expected: every line prints its `OK`.
 
 - [ ] **Step 5: Commit**
@@ -104,7 +105,7 @@ f=plugins/tsugu/skills/tsugu/references/advanced.md
 test -f "$f" && echo "created OK"
 grep -qiE 'squash' "$f" && grep -qiE 'rebase' "$f" && grep -qiE 'force-push' "$f" && echo "all three landings OK"
 grep -qi 're-surface' "$f" && echo "re-surface OK"
-grep -qi 'artifact' "$f" && echo "slug-artifact rule OK"
+grep -qi 'work prefix' "$f" && grep -qi 'slug' "$f" && echo "slug-artifact rule OK"
 ```
 Expected: all `OK`.
 
@@ -130,7 +131,8 @@ Pay attention to: "The slug is the join key" section (line ~48), the `prepare` s
 
 - [ ] **Step 2: Apply §A edits**
 
-- Default work prefixes everywhere in SKILL.md → `prepare/*` only (init defaults line ~70, prepare step 5 line ~120, converge candidate enumeration line ~130). Remove `investigate/* review/*` from the shipped defaults.
+- Default work prefixes everywhere in SKILL.md → `prepare/*` only. Specifically: init defaults (line ~70); prepare step 5 (line ~120); converge candidate enumeration (line ~130) — **reword** the parenthetical "enumerated across all configured work prefixes — defaults `prepare/* investigate/* review/*`, not `prepare/*` alone" to "enumerated across all configured work prefixes (default `prepare/*`)" so §A3 (a repo that *configures* extra prefixes still discovers them) stays true. **NOTE:** line ~130 sits inside the converge section (lines ~125–147) that **Task 4** also edits — **Task 3 owns line 130**; coordinate so the two tasks don't collide on the same lines.
+- **SKILL.md `init` routine, line ~74:** the instruction **"Stamp `tsugu-schema: 3`"** → **`4`**. This is the live prose that drives a fresh repo's stamp; if left at `3`, `init` contradicts the schema-4 template and **Success Criterion 1 fails**. (No other task touches this line — it must be done here.)
 - "The slug is the join key" section: keep all four legs (work branch, `context.md`, packet, accepted branch); remove the `review/<slug>` "same-slug under different work prefix = artifact" example from the core, replacing it with a one-line pointer to `references/advanced.md` for repos that configure extra work prefixes (per §A2).
 - Built-in review/investigate subagents (prepare step 6): they work inside the `prepare/*` branch/worktree, not a separate `review/*` branch.
 
@@ -148,8 +150,9 @@ f=plugins/tsugu/skills/tsugu/SKILL.md
 ! grep -q '## Handoff Prefixes' "$f" && grep -q '## Accepted Prefixes' "$f" && echo "accepted rename OK"
 grep -qi 'advanced.md' "$f" && echo "advanced pointer OK"
 grep -qi 'packet' "$f" && echo "join legs intact OK"
+grep -q 'tsugu-schema: 4' "$f" && ! grep -q 'tsugu-schema: 3' "$f" && echo "init stamp 4 OK"
 ```
-Expected: all `OK`. Manually confirm the partition table still has 3 rows and no squash elaboration remains inline.
+Expected: all `OK` (incl. `init stamp 4 OK`). Manually confirm the partition table still has 3 rows and no squash elaboration remains inline.
 
 - [ ] **Step 5: Commit**
 
@@ -173,7 +176,7 @@ git commit -m "feat(tsugu): SKILL.md §A/§B — single prepare/*, three-row par
 
 - [ ] **Step 3: Apply §D edits**
 
-- converge step 4 dispositions → named **accept / park / drop** (rename `reject`→`drop`, keep the "record why" narrative).
+- converge step 4 dispositions → named **accept / park / drop** (rename the `Rejected:` disposition at line ~143 → `drop`, keep the "record why" narrative). **Do NOT** touch line ~110 *"Out-of-band PR closure = rejection"* — that "rejection" is the slug-pairing-dissolves narrative, not the disposition; it stays verbatim.
 - Add the §D2 statement that **continue is implicit** (every untouched branch is already "continue"; the morning looking-and-leaving view).
 - Add the §D3 statement that **promote is orthogonal** (rides any disposition, incl. "drop yet promote the lesson"; a checklist item, not a 5th sibling).
 - Keep the §D4 invariant wording (no status field; state derived).
@@ -182,11 +185,12 @@ git commit -m "feat(tsugu): SKILL.md §A/§B — single prepare/*, three-row par
 
 ```bash
 f=plugins/tsugu/skills/tsugu/SKILL.md
-grep -qiw drop "$f" && echo "drop verb OK"
-! grep -qiwE 'reject|rejected' "$f" && echo "reject removed OK"   # if any legit 'rejected' remains (e.g. PR rejection), confirm by eye
+! grep -qi 'rejected — do not resume' "$f" && echo "disposition renamed OK"      # the line-143 disposition is gone
+grep -qi 'drop — do not resume' "$f" && echo "drop verb present OK"               # ...replaced by drop
+grep -qi 'Out-of-band PR closure = rejection' "$f" && echo "PR-closure narrative retained OK"  # line 110 survives
 grep -qi 'continue' "$f" && grep -qi 'promote' "$f" && echo "continue/promote covered OK"
 ```
-Expected: `drop verb OK`, `continue/promote covered OK`. If `reject removed OK` does not print, read the matches and confirm they are intentional (e.g. out-of-band PR closure = rejection narrative) — that usage may legitimately stay.
+Expected: all four `OK`. These checks are non-vacuous: `disposition renamed OK` fails only if the line-143 rename was skipped; `PR-closure narrative retained OK` fails if line 110 was over-scrubbed.
 
 - [ ] **Step 5: Commit**
 
@@ -305,7 +309,7 @@ Faithful to §E:
 - **E2:** if `## Branch Prefixes` has more than `prepare/*`, **propose** collapse (human confirms; never auto). After rename+collapse, **re-run work ∩ accepted = ∅** disjointness check; stop-and-ask on overlap; don't commit the collapse until disjoint.
 - **E3 (per-branch legacy):** for each branch under removed prefixes, check if `prepare/<slug>` exists:
   - exists (artifact) → ancestry check `git merge-base --is-ancestor <legacy-tip> <remote>/prepare/<slug>`: fully contained → offer delete now (confirmed, tip hash shown); has unique commits → ambiguous (case 3), stop and ask, never auto-delete. If not deleted, record dropped prefixes in `## Legacy Work Prefixes` (sweep consults it; pruning optional, same policy-write path).
-  - no `prepare/<slug>` (standalone) → list name + tip hash; offer recreate `git branch prepare/<slug> <tip-sha>` (copy, write-once preserved).
+  - no `prepare/<slug>` (standalone) → list name + tip hash; offer recreate `git branch prepare/<slug> <tip-sha>` (copy, write-once preserved). After the copy the old ref is redundant: **delete it (recommended), or record its dropped prefix in `## Legacy Work Prefixes` if the human keeps it** — else the retained old ref strands under the collapsed-away prefix (mirrors the artifact case; spec §E3 case 2).
   - ambiguous → stop and ask; never force-overwrite.
 - Update the file's 1→2→3 chain language to 1→2→3→4 where it enumerates the contract.
 
@@ -338,7 +342,7 @@ git commit -m "feat(tsugu): migrations.md — add 3→4 (rename, collapse+disjoi
 
 - [ ] **Step 2: Edit**
 
-- `prepare.md`: if it wires `/schedule`/cron, note the provisioned-machine default (external driver — local cron / `/loop`) and that an unprovisioned run degrades to git-native.
+- `prepare.md`: **definitely needs editing** — its frontmatter hardcodes `defaults prepare/* investigate/* review/*` (→ `prepare/*`) and wires `/schedule`/cron (→ note the provisioned-machine default: external driver — local cron / `/loop` — and that an unprovisioned run degrades to git-native). Don't let this hide behind the "if referenced" hedge.
 - `converge.md`: if it names dispositions, use accept / park / drop.
 - `init.md`: if it names prefixes/defaults, reflect `prepare/*` + accepted-prefixes + schema 4.
 
@@ -346,9 +350,10 @@ git commit -m "feat(tsugu): migrations.md — add 3→4 (rename, collapse+disjoi
 
 ```bash
 grep -qi 'provisioned\|local cron\|/loop' plugins/tsugu/commands/prepare.md && echo "prepare driver OK"
+! grep -q 'investigate/\* review/\*' plugins/tsugu/commands/prepare.md && echo "prepare single-prefix OK"
 ! grep -qiw reject plugins/tsugu/commands/converge.md && echo "converge verbs OK"
 ```
-Expected: both `OK` (or confirm by eye if a command file didn't reference the changed concept — then it needs no edit).
+Expected: all three `OK` (converge.md/init.md may need no edit if they don't name the changed concept — confirm by eye; `prepare.md` definitely changes).
 
 - [ ] **Step 4: Commit**
 
@@ -396,9 +401,16 @@ git commit -m "docs(tsugu): README — schema 4 surface (prepare/*, accepted-pre
 
 - [ ] **Step 1: Read the tsugu paragraph in CLAUDE.md + the tsugu entry in marketplace.json**
 
-- [ ] **Step 2: Edit CLAUDE.md tsugu paragraph**
+- [ ] **Step 2: Edit CLAUDE.md tsugu paragraph** — enumerate every touch (the paragraph has several):
 
-`Schema 3 (lineage: 004 → 005 → 006)` → `Schema 4 (lineage: 004 → 005 → 006 → 007)`; default work-prefix `prepare/*` (drop investigate/review from the description); accepted-prefixes; add spec 007 to the Spec list. Keep it one paragraph; don't duplicate counts/versions.
+- `Schema 3 (lineage: 004 → 005 → 006)` → `Schema 4 (lineage: 004 → 005 → 006 → 007)`.
+- **Every** `prepare/* investigate/* review/*` occurrence → `prepare/*` (the prepare-routine gloss has it; scan the whole paragraph, there may be more than one).
+- handoff prefixes `feat/* fix/*` → **accepted-prefixes** `feature/* bugfix/* chore/*`.
+- converge verbs `accept/reject/park` → `accept/park/drop` (continue implicit, promote orthogonal).
+- "pending = slug-paired **handoff** branch" → "slug-paired **accepted** branch".
+- Append `007-tsugu-thin-core-design.md` to the Spec list.
+
+Keep it one paragraph; don't duplicate counts/versions.
 
 - [ ] **Step 3: Edit marketplace.json**
 
@@ -408,10 +420,14 @@ Bump tsugu `"version": "0.3.0"` → `"0.4.0"`. Update its `description` to refle
 
 ```bash
 grep -q '006 → 007' CLAUDE.md && echo "lineage OK"
+! grep -q 'investigate/\* review/\*' CLAUDE.md && echo "single-prefix OK"
+! grep -q 'accept/reject/park' CLAUDE.md && echo "verbs OK"
+! grep -qi 'slug-paired handoff branch' CLAUDE.md && echo "accepted-branch wording OK"
+grep -q '007-tsugu-thin-core-design' CLAUDE.md && echo "spec list OK"
 python3 -c "import json;d=json.load(open('.claude-plugin/marketplace.json'));t=[p for p in d['plugins'] if p['name']=='tsugu'][0];print('version',t['version']);assert t['version']=='0.4.0'" && echo "version OK"
 python3 -c "import json;json.load(open('.claude-plugin/marketplace.json'))" && echo "json valid OK"
 ```
-Expected: `lineage OK`, `version 0.4.0`, `version OK`, `json valid OK`.
+Expected: every annotated `OK`, `version 0.4.0`, `json valid OK`.
 
 - [ ] **Step 5: Commit**
 
