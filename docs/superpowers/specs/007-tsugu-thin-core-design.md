@@ -188,11 +188,13 @@ When multiple accepted prefixes are configured, the human picks which one at
 
 `converge` step 4 presents, per branch:
 
-- **accept** — translate `prepare/<slug>` into a repo-native human branch
-  (`<accepted-prefix>/<slug>`), verify, push, hand off. Two arms, both unchanged
-  from 006 and both kept in core:
-  - *include mode* — merge directly in the solo flow (work tip then contained →
-    settled), or cut the accepted branch + human-approved PR;
+- **accept** — verify, push, and land the work. Two arms, both unchanged from
+  006 and both kept in core; *translation* into a `<accepted-prefix>/<slug>`
+  branch happens only where an arm calls for it (the PR/handoff path and the
+  exclude public-branch path), per C2 — never on the solo direct merge:
+  - *include mode* — merge the work branch directly in the solo flow (no
+    translation; work tip then contained → settled), or, to hand off, cut the
+    accepted branch `<accepted-prefix>/<slug>` + human-approved PR;
   - *exclude mode* — cut a clean public branch from the fetched default, same
     slug, and apply the accepted code/test/doc/config **by path** (no `.tsugu/`
     in the public diff); settlement reads off the **public branch's** containment,
@@ -286,9 +288,14 @@ checks whether `prepare/<slug>` already exists, because in schema 3 a
    confirmation; surface its tip hash) since it is redundant with the live
    `prepare/<slug>`. If the human declines deletion, migration records the
    dropped prefixes in a `## Legacy Work Prefixes` policy note that the
-   **completion-tail sweep also consults** until no branches remain under them,
-   at which point the note self-empties. Either way the artifact is reachable for
-   cleanup; it is never silently orphaned.
+   **completion-tail sweep also consults** until no branches remain under them.
+   Either way the artifact is reachable for cleanup; it is never silently
+   orphaned. *Self-emptying writes to `policy.md`:* pruning a prefix from the note
+   (or removing the empty note) is an optional tidy that follows the **same
+   policy-write path as any other `policy.md` edit** — direct on an unprotected
+   default, or an `init/*` branch + human-approved PR where the default is
+   push-protected. A stale-but-empty note is harmless (no branches under it → no
+   sweep effect), so leaving it is always acceptable; removal is never required.
 2. **No `prepare/<slug>`** (a standalone legacy branch) → list the branch name and
    its **tip commit hash**, and ask the human whether to **recreate** it as
    `prepare/<slug>` pointing at that commit (`git branch prepare/<slug> <tip-sha>`,
@@ -299,9 +306,11 @@ checks whether `prepare/<slug>` already exists, because in schema 3 a
    **stop and ask**; the human resolves by hand (rename/drop as they choose).
    Migration never picks for them and never force-overwrites a ref.
 
-No legacy branch is touched without explicit per-branch confirmation. A branch
-the human leaves alone simply stops being discovered under the new single-prefix
-default — surfaced as a one-line note so it is never silently orphaned.
+No legacy branch is touched without explicit per-branch confirmation. **Artifacts
+(case 1) are delete-or-record**, so they never strand. A **standalone branch
+(case 2) the human declines to recreate** stops being discovered under the new
+single-prefix default — that is the human's explicit choice, surfaced as a
+one-line note so it is never *silently* dropped.
 
 ## Affected surface
 
@@ -373,7 +382,7 @@ default — surfaced as a one-line note so it is never silently orphaned.
   dispositions; continue is the implicit default; promote is orthogonal (D).
 - *Does migration touch curated prefixes?* → Never auto; proposes collapse with
   confirmation, re-checks work ∩ accepted = ∅ after collapse, and handles legacy
-  branches per-branch (artifact → leave; standalone → recreate-at-hash;
+  branches per-branch (artifact → delete-or-record; standalone → recreate-at-hash;
   ambiguous → stop and ask), never renaming (E).
 
 ## Deferred (unchanged from 004/005/006)
