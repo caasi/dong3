@@ -248,8 +248,13 @@ Added to `references/migrations.md` as the `3→4` step.
 1. Rename the policy section `## Handoff Prefixes` → `## Accepted Prefixes`
    (content preserved verbatim — a schema-3 repo's curated `feat/* fix/*` stay as
    they are; only the heading changes).
-2. Update the `tsugu-schema:` stamp to `4` — **written last**, after all other
-   steps, so an interrupted migration re-enters safely.
+2. Update the `tsugu-schema:` stamp to `4` — **this is the FINAL action of the
+   whole 3→4 migration**, executed *after* E2 and E3 (if they run), not at the
+   end of E1. E1 is listed first for readability, but the stamp must be the last
+   write of the entire migration, so an interrupted run (collapse proposed but
+   not finished, legacy branches not yet handled) is never mistaken for complete —
+   the next `init` still sees the old stamp and re-enters. (`migrations.md` must
+   therefore order the stamp as its last numbered step, after E2/E3.)
 3. If the default branch is push-protected, the migration rides an `init/*`
    branch + human-approved PR; the stamp rides as the **last** write (never a
    "complete" stamp over a half-applied migration).
@@ -275,12 +280,16 @@ committed until the sets are disjoint.
 
 ### E3 — Per-branch legacy handling
 
-If the human accepts the collapse, migration handles existing branches under the
-*removed* prefixes (`investigate/<slug>`, `review/<slug>`) **without renaming any
-branch** (write-once identity is inviolate). For each such branch, it first
-checks whether `prepare/<slug>` already exists, because in schema 3 a
-`review/<slug>` is typically the **artifact** of an existing `prepare/<slug>`
-(T3-b):
+If the human accepts the collapse, migration handles existing branches under
+**every work prefix the collapse removes** — not only the defaults
+`investigate/* review/*`, but **any custom work prefix** the schema-3 repo had
+configured (e.g. `research/*`). **Derive the removed-prefix set from the
+pre-collapse `## Branch Prefixes` (all work prefixes except `prepare/*`); never
+hardcode the old defaults**, or branches under a custom prefix would silently
+escape discovery. For each such branch, **without renaming any branch**
+(write-once identity is inviolate), it first checks whether `prepare/<slug>`
+already exists, because in schema 3 a same-slug artifact (`review/<slug>`) is
+typically the **artifact** of an existing `prepare/<slug>` (T3-b):
 
 1. **`prepare/<slug>` already exists** → the legacy branch is that work item's
    artifact; **no recreate** (`git branch prepare/<slug>` would fail). Whether it
