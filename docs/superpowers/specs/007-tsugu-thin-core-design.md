@@ -24,7 +24,7 @@ schema-1/2 repo migrates 1→2→3→4 under the existing N→N+1 contract.
 | C | **`accepted-prefixes`.** policy section `## Handoff Prefixes` → `## Accepted Prefixes`; shape is a list, default `feature/* bugfix/* chore/*`; handoff is framed as an *event* (translate `prepare/<slug>` → repo-native human branch), not a Tsugu-owned namespace | 006/policy's `## Handoff Prefixes` defaults `feat/* fix/*` |
 | D | **converge dispositions stated as accept / park / drop**, with `continue` implicit and `promote` orthogonal | SKILL.md's accept/reject/park naming (rename `reject`→`drop`) |
 | E | **Migration 3→4** (interactive prefix-collapse proposal + per-branch legacy handling) | n/a (new) |
-| F | **`prepare`'s default driver is local** — the machine holding the personal-config sources / MCP auth (the homelab), not a cloud `/schedule` routine; cloud/headless is still allowed but degrades to git-native | SKILL.md's "Scheduling & recursion" wording ("a *cloud* agent runs it daily") |
+| F | **`prepare`'s default driver runs on the provisioned machine** (typically the local homelab) — the one holding *both* the personal-folder source config *and* the MCP/connector credentials; an unprovisioned cloud/headless run is allowed but degrades to git-native | SKILL.md's "Scheduling & recursion" wording ("a *cloud* agent runs it daily") |
 
 Everything in 004/005/006 not named here is unchanged. In particular, **exclude
 mode (`public-branch-tsugu`), multi-agent forward-compat, and omni-repo
@@ -320,35 +320,41 @@ No legacy branch is touched without explicit per-branch confirmation. **Artifact
 single-prefix default — that is the human's explicit choice, surfaced as a
 one-line note so it is never *silently* dropped.
 
-## F — `prepare`'s default driver runs locally
+## F — `prepare`'s default driver runs on the provisioned (local) machine
 
 `prepare` is wired to an external driver on a cadence and **cannot self-wake**
-(unchanged). What 007 changes is the **default locus** of that driver: **local —
-on the machine that holds the personal config — not a cloud `/schedule`
-routine.**
+(unchanged). What 007 fixes is the **recommended default locus** of that driver:
+**the machine provisioned with `prepare`'s sources — typically the local homelab
+— not a generic cloud `/schedule` routine.**
 
-The reason follows directly from the personal-config boundary already in 006.
 `prepare`'s useful signals usually come from **interactively-authenticated
-sources** — a Jira MCP server, a GitLab/GitHub app — and those live in the
-per-machine personal folder (`~/.claude/tsugu/<project-key>/`), **never committed
-and never transferred across machines**. A credential-less cloud/headless agent
-cannot reach them, so a cloud run would convert almost nothing into
-`prepare/<slug>` branches — it would silently do far less than it appears to.
+sources** — a Jira MCP server, a GitLab/GitHub app. Reaching them needs **two
+per-machine dependencies, neither of which transfers across machines**:
 
-Therefore:
+1. **source configuration** — the `read:` pointers in the personal folder
+   (`~/.claude/tsugu/<project-key>/`), never committed (the 006 boundary);
+2. **live credentials** — the MCP server / connector / app authentication, which
+   lives in the harness or connector *on that machine*, not in the personal
+   folder. (Config and credentials are distinct, separately machine-provisioned.)
 
-- **Default:** a **local** driver (a local cron, or `/loop` on the homelab) on
-  the machine that holds the sources' auth. This is the homelab leg of the
-  homelab→MacBook workflow that motivates this spec.
-- **Cloud/headless stays allowed, but is not the default.** With no personal
-  config / an unauthorized MCP, `prepare` **degrades to git-native only** (it
-  works the queue derivable from refs; no tracker/source intake) and surfaces
-  *"personal config unconfigured / sources unauthorized on this machine"* at the
-  next `converge` — identical to the existing headless fallback (the `prepare`
-  interactive-bootstrap rule in SKILL.md).
-- **Substrate unchanged:** git is still the message bus, so a cloud run that only
-  reads git still works — it just does less. Nothing here assumes a particular
-  driver; only the *recommended default* changes.
+A machine missing either cannot convert those signals into `prepare/<slug>`
+branches; a generic cloud agent typically has neither. Hence:
+
+- **Default:** run the driver (a local cron, or `/loop`) on the **provisioned
+  machine** — in the homelab→MacBook workflow, the homelab, where the human has
+  already set up both the source config and its credentials.
+- **An unprovisioned cloud/headless run is still allowed, but not the default.**
+  Missing the source config and/or credentials, `prepare` **degrades to
+  git-native only** (it works the queue derivable from refs; no tracker/source
+  intake). It reports the gap **in its own run output**; and because personal
+  state does not cross machines, a `converge` surfaces it only **on that same
+  machine** (the existing per-machine "personal config unconfigured / sources
+  unauthorized" notice) — it cannot appear at a *different* machine's `converge`.
+  A cloud machine that *is* independently provisioned with both does **not**
+  degrade: the distinction is **provisioning, not cloud-vs-local** per se.
+- **Substrate unchanged:** git is still the message bus, so any run that can read
+  git still works — it just does less without the sources. Nothing here assumes a
+  particular driver; only the *recommended default* changes.
 
 This revises the SKILL.md "Scheduling & recursion" line that today says a
 *cloud* agent runs it daily.
@@ -382,9 +388,11 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   **keeping** the retain-handoff / disable-auto-delete line that `exclude` mode
   relies on.
 - **`plugins/tsugu/skills/tsugu/SKILL.md`** (Scheduling & recursion) — F: the
-  default driver is **local** (the machine holding personal-config sources / MCP
-  auth), not a cloud agent; revise the "a *cloud* agent runs it daily" line, keep
-  the cloud-allowed-but-degrades fallback.
+  default driver runs on the **provisioned machine** (holding both the
+  personal-folder source config and the MCP/connector credentials — typically the
+  local homelab), not a generic cloud agent; revise the "a *cloud* agent runs it
+  daily" line, keep the unprovisioned-run-degrades-to-git-native fallback and its
+  per-machine (same-machine) surfacing.
 - **`plugins/tsugu/commands/prepare.md`** — F: if it mentions `/schedule`/cron as
   the wiring, note the local-driver default and the cloud degrade-to-git-native.
 - **`plugins/tsugu/commands/*.md`** — converge verb naming if referenced.
@@ -416,6 +424,10 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
    `context.md`, packet, accepted branch); only the `review/<slug>`
    extra-work-prefix artifact example leaves the core (it moves to advanced for
    configured-extra-prefix repos).
+8. `prepare`'s documented default driver is the **provisioned machine** (holding
+   source config + credentials, typically the local homelab); an unprovisioned
+   cloud/headless run degrades to git-native (no source intake) and reports the
+   gap on that same machine, and the **no-self-wake** rule is unchanged.
 
 ## Open questions (resolved in this spec)
 
@@ -433,10 +445,13 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   branches per-branch (artifact → delete-or-record; standalone → recreate-at-hash;
   ambiguous → stop and ask), never renaming (E).
 - *Should `prepare` default to a cloud `/schedule` routine or a local driver?* →
-  A **local** driver on the machine holding the personal-config sources (Jira MCP
-  / forge app), because those are per-machine and absent from a credential-less
-  cloud run; cloud/headless stays allowed but degrades to git-native, surfaced at
-  the next `converge` (F).
+  The **provisioned machine** (typically the local homelab) — the one holding
+  *both* the personal-folder source config *and* the live MCP/connector
+  credentials, neither of which transfers across machines. An unprovisioned
+  cloud/headless run is allowed but degrades to git-native, reported in its own
+  output and surfaced only at a *same-machine* `converge`; a provisioned cloud
+  machine does not degrade (the distinction is provisioning, not cloud-vs-local)
+  (F).
 
 ## Deferred (unchanged from 004/005/006)
 
