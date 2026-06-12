@@ -23,7 +23,9 @@
 | `plugins/tsugu/skills/tsugu/templates/policy.md` | The `init`-written policy skeleton: `## Branch Prefixes` (`prepare/*` only), `## Accepted Prefixes` (`feature/* bugfix/* chore/*`), `## Merge method` (shrunk), `tsugu-schema: 4` | A1, C1, B, Affected surface |
 | `plugins/tsugu/skills/tsugu/references/advanced.md` | **NEW.** The non-containment-landing path (squash/rebase/force-push) + the slug-artifact rule for configured-extra-prefix repos | B2, A2 |
 | `plugins/tsugu/skills/tsugu/SKILL.md` | Core skill: single `prepare/*`, two-fact/three-row partition + one-line advanced pointer, accepted-prefixes/handoff-as-event, accept/park/drop verbs, F scheduling | A, B, C, D, F |
-| `plugins/tsugu/skills/tsugu/references/policy-and-intake.md` | Rename handoff-prefixes section → accepted-prefixes; new defaults | C1 |
+| `plugins/tsugu/skills/tsugu/references/policy-and-intake.md` | Rename handoff-prefixes → accepted-prefixes; move `## Merge method` forced-squash to advanced.md; handoff branch → accepted branch | C1, B |
+| `plugins/tsugu/skills/tsugu/templates/packet.md` | "Suggested handoff branch" / "Handoff Prefix" → accepted terminology | Affected surface |
+| `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | Handoff Prefix / handoff branch → accepted terminology | Affected surface |
 | `plugins/tsugu/skills/tsugu/references/git-recipes.md` | Settlement assumes merge commit; completion-tail/cleanup consults `## Legacy Work Prefixes`; pointer to advanced for rewrite landings | B1, E3 |
 | `plugins/tsugu/skills/tsugu/references/migrations.md` | New `3→4` step (E1 rename+restamp, E2 collapse+disjointness re-check, E3 per-branch legacy) | E |
 | `plugins/tsugu/commands/prepare.md` | Provisioned-machine driver default; cloud degrades | F |
@@ -36,10 +38,11 @@
 
 ---
 
-## Task 1: Rewrite the policy template to the schema-4 shape
+## Task 1: Rewrite the policy + packet templates to the schema-4 shape
 
 **Files:**
 - Modify: `plugins/tsugu/skills/tsugu/templates/policy.md` (currently 54 lines)
+- Modify: `plugins/tsugu/skills/tsugu/templates/packet.md` (currently 18 lines)
 
 - [ ] **Step 1: Read the current template and spec §A1/§C1/§B**
 
@@ -70,13 +73,20 @@ grep -iq 'advanced.md' "$f" && echo "merge-method pointer OK"
 grep -iq 'auto-delete' "$f" && grep -iq 'exclude' "$f" && echo "retain-handoff (exclude) retained OK"
 ```
 (The `exclude` conjunct distinguishes the *retained* exclude-mode recommendation from a leftover squash line — the squash-specific framing must be gone from `## Merge method`, only the exclude retain-handoff line stays.)
-Expected: every line prints its `OK`.
+
+Also edit **`templates/packet.md`**: `## Suggested handoff branch` → `## Suggested accepted branch`; "under a **Handoff Prefix**" → "under an **Accepted Prefix**". Then:
+
+```bash
+p=plugins/tsugu/skills/tsugu/templates/packet.md
+! grep -qi 'handoff prefix' "$p" && grep -qi 'accepted' "$p" && echo "packet wording OK"
+```
+Expected: every line prints its `OK` (incl. `packet wording OK`).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/tsugu/skills/tsugu/templates/policy.md
-git commit -m "feat(tsugu): policy template → schema 4 (single prepare/*, accepted-prefixes, merge-method shrink)"
+git add plugins/tsugu/skills/tsugu/templates/policy.md plugins/tsugu/skills/tsugu/templates/packet.md
+git commit -m "feat(tsugu): policy+packet templates → schema 4 (single prepare/*, accepted-prefixes, merge-method shrink)"
 ```
 
 ---
@@ -232,31 +242,43 @@ git commit -m "feat(tsugu): SKILL.md §F — prepare's default driver runs on th
 
 ---
 
-## Task 6: `references/policy-and-intake.md` — accepted-prefixes rename
+## Task 6: `references/policy-and-intake.md` + `notes-and-packet.md` — accepted-prefixes, move squash
 
 **Files:**
 - Modify: `plugins/tsugu/skills/tsugu/references/policy-and-intake.md` (255 lines)
+- Modify: `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` (125 lines)
 
-- [ ] **Step 1: Read the file + spec §C1**
+- [ ] **Step 1: Read both files + spec §C1, §B (criterion 2), Affected surface**
 
-- [ ] **Step 2: Edit**
+In `policy-and-intake.md` find the `## Merge method` section (~line 109) — it currently elaborates the **forced-squash** procedure inline (the squash commit's parents, disable-auto-delete, "awaiting merge"). That elaboration is *core* and must move per criterion 2.
 
-Rename the handoff-prefixes section/field → accepted-prefixes; defaults → `feature/* bugfix/* chore/*`. Update any `prepare/* investigate/* review/*` default mention to `prepare/*`. Keep prefix-disjointness wording, naming `## Accepted Prefixes`.
+- [ ] **Step 2: Edit `policy-and-intake.md`**
 
-- [ ] **Step 3: Verify**
+- Rename the handoff-prefixes section/field → accepted-prefixes; defaults → `feature/* bugfix/* chore/*`. Any `prepare/* investigate/* review/*` default → `prepare/*`. Keep prefix-disjointness wording, naming `## Accepted Prefixes`.
+- **`## Merge method`:** shrink to "prefer merge commits; non-containment landings (squash / rebase / force-push) → `references/advanced.md`" and **keep** the exclude-mode retain-handoff / disable-auto-delete line; **move the forced-squash elaboration into `advanced.md`** (it should already be there from Task 2 — if Task 2's `advanced.md` doesn't yet capture this exact procedure, add it there now).
+- Rename "handoff branch" → "accepted branch" ("handoff" may stay only as the *event* verb).
+
+- [ ] **Step 3: Edit `notes-and-packet.md`**
+
+"Handoff Prefix" → "Accepted Prefix"; "slug-paired handoff branch" → "slug-paired accepted branch"; "## Suggested handoff branch" → "## Suggested accepted branch" (matches the packet template). "handoff" may stay only as the event verb.
+
+- [ ] **Step 4: Verify**
 
 ```bash
-f=plugins/tsugu/skills/tsugu/references/policy-and-intake.md
-! grep -qi 'handoff prefix' "$f" && grep -qi 'accepted' "$f" && echo "rename OK"
-grep -q 'feature/\*' "$f" && echo "defaults OK"
+for f in plugins/tsugu/skills/tsugu/references/policy-and-intake.md plugins/tsugu/skills/tsugu/references/notes-and-packet.md; do
+  ! grep -qi 'handoff prefix' "$f" && echo "$f: prefix rename OK" || echo "$f: STILL HAS handoff prefix"
+done
+g=plugins/tsugu/skills/tsugu/references/policy-and-intake.md
+grep -q 'feature/\*' "$g" && echo "defaults OK"
+grep -qi 'advanced.md' "$g" && echo "squash moved (pointer present) OK"
 ```
-Expected: both `OK`.
+Expected: both files `prefix rename OK`, plus `defaults OK` and `squash moved (pointer present) OK`. Also confirm by eye that `advanced.md` now contains the forced-squash procedure that left `## Merge method`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add plugins/tsugu/skills/tsugu/references/policy-and-intake.md
-git commit -m "feat(tsugu): policy-and-intake.md → accepted-prefixes (list, feature/* bugfix/* chore/*)"
+git add plugins/tsugu/skills/tsugu/references/policy-and-intake.md plugins/tsugu/skills/tsugu/references/notes-and-packet.md
+git commit -m "feat(tsugu): policy-and-intake + notes-and-packet → accepted-prefixes; move forced-squash to advanced.md"
 ```
 
 ---
@@ -274,7 +296,7 @@ Find the containment/settlement recipes, the squash handling, the completion-tai
 
 - Settlement recipes assume merge commits (containment). Move/point the squash/rewrite recipe to `references/advanced.md` (leave a one-line pointer here).
 - Completion-tail / cleanup: also consult a `## Legacy Work Prefixes` note (when present) so artifacts under dropped prefixes stay reachable for sweep; pruning the note once empty is **optional** (a stale-empty note is harmless).
-- Rename `## Handoff Prefixes` → `## Accepted Prefixes` references; `prepare/* investigate/* review/*` → `prepare/*`.
+- Rename `## Handoff Prefixes` → `## Accepted Prefixes` references; `prepare/* investigate/* review/*` → `prepare/*`. Also rename "handoff branch" → "accepted branch" throughout (this file has many such mentions); "handoff" may stay only as the *event* verb.
 
 - [ ] **Step 3: Verify**
 
@@ -282,7 +304,7 @@ Find the containment/settlement recipes, the squash handling, the completion-tai
 f=plugins/tsugu/skills/tsugu/references/git-recipes.md
 grep -qi 'Legacy Work Prefixes' "$f" && echo "legacy sweep OK"
 grep -qi 'advanced.md' "$f" && echo "advanced pointer OK"
-! grep -q '## Handoff Prefixes' "$f" && echo "rename OK"
+! grep -qi 'handoff prefix' "$f" && echo "prefix rename OK"
 ```
 Expected: all `OK`.
 
@@ -445,8 +467,10 @@ git commit -m "docs(tsugu): bump to schema 4 / v0.4.0 in CLAUDE.md + marketplace
 - [ ] **Step 1: No stale schema-3 vocabulary anywhere in the plugin**
 
 ```bash
-echo "--- stale '## Handoff Prefixes' (expect none) ---"
-rg -n 'Handoff Prefixes' plugins/tsugu || echo "clean"
+echo "--- stale '## Handoff Prefixes' outside migrations.md (expect none) ---"
+# migrations.md LEGITIMATELY references '## Handoff Prefixes' — it documents the
+# 3→4 rename FROM that heading and older-schema state — so exclude it.
+rg -n 'Handoff Prefixes' plugins/tsugu --glob '!**/migrations.md' || echo "clean"
 echo "--- stale multi-prefix default (expect none in shipped files) ---"
 rg -n 'prepare/\* investigate/\* review/\*' plugins/tsugu || echo "clean"
 echo "--- schema stamp is 4 in the template (expect match) ---"
