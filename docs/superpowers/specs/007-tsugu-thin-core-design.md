@@ -395,7 +395,16 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   once no branches remain under it is **optional** (a stale-empty note is
   harmless and may remain).
 - **`plugins/tsugu/skills/tsugu/references/policy-and-intake.md`** — rename the
-  handoff-prefixes section to accepted-prefixes; new defaults.
+  handoff-prefixes section to accepted-prefixes; new defaults; **move its
+  `## Merge method` forced-squash elaboration to `advanced.md`** (leave "prefer
+  merge commits; non-containment landings → advanced" + the exclude retain-handoff
+  line), per §B / criterion 2; rename "handoff branch" → "accepted branch".
+- **`plugins/tsugu/skills/tsugu/templates/packet.md`** — "## Suggested handoff
+  branch" → "## Suggested accepted branch"; "Handoff Prefix" → "Accepted Prefix".
+- **`plugins/tsugu/skills/tsugu/references/notes-and-packet.md`** — the packet /
+  notes structure wording: "Handoff Prefix" → "Accepted Prefix", "slug-paired
+  handoff branch" → "slug-paired accepted branch" ("handoff" may remain only as
+  the *event* verb, per §C2).
 - **`plugins/tsugu/skills/tsugu/templates/policy.md`** — `## Accepted Prefixes`
   with `feature/* bugfix/* chore/*`; `## Branch Prefixes` with `prepare/*` only;
   `tsugu-schema: 4`. **`## Merge method`** shrinks to "prefer merge commits;
