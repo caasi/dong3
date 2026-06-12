@@ -340,9 +340,10 @@ per-machine dependencies, neither of which transfers across machines**:
 A machine missing either cannot convert those signals into `prepare/<slug>`
 branches; a generic cloud agent typically has neither. Hence:
 
-- **Default:** run the driver (a local cron, or `/loop`) on the **provisioned
-  machine** — in the homelab→MacBook workflow, the homelab, where the human has
-  already set up both the source config and its credentials.
+- **Default:** run the driver — one **the human starts** (a local cron, or
+  `/loop`); the skill still never wakes itself — on the **provisioned machine**:
+  in the homelab→MacBook workflow, the homelab, where the human has already set up
+  both the source config and its credentials.
 - **An unprovisioned cloud/headless run is still allowed, but not the default.**
   `prepare` **degrades to git-native only** (it works the queue derivable from
   refs; no tracker/source intake). The two gaps surface differently, and neither
@@ -404,7 +405,12 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   local homelab), not a generic cloud agent; revise the "a *cloud* agent runs it
   daily" line, keep the unprovisioned-run-degrades-to-git-native fallback —
   config-missing surfaces at a *same-machine* `converge` (the existing notice), an
-  auth failure only in the run's own log (no new `converge` scope).
+  auth failure only in the run's own log (no new `converge` scope). Also reconcile
+  the two other cloud-framed touchpoints: the frontmatter description ("wire
+  `prepare` to `/schedule`/cron") and line ~91 ("Cadence always comes from an
+  external `/schedule`/cron driver") — neither is cloud-specific, but both should
+  de-emphasize a *cloud* `/schedule` in favor of a driver on the provisioned
+  machine.
 - **`plugins/tsugu/commands/prepare.md`** — F: if it mentions `/schedule`/cron as
   the wiring, note the **provisioned-machine** default (an external driver — local
   cron / `/loop` — on the machine holding source config + credentials) and that
