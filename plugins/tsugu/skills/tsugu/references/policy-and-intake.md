@@ -116,9 +116,13 @@ work tip is never contained in default — that heavier path lives in
 `references/advanced.md`.
 
 For the **`exclude`-mode** retain case: the repo **should disable the forge's
-auto-delete-head-branch for tsugu accepted branches**, so the slug pairing
-survives the merge and carries the "awaiting merge" state until the human's
-completion tail deletes both branches. This is a recommendation, not a hard gate.
+auto-delete-head-branch for the accepted/public branch**, because in `exclude`
+mode the work branch never merges — **settlement is derived from the public
+branch's own containment**, so that ref must survive to carry the settlement
+evidence until the human's completion tail confirms the landing and deletes both
+branches. (Once the public branch merges, the item is **settled**, not awaiting —
+the ref is kept for the settlement signal, not a pending state.) This is a
+recommendation, not a hard gate.
 
 ### `## Housekeeping`
 
