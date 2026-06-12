@@ -273,10 +273,21 @@ overlap the schema-3 repo did not have: a repo could legally have curated work
 prefixes `investigate/* review/*` and accepted prefixes `prepare/* feat/*`
 (disjoint under schema 3). After the collapse, the work set is `prepare/*` and
 the renamed accepted set still contains `prepare/*` → **overlap**, violating the
-invariant C1 enforces. So after E1's rename **and** E2's collapse, migration
-**re-runs the work ∩ accepted = ∅ check**; on overlap it stops and asks the human
-to pick a different accepted prefix or decline the collapse. The collapse is not
-committed until the sets are disjoint.
+invariant C1 enforces. So before committing the collapse, migration **re-runs the
+work ∩ accepted = ∅ check**; on overlap it stops and asks the human to pick a
+different accepted prefix or decline the collapse. The collapse is not committed
+until the sets are disjoint.
+
+**Re-entrancy ordering (must persist the removed set before collapsing).** The
+actual rewrite of `## Branch Prefixes` → `prepare/*` is **deferred until after
+E3**. On confirmation, migration **first records the removed work prefixes (every
+work prefix except `prepare/*`) into `## Legacy Work Prefixes`**, then runs E3
+against that recorded set, and only **then** collapses `## Branch Prefixes`. If
+the list were collapsed up front and the run were interrupted before E3 finished,
+the next run would see `prepare/*` alone — E2's condition false, the removed
+prefixes unrecoverable, and E3's branches stranded. Persisting the set first (and
+deferring the list rewrite) keeps the migration re-entrant: a re-run either still
+sees the multi-prefix list **or** recovers the removed set from the note.
 
 ### E3 — Per-branch legacy handling
 
