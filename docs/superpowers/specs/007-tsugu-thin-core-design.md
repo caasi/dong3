@@ -1,0 +1,314 @@
+# 007 — Tsugu thin core: `prepare/*` is the work prefix, squash is advanced (schema 4)
+
+## Relationship to 004 / 005 / 006
+
+This spec **extends** `006-tsugu-workspace-transfer-design.md` (which superseded
+parts of `005`, which extended `004`). 004/005/006 remain the lineage: the
+git-native intake idea, derived state, the no-skill-orchestration rule, the
+no-force principle, the storage split (committed `.tsugu/` vs personal global
+folder), and the multi-agent reservations all stand.
+
+007 is a **mental-model simplification**, not a storage change. It narrows what
+is *foreground* in the core skill and relocates the heaviest path (forced
+squash) to an advanced reference — **relocate, not remove**. No capability is
+dropped; the default surface shrinks. Captured from the homelab→MacBook workflow
+recorded in issue #38.
+
+The new schema is **`tsugu-schema: 4`**, with a documented 3→4 migration. A
+schema-1/2 repo migrates 1→2→3→4 under the existing N→N+1 contract.
+
+| Line | Change | What it supersedes |
+| --- | --- | --- |
+| A | **Single `prepare/*` work prefix.** The default work-prefix set drops to `prepare/` alone; `investigate/ review/` leave the default. Built-in review/investigate subagents work *inside* the `prepare/` branch/worktree; their status lives in `context.md` narrative, not the branch namespace | 006/SKILL.md's default work prefixes `prepare/* investigate/* review/*` and the `review/<slug>` same-slug-artifact example |
+| B | **Forced-squash → advanced.** Core assumes merge commits (settlement = containment). The squash narrative-backstop / re-surface-until-confirmed machinery moves to a new `references/advanced.md` | SKILL.md's in-core squash handling inside the partition notes |
+| C | **`accepted-prefixes`.** policy section `## Handoff Prefixes` → `## Accepted Prefixes`; shape is a list, default `feature/ bugfix/ chore/`; handoff is framed as an *event* (translate `prepare/<slug>` → repo-native human branch), not a Tsugu-owned namespace | 006/policy's `## Handoff Prefixes` defaults `feat/* fix/*` |
+| D | **converge dispositions stated as accept / park / drop**, with `continue` implicit and `promote` orthogonal | SKILL.md's accept/reject/park naming (rename `reject`→`drop`) |
+| E | **Migration 3→4** (interactive prefix-collapse proposal + per-branch legacy handling) | n/a (new) |
+
+Everything in 004/005/006 not named here is unchanged. In particular, **exclude
+mode (`public-branch-tsugu`), multi-agent forward-compat, and omni-repo
+recursion stay in the core** — they are part of the intended setup, not advanced.
+
+## The principle (the spine)
+
+> **Tsugu prepares `prepare/*` branches. Humans decide what converges.**
+
+One test governs whether a concept belongs in the *core* (as opposed to derived,
+advanced, or workflow-specific), carried verbatim from issue #38:
+
+> Does this help a cold-start agent or human understand and continue prepared
+> work **from Git alone**? If yes, keep it near the core. If not, make it
+> derived, advanced, or workflow-specific.
+
+This spec applies that test to four core surfaces and moves what fails it.
+
+## A — Single `prepare/*` work prefix
+
+### A1 — The default work-prefix set is `prepare/` alone
+
+`init` writes a single work prefix by default:
+
+```text
+## Branch Prefixes
+prepare/
+```
+
+(was `prepare/* investigate/* review/*`). The branch name is **stable work
+identity**, not a workflow state machine. "Investigation", "review status",
+"implementation notes", "risk", and "next action" all live in
+`.tsugu/context.md` on the branch — narrative for minds — never in the branch
+namespace.
+
+### A2 — Built-in subagents work *inside* the `prepare/` branch
+
+`prepare`'s built-in review/investigate Task subagents no longer emit a separate
+`review/<slug>` (or `investigate/<slug>`) branch as a same-slug artifact. They
+operate within the work branch / its worktree and record findings in the work
+branch's `context.md` (and promote durable findings to `knowledge/` as before).
+
+Consequence for the slug-as-join-key text: the concept **stays** (one slug ties
+the work branch, its `context.md`, and — when one exists — the accepted branch),
+but the **"same-slug branch under a *different work prefix* is that item's
+artifact"** example is removed from the core SKILL.md, because the default no
+longer produces such branches. A repo MAY still configure additional work
+prefixes (the mechanism is intact); when it does, the slug-artifact rule still
+holds and is documented in `references/advanced.md`.
+
+### A3 — Discovery filters by the configured prefixes (unchanged mechanism)
+
+Cold-start discovery still enumerates remote-tracking refs and filters by the
+prefixes recorded in `policy.md`. With the new default this is just `prepare/*`.
+A repo that has curated extra prefixes keeps discovering them — nothing about the
+filter changes; only the shipped default shrinks.
+
+## B — Forced-squash moves to `references/advanced.md`
+
+### B1 — Core assumes merge commits
+
+The core mental model is containment-derived settlement only:
+
+```text
+prepare/<slug> tip contained in <remote>/<default>  =>  settled
+```
+
+The SKILL.md partition keeps exactly two ref-level facts in the core table:
+
+| Fact | State | Disposition |
+| --- | --- | --- |
+| tip contained in `<remote>/<default>` (in `exclude` mode: the slug-paired public branch's tip) | **settled** | skip; completion-tail / cleanup candidate |
+| a same-slug branch exists under a configured `## Accepted Prefixes` | **decided, awaiting merge** | skip as candidate; shown in converge's awaiting-merge section |
+| neither | **in progress** | candidate: read `context.md`, judge from narrative |
+
+`prepare` still **recommends merge commits** and warns against squash-merging
+tsugu-managed branches. `exclude` mode stays in core (its by-path landing is
+already containment-derivable via the public branch's tip).
+
+### B2 — What moves to advanced
+
+The new `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/advanced.md` holds the
+**forced-squash** path, lifted out of the core partition notes:
+
+- the narrative-backstop ("handed off — may have landed via squash" written into
+  `context.md` at the converge decision);
+- the re-surface-until-confirmed behavior (a forced squash's commit shares none
+  of the work commits, so the work branch's own tip is never contained — it
+  stays "decided, awaiting merge" and re-surfaces at each `converge` until the
+  human confirms the landing and runs the completion tail);
+- the "disable the forge's auto-delete-head-branch" recommendation for the
+  squash case;
+- the squash-specific completion-tail trigger (human's in-session confirmation
+  instead of containment).
+
+The core SKILL.md keeps a one-line pointer: *"Squash merges break
+containment-derived settlement; if a repo requires squash, see
+`references/advanced.md`."*
+
+The general **narrative backstop** for a *deleted* handoff/public ref (where the
+forge auto-deletes on merge) is shared by `exclude` mode too, so its core form is
+retained; only the squash-specific elaboration moves.
+
+## C — `accepted-prefixes` (handoff as an event)
+
+### C1 — policy section rename + shape
+
+```text
+## Accepted Prefixes
+feature/
+bugfix/
+chore/
+```
+
+(was `## Handoff Prefixes` with defaults `feat/ fix/`.) The field is a **list**
+(`accepted-prefixes`), default `feature/ bugfix/ chore/`. Existing
+prefix-disjointness validation still applies: the work prefixes
+(`## Branch Prefixes`) and the accepted prefixes (`## Accepted Prefixes`) must be
+**disjoint sets**; `init` and migration refuse overlapping sets.
+
+### C2 — Handoff is an event, not a namespace
+
+Tsugu owns the **agent-side preparation queue** (`prepare/*`). The repo's
+existing human git flow owns public branches, PRs, and merges. At converge
+`accept`, Tsugu *translates* from the preparation queue into the human flow:
+
+```text
+prepare/<slug>   --accept-->   <accepted-prefix>/<slug>   (e.g. feature/<slug>)
+```
+
+Same commits, a second name, **same slug** — the partition pairs the two by
+shared slug, so the "decided, awaiting merge" state survives anything the forge
+does to commits. This is the same mechanism as today's handoff branch, reframed:
+"handoff" is the *act of translating at accept time*, not a prefix Tsugu owns.
+
+When multiple accepted prefixes are configured, the human picks which one at
+`accept` time (or the slug/context implies it).
+
+## D — converge dispositions
+
+### D1 — Three named terminal dispositions
+
+`converge` step 4 presents, per branch:
+
+- **accept** — translate `prepare/<slug>` into a repo-native human branch
+  (`<accepted-prefix>/<slug>`), verify, push, hand off (merge directly in the
+  solo flow, or cut the accepted branch + human-approved PR). Settlement is
+  containment-derived.
+- **park** — write into `context.md` what is needed to resume ("blocked on X").
+  No status field is set; a parked branch is simply a candidate whose narrative
+  says it's blocked, de-prioritized by the staleness/housekeeping derivation.
+- **drop** — record *why* in `context.md` ("dropped — do not resume: <why>";
+  agents read the narrative before touching any candidate), remove worktrees,
+  delete the branch when safe. (Renamed from `reject`; the "record why"
+  narrative is retained.)
+
+### D2 — `continue` is implicit
+
+In a human-present `converge`, **every branch the human does not act on is
+already "continue"** — it stays an in-progress candidate. This is the
+looking-and-leaving morning status view (steps 1–3 touch no git or shared
+state). `continue` is therefore **not** a named verb; it is the default. Its only
+active form is the human triggering a workflow skill on the branch *now*
+("let's brainstorm this", "/review-loop") — which Tsugu does not fire itself.
+
+### D3 — `promote` is orthogonal
+
+`promote` (extract durable findings into `.tsugu/knowledge/` or `AGENTS.md`) is
+**not** a sibling disposition in a pick-one list. It can ride *any* disposition:
+
+- most often it is `accept`'s completion-tail step (as today);
+- but "**drop** the branch yet **promote** the lesson" is valid and useful;
+- it can also be done standalone during the morning view.
+
+It remains a converge checklist item, per issue #38's own note ("promote does not
+necessarily need to be a separate command").
+
+### D4 — Invariant preserved
+
+None of accept / park / drop / continue / promote sets a *status field*. Each
+produces either a branch action (accept/drop), a narrative write (park/drop's
+reason), or a knowledge write (promote). State stays **derived** from refs, the
+DAG, containment, and recency — exactly as in 006. *Narrative informs judgment,
+never classification.*
+
+## E — Migration 3→4
+
+Added to `references/migrations.md` as the `3→4` step.
+
+### E1 — Always-applied, mechanical
+
+1. Rename the policy section `## Handoff Prefixes` → `## Accepted Prefixes`
+   (content preserved verbatim — a schema-3 repo's curated `feat/ fix/` stay as
+   they are; only the heading changes).
+2. Update the `tsugu-schema:` stamp to `4` — **written last**, after all other
+   steps, so an interrupted migration re-enters safely.
+3. If the default branch is push-protected, the migration rides an `init/*`
+   branch + human-approved PR; the stamp rides as the **last** write (never a
+   "complete" stamp over a half-applied migration).
+
+Renames/restructures schema parts only; **never overwrites curated content**.
+
+### E2 — Interactive prefix-collapse proposal
+
+If `## Branch Prefixes` contains more than `prepare/`, migration **proposes**
+collapsing to single `prepare/` and **asks the human to confirm**. It never
+auto-changes a curated prefix set. If the human declines, the multi-prefix set is
+kept as-is (fully supported) and the migration completes with only E1 applied.
+
+### E3 — Per-branch legacy handling
+
+If the human accepts the collapse, migration handles existing branches under the
+*removed* prefixes (`investigate/<slug>`, `review/<slug>`) **without renaming any
+branch** (write-once identity is inviolate). For each such branch it:
+
+1. lists the branch name and its **tip commit hash**;
+2. asks the human whether to **recreate** it as `prepare/<slug>` pointing at that
+   commit (`git branch prepare/<slug> <tip-sha>`, push, then optionally delete
+   the old ref) — a *copy*, not a rename, so write-once identity holds;
+3. does nothing to any branch the human does not explicitly choose to recreate.
+
+No legacy branch is touched without explicit per-branch confirmation. A branch
+the human leaves alone simply stops being discovered under the new single-prefix
+default — surfaced as a one-line note so it is never silently orphaned.
+
+## Affected surface
+
+- **`plugins/tsugu/skills/tsugu/SKILL.md`** — A (single prefix default, drop
+  review-artifact example), B (squash pointer, two-row core partition),
+  C (accepted-prefixes / handoff-as-event wording), D (accept/park/drop verbs,
+  continue implicit, promote orthogonal). Net: shorter.
+- **`plugins/tsugu/skills/tsugu/references/advanced.md`** — **new**: forced-squash
+  full path; the slug-artifact rule for repos that configure extra work prefixes.
+- **`plugins/tsugu/skills/tsugu/references/migrations.md`** — add `3→4` step (E).
+- **`plugins/tsugu/skills/tsugu/references/policy-and-intake.md`** — rename the
+  handoff-prefixes section to accepted-prefixes; new defaults.
+- **`plugins/tsugu/skills/tsugu/templates/policy.md`** — `## Accepted Prefixes`
+  with `feature/ bugfix/ chore/`; `## Branch Prefixes` with `prepare/` only;
+  `tsugu-schema: 4`.
+- **`plugins/tsugu/commands/*.md`** — converge verb naming if referenced.
+- **`plugins/tsugu/skills/tsugu/README.md`** — user-facing wording.
+- **`CLAUDE.md`** (repo root, tsugu paragraph) — schema 4, lineage 004→005→006→007,
+  default work-prefix `prepare/*`, accepted-prefixes.
+- **`.claude-plugin/marketplace.json`** — bump tsugu plugin version.
+
+## Success criteria
+
+1. A fresh `init` writes `## Branch Prefixes: prepare/`, `## Accepted Prefixes:
+   feature/ bugfix/ chore/`, and `tsugu-schema: 4`.
+2. The core SKILL.md partition table has **two** core rows (settled / awaiting-
+   merge / in-progress) with **no squash elaboration**; squash lives only in
+   `references/advanced.md`, reachable by a one-line pointer.
+3. exclude mode, multi-agent forward-compat, and omni-repo recursion remain
+   documented **in core** (unchanged from 006).
+4. converge documents accept / park / drop as the named dispositions, states
+   `continue` as the implicit default, and `promote` as an orthogonal checklist
+   item that can ride any disposition.
+5. Running `init` on a schema-3 repo with `## Handoff Prefixes` renames it to
+   `## Accepted Prefixes`, stamps `tsugu-schema: 4` last, and — only on human
+   confirmation — proposes the prefix collapse; legacy `investigate/`/`review/`
+   branches are handled per-branch with their tip hash shown, never auto-touched.
+6. A schema-1/2 repo migrates 1→2→3→4 under the existing N→N+1 contract.
+7. The slug-as-join-key concept survives; only the `review/<slug>` artifact
+   example leaves the core (it moves to advanced for configured-extra-prefix
+   repos).
+
+## Open questions (resolved in this spec)
+
+- *Collapse to `prepare/` only, or keep multi-prefix?* → Single `prepare/`
+  default; multi-prefix stays configurable and documented in advanced (A).
+- *Which heavy mechanics leave the core?* → Only forced-squash (B). exclude,
+  multi-agent, recursion stay in core.
+- *`accepted-prefix` single value or list?* → List, default
+  `feature/ bugfix/ chore/` (C).
+- *Are converge's five verbs peers?* → No: accept/park/drop are terminal
+  dispositions; continue is the implicit default; promote is orthogonal (D).
+- *Does migration touch curated prefixes?* → Never auto; proposes collapse with
+  confirmation; legacy branches handled per-branch by recreate-at-hash, never
+  renamed (E).
+
+## Deferred (unchanged from 004/005/006)
+
+- Concurrent multi-agent arbitration and locks (the substrate stays forward-
+  compatible; recency-derived claims remain the only mechanism).
+- Any scheduler inside the skill (`prepare` is driven externally by
+  `/schedule`/cron).
+- Tooling/scripts beyond documented git recipes (the skill stays light /
+  script-free).
