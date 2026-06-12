@@ -43,22 +43,23 @@ MR / PR / tracker / Slack / reviewer assignment   →  human approval required
 
 ### `## Branch Prefixes`
 
-The **work** namespaces the queue is built from. Default `prepare/*
-investigate/* review/*` — these are queue items: branches the partition reads and
-classifies. They must be **DISJOINT from `## Handoff Prefixes`** — `init` and
-migration validate this — because the partition pairs a work branch against a
-handoff branch by **shared slug**, and an overlapping prefix would make a branch
-both a queue item and its own handoff.
+The **work** namespaces the queue is built from. Default `prepare/*` — these are
+queue items: branches the partition reads and classifies. They must be **DISJOINT
+from `## Accepted Prefixes`** — `init` and migration validate this — because the
+partition pairs a work branch against an accepted branch by **shared slug**, and
+an overlapping prefix would make a branch both a queue item and its own accepted
+branch.
 
-### `## Handoff Prefixes`
+### `## Accepted Prefixes`
 
 The **human-workflow** namespaces a converge cut hands work into for a PR.
-Default `feat/* fix/*`. A handoff branch is **not** a queue item; it exists so the
-partition can read one ref-level fact: a handoff branch whose **slug pairs** a
-work branch's slug means **that work is decided, awaiting merge** — skip it as a
-candidate, surface it in converge's awaiting-merge section. The pairing is by
-**name, not commits**, so it survives whatever the forge does to commits (PR-branch
-rebases, squashes, force-pushes). Must be disjoint from `## Branch Prefixes`.
+Default `feature/* bugfix/* chore/*`. An accepted branch is **not** a queue item;
+it exists so the partition can read one ref-level fact: an accepted branch whose
+**slug pairs** a work branch's slug means **that work is decided, awaiting
+merge** — skip it as a candidate, surface it in converge's awaiting-merge section.
+The pairing is by **name, not commits**, so it survives whatever the forge does to
+commits (PR-branch rebases, squashes, force-pushes). Must be disjoint from
+`## Branch Prefixes`.
 
 ### `## Push`
 
@@ -87,14 +88,14 @@ Controls whether the committed **WIP-knowledge layer** reaches the default branc
 Two values, default **`include`**:
 
 - **`include` (default):** the work branch **is** what merges — directly (solo
-  flow) or via a slug-paired handoff branch. Merging lands the work branch's
+  flow) or via a slug-paired accepted branch. Merging lands the work branch's
   **prep commit DAG plus its `context.md` narrative** on the default branch as
   committed WIP knowledge; there is no by-path filtering and no separate
   evidence-landing step. The trade-off, stated openly: mainline history carries
   the agent's preparation commits and `context.md` — and in the agent-first
   orientation that history *is* the memory.
 - **`exclude` (opt-out):** cut a **fresh** public branch from the fetched default
-  (handoff-named, same slug) and apply accepted changes **by path**, so the public
+  (accepted-named, same slug) and apply accepted changes **by path**, so the public
   diff introduces **no** `.tsugu/` changes (the guarantee is "never introduced",
   not "stripped afterward"). For collaborative repos where human reviewers should
   not see coordination metadata in the PR. Landing is then confirmed via the
@@ -107,20 +108,17 @@ WIP layer (`context.md` + prep DAG), not `knowledge/`.
 
 ### `## Merge method`
 
-Tsugu **recommends merge commits — do not squash-merge tsugu-managed branches.**
+Tsugu **prefers merge commits — do not squash-merge tsugu-managed branches.**
 Preserved history is what makes settlement, lineage, and evidence derivable from
-the DAG by containment. The consequence of a **forced squash:** the squash commit's
-parents contain none of the work commits, so the landing is **not** containment-
-derivable — the work stays "decided, awaiting merge" *because its slug-paired
-handoff branch still pairs*. So when a forge nonetheless forces a squash, the repo
-**should disable the forge's auto-delete-head-branch for tsugu handoff branches**,
-so the slug pairing survives the merge and carries the "awaiting merge" state
-until the human's completion tail deletes both branches. This is a recommendation,
-not a hard gate; where the forge deletes the branch regardless, the work branch's
-`context.md` **narrative backstop** ("handed off — may have landed via squash")
-keeps `prepare` from resuming it. **No settlement SHA is recorded out of band** —
-settlement is pure containment, and the one lossy case re-surfaces live at each
-`converge` until the human drops both branches.
+the DAG by containment. **Non-containment landings** (a forced squash,
+rebase-before-merge, or force-push of the accepted branch) rewrite history so the
+work tip is never contained in default — that heavier path lives in
+`references/advanced.md`.
+
+For the **`exclude`-mode** retain case: the repo **should disable the forge's
+auto-delete-head-branch for tsugu accepted branches**, so the slug pairing
+survives the merge and carries the "awaiting merge" state until the human's
+completion tail deletes both branches. This is a recommendation, not a hard gate.
 
 ### `## Housekeeping`
 
