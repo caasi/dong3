@@ -344,14 +344,23 @@ branches; a generic cloud agent typically has neither. Hence:
   machine** — in the homelab→MacBook workflow, the homelab, where the human has
   already set up both the source config and its credentials.
 - **An unprovisioned cloud/headless run is still allowed, but not the default.**
-  Missing the source config and/or credentials, `prepare` **degrades to
-  git-native only** (it works the queue derivable from refs; no tracker/source
-  intake). It reports the gap **in its own run output**; and because personal
-  state does not cross machines, a `converge` surfaces it only **on that same
-  machine** (the existing per-machine "personal config unconfigured / sources
-  unauthorized" notice) — it cannot appear at a *different* machine's `converge`.
-  A cloud machine that *is* independently provisioned with both does **not**
-  degrade: the distinction is **provisioning, not cloud-vs-local** per se.
+  `prepare` **degrades to git-native only** (it works the queue derivable from
+  refs; no tracker/source intake). The two gaps surface differently, and neither
+  crosses machines:
+  - **source config missing** (no sources section in the personal folder) →
+    detectable directly at any *same-machine* `converge` — exactly the existing
+    006/SKILL.md "personal config unconfigured on this machine" notice;
+  - **credentials missing / MCP auth fails despite config present** → a **new**
+    per-machine behavior this spec adds (not an existing 006 fallback): the
+    degraded run reports it **in its own run output**, and a same-machine
+    `converge` re-probes the source live when it reads it, so the failure shows up
+    there. **No committed or cross-run diagnostic is persisted** — state stays
+    single-layer, so the failure is not recorded anywhere git-visible.
+
+  Neither gap can appear at a *different* machine's `converge` (personal state
+  does not cross machines). A cloud machine independently provisioned with both
+  does **not** degrade: the distinction is **provisioning, not cloud-vs-local**
+  per se.
 - **Substrate unchanged:** git is still the message bus, so any run that can read
   git still works — it just does less without the sources. Nothing here assumes a
   particular driver; only the *recommended default* changes.
@@ -394,7 +403,9 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
   daily" line, keep the unprovisioned-run-degrades-to-git-native fallback and its
   per-machine (same-machine) surfacing.
 - **`plugins/tsugu/commands/prepare.md`** — F: if it mentions `/schedule`/cron as
-  the wiring, note the local-driver default and the cloud degrade-to-git-native.
+  the wiring, note the **provisioned-machine** default (an external driver — local
+  cron / `/loop` — on the machine holding source config + credentials) and that
+  an *unprovisioned* run degrades to git-native.
 - **`plugins/tsugu/commands/*.md`** — converge verb naming if referenced.
 - **`plugins/tsugu/skills/tsugu/README.md`** — user-facing wording.
 - **`CLAUDE.md`** (repo root, tsugu paragraph) — `Schema 4 (lineage: 004 → 005 →
@@ -457,7 +468,8 @@ This revises the SKILL.md "Scheduling & recursion" line that today says a
 
 - Concurrent multi-agent arbitration and locks (the substrate stays forward-
   compatible; recency-derived claims remain the only mechanism).
-- Any scheduler inside the skill (`prepare` is driven externally — a local cron /
-  `/loop` by default per F; the skill cannot self-wake).
+- Any scheduler inside the skill (`prepare` is driven externally — an external
+  driver on the provisioned machine, e.g. a local cron / `/loop`, per F; the skill
+  cannot self-wake).
 - Tooling/scripts beyond documented git recipes (the skill stays light /
   script-free).
