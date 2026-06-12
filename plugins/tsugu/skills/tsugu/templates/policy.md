@@ -1,13 +1,13 @@
-tsugu-schema: 3
+tsugu-schema: 4
 ## Private Git Space (agent may do freely)
-create/commit (push per `## Push`) `prepare/*` / `investigate/*` / `review/*` branches; worktrees; write `.tsugu/*`;
+create/commit (push per `## Push`) `prepare/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
 ## Public Coordination (ask first)
 open MR/PR; tracker comment / status change; assign reviewers; Slack;
 public commitments; move findings into human-facing docs; irreversible cleanup
 ## Branch Prefixes
-prepare/*  investigate/*  review/*
-<!-- work prefixes (the queue). Must be DISJOINT from Handoff Prefixes — init
+prepare/*
+<!-- work prefixes (the queue). Must be DISJOINT from Accepted Prefixes — init
      and migration validate this. -->
 ## Push
 push-prepare-branches: yes
@@ -15,8 +15,8 @@ push-prepare-branches: yes
      branches automatically?". Pushing makes the branch a message (cross-
      machine handoff reads remote refs). Set no to keep work local —
      prepare then commits locally and stops for approval. -->
-## Handoff Prefixes
-feat/*  fix/*
+## Accepted Prefixes
+feature/*  bugfix/*  chore/*
 <!-- human-workflow branches converge cuts for PRs. A branch here with the
      same slug as a work branch = that work is decided, awaiting merge. -->
 ## Public branch
@@ -27,11 +27,11 @@ public-branch-tsugu: include
      exclude: cut a clean public branch by path — no .tsugu/ in the PR diff;
      knowledge/ still lands on the coordination ref. -->
 ## Merge method
-Prefer merge commits — do not squash-merge tsugu-managed branches: settlement
-depends on containment-preserved history. If a forge nonetheless forces a
-squash, also disable the forge's auto-delete-head-branch for tsugu handoff
-branches so the slug pairing survives the merge and carries the
-"awaiting merge" state until the human's completion tail deletes both branches.
+Prefer merge commits — settlement depends on containment-preserved history.
+Non-containment landings (squash / rebase / force-push) → `references/advanced.md`.
+Disable the forge's auto-delete-head-branch for tsugu branches so the slug
+pairing survives the merge — `exclude` mode settles via the public branch's
+containment, so that ref must survive too.
 ## Housekeeping
 <!-- stale-after: 30 days -->
 <!-- commented default — converge records the threshold here progressively on
