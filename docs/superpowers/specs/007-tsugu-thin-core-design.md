@@ -307,8 +307,11 @@ checks whether `prepare/<slug>` already exists, because in schema 3 a
 2. **No `prepare/<slug>`** (a standalone legacy branch) → list the branch name and
    its **tip commit hash**, and ask the human whether to **recreate** it as
    `prepare/<slug>` pointing at that commit (`git branch prepare/<slug> <tip-sha>`,
-   push, then optionally delete the old ref) — a *copy*, not a rename, so
-   write-once identity holds.
+   push) — a *copy*, not a rename, so write-once identity holds. After the copy
+   the old ref is redundant: **delete it** (recommended), **or**, if the human
+   keeps it, **record its dropped prefix in `## Legacy Work Prefixes`** exactly as
+   in case 1 — otherwise the retained old ref strands under the collapsed-away
+   prefix and is omitted from future completion-tail sweeps.
 3. **Ambiguous** — multiple divergent legacy branches share one slug, or the
    human wants to keep both the legacy branch and an existing `prepare/<slug>` →
    **stop and ask**; the human resolves by hand (rename/drop as they choose).
