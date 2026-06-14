@@ -129,3 +129,75 @@ intact (the work branch, its `context.md`, the personal packet
 artifact leg is **only** present in a repo that has curated additional work
 prefixes, and even then it follows the work item's slug rather than standing on its
 own.
+
+## Bare-submodule two-repo landing
+
+When a bare submodule's work converges, accept is an **ordered, two-repo
+transaction** (not two independent accepts): the meta commit pins a submodule SHA,
+and the landed SHA differs from the prepare-time tip (merge commit, or a fresh SHA
+under squash/rebase). Human-driven throughout — tsugu never auto-merges.
+
+1. **Land the submodule first** — merge its forge PR from an accepted-prefix branch
+   named per **meta** policy's `## Accepted Prefixes` (same slug). Resolve the
+   **landed** submodule SHA.
+2. **Re-point, then land meta** — on the meta accepted branch (same slug), bump the
+   gitlink to the submodule's **default-branch tip that now contains the landed
+   work** — never the prepare-time tip and never a pre-graduation ancestor (the
+   default tip also carries anything landed meanwhile, e.g. a graduation `.tsugu/`
+   commit; re-pointing to an ancestor would pass reachability yet silently
+   *un-graduate* the submodule). Pinning the default tip is ordinary submodule-bump
+   coupling — if isolating the exact work matters, pin a specific commit that
+   contains the landed work + graduation instead. **Carry the final `context.md`**
+   onto the meta accepted branch, then open the meta PR; **immediately before merging
+   it, read the gitlink the current meta default already records** (the source of
+   truth — a concurrent legitimate meta bump may have landed since) and confirm the
+   target you are pinning still contains **all** required submodule commits (the
+   landed work + that concurrent pin's commit + any graduation / legitimate bump); if
+   not, re-point onto the now-current **submodule default** tip first so the merge
+   never overwrites a newer pin.
+3. **Settlement is conjunctive + ancestry-based** — settled only when **all** hold:
+   (a) the landed-work SHA (and graduation SHA, if any) is an **ancestor of the
+   gitlink target** — i.e. the landed work is actually contained in what the meta
+   pins; checking only (b) below is not enough; (b) that target is reachable
+   from the submodule's fetched default; (c) the landed meta commit (resolve its SHA
+   if squash/rebase-merged) is reachable from meta default **and its own tree records
+   that gitlink target** (read from the landed commit's tree, not the live default
+   tree, so a later legitimate bump can't unsettle old work). Where a history rewrite
+   makes mechanical proof impossible, confirmation **is** the human's in-session word
+   (as elsewhere in this file); pending/deferred only when neither mechanical proof
+   nor human confirmation is available.
+4. **Completion tail reaches across** — delete the meta work + accepted branches and,
+   using the name + SHA in the meta `context.md`, reach into the submodule to delete
+   its `prepare/<slug>` + accepted branch (else they orphan — a bare submodule has no
+   queue or tail). The tail first **initializes + fetches** the submodule
+   (`git submodule update --init`, `git -C <sub> fetch`), deletes **local and
+   remote** refs per the meta `## Push` policy, never deletes a checked-out branch,
+   and is **idempotent** (an already-absent ref is a no-op).
+
+Concretely, the mechanical settlement checks (all must pass):
+
+```bash
+git -C <sub> fetch <remote>; git fetch <remote>   # make fetched default + landed SHAs local first
+# (a) landed-work (and graduation, if any) SHA is an ANCESTOR of the gitlink target
+git -C <sub> merge-base --is-ancestor <landed-work-sha> <gitlink-target-sha>
+# (b) the gitlink target is reachable from the submodule's fetched default
+git -C <sub> merge-base --is-ancestor <gitlink-target-sha> <remote>/<default>
+# (c) the LANDED meta commit's own tree records that gitlink target (compare, don't just print)
+recorded=$(git ls-tree <landed-meta-sha> <submodule-path> | awk '{print $3}')
+[ "$recorded" = "<gitlink-target-sha>" ] || { echo "MISMATCH: meta tree pins $recorded" >&2; false; }
+#     … and that landed meta commit is reachable from meta default
+git merge-base --is-ancestor <landed-meta-sha> <remote>/<meta-default>
+```
+
+**The other dispositions change for a bare pair** — each spans two branches across
+two repos:
+- **continue** — advancing the submodule tip means refreshing the meta paired
+  branch's gitlink + `context.md`, or the meta side goes stale.
+- **park** — narrate "blocked on X" in the meta `context.md`; both branches remain.
+- **drop** — record *why* in the meta `context.md`, then delete **both** refs (meta
+  paired branch + submodule `prepare/<slug>` via `git -C <sub>`).
+- **promote** — orthogonal; durable findings rise into the meta `knowledge/`.
+
+**Out of scope:** nested bare chains (a bare submodule inside a bare submodule) would
+require a gitlink-bump chain through every intermediate — surface such a subtree for
+the human to restructure, don't drive it.

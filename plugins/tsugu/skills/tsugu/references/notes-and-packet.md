@@ -123,3 +123,30 @@ A fact true of one repo stays in that repo's `knowledge/`; a fact true across
 several repos is promoted to the enclosing omni-repo level. This keeps an
 omni-repo from becoming a junk drawer — promotion is a deliberate "this is true
 more broadly now" decision, not the default.
+
+## Graduation (knowledge relocation)
+
+When a bare submodule the omni-repo was managing gets its own `.tsugu/`, the
+submodule-specific knowledge moves **down** out of the omni `.tsugu/` — the
+deliberate inverse of "promote upward." `init` detects the enclosing omni-repo
+(`git rev-parse --show-superproject-working-tree` → check that superproject for
+`.tsugu/`), scans the omni `knowledge/` for entries naming this submodule,
+**presents them**, and on **per-entry human confirmation** cuts them down into the
+new submodule `knowledge/` (move content, remove from meta) — leaving the omni level
+holding only genuinely cross-cutting knowledge.
+
+**Graduation is a repo mutation, not a relabel.** Creating the submodule's
+`.tsugu/policy.md` is a new submodule commit; removing the omni entries is a meta
+commit; **the omni gitlink must be bumped** to the submodule commit carrying the new
+`.tsugu/` — else a fresh checkout stays pinned to a pre-`.tsugu/` SHA, re-classifies
+the submodule as bare, and operationally **reverses** graduation. `init` makes these
+as ordinary commits per repo (submodule first, then the meta gitlink bump + knowledge
+removal) and is **re-entrant** (interrupted midway, re-running re-detects remaining
+omni entries). No atomic cross-repo transaction is claimed; the human drives any PR.
+
+**In-flight paired branches are left alone** — they finish at meta `converge`; only
+new post-graduation work goes native-in-submodule. One guard: when such an in-flight
+pair later accepts, its meta gitlink-bump must target the **current submodule default
+tip** (which contains both the accepted work and the graduation commit), never a bare
+ancestor — the same re-point rule as the two-repo accept, applied across the
+graduation boundary.

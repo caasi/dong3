@@ -559,3 +559,105 @@ git push --set-upstream <remote> init/tsugu-bootstrap
 
 Do **not** run `prepare` in that repo until the metadata PR is merged — `prepare`
 needs `policy.md` / `coordination-ref` resolvable from `<remote>/<default>`.
+
+## Submodule recursion
+
+(Omni-repo.) `prepare` recurses after working the meta-repo's own queue. The branch always lands
+at the lowest repo that owns the **code**; `.tsugu/` knowledge lands at the lowest
+repo that **has** a `.tsugu/`.
+
+**Descend only if this repo's own `## Recursion` permits** (default: only when
+relevant) — that toggle governs whether this repo descends into a submodule subtree
+**at all**, independent of any submodule's gate outcome. Once descending, the
+per-submodule gate (step 2) decides recurse-vs-meta-drive.
+
+**1 — Enumerate (initialized trees only).**
+
+```bash
+git submodule status   # a leading "-" = uninitialized: no working tree to test
+```
+
+An uninitialized submodule (leading `-`) is either initialized
+(`git submodule update --init <path>`) before gating, or **skipped with a surfaced
+note** — never silently treated as bare (it may carry `.tsugu/` once checked out).
+
+**2 — Gate on a readable `.tsugu/policy.md` (three outcomes, not two).**
+
+```bash
+if   test -r "<sub>/.tsugu/policy.md"; then echo HAS      # managed: recurse-and-run (step 3)
+elif test -e "<sub>/.tsugu";          then echo INVALID   # .tsugu/ exists but no readable policy.md
+else                                       echo BARE      # genuinely bare: meta-drive (step 4)
+fi
+```
+
+`INVALID` (a `.tsugu/` directory without a readable `policy.md`) is **surfaced, not
+driven** — never silently collapsed into `BARE`.
+
+**3 — HAS `.tsugu/` → recurse-and-run.** Run the full `prepare` routine inside the
+submodule, treating it as its own repo. It already has its own project-key (keyed on
+its own git dir) → its own personal-config intake.
+
+```bash
+git -C <submodule-path> fetch --prune <remote>
+# then run prepare's steps with every git command prefixed `git -C <submodule-path>`
+# (optionally dispatch a built-in Task subagent per submodule)
+```
+
+The submodule runs at its **own** schema (do **not** force-migrate a schema-3
+submodule). Its own `policy.md`, `context.md` scope, default branch, and push rules
+apply; its own queue read **continues an existing `prepare/<slug>` rather than
+duplicating** it, and its `context.md` scope boundaries are respected emergently
+(no central router). Reads its sources only if that submodule's personal config was bootstrapped
+on **this** machine (interactive-only); else it degrades to git-native and surfaces
+"personal config unconfigured" at the submodule's next same-machine `converge`.
+
+**4 — no `.tsugu/` → meta-drives with a paired meta branch.** The branch still lands
+in the submodule (easy handoff), but **meta** `policy.md` governs every tsugu rule
+for it. **Resolve the base and rules BEFORE creating any branch** (ask-don't-guess —
+never branch on a guess):
+
+```bash
+git -C <sub> fetch --prune <remote>
+ref=$(git -C <sub> symbolic-ref --quiet "refs/remotes/<remote>/HEAD")   # e.g. refs/remotes/origin/develop
+default=${ref#refs/remotes/<remote>/}                                   # prefix-strip — keeps slashes (release/v2)
+# Ambiguous (no .../HEAD, multiple remotes) OR a rule not covered by meta policy?
+#   interactive -> ASK the human
+#   headless    -> DO NOT branch: leave the item unbranched, surface it at next converge
+# Only once base + rules are resolved. <work-prefix> = the META-policy work prefix
+#  (default prepare/*) — the bare submodule has no policy of its own:
+git -C <sub> switch -c <work-prefix>/<slug> "<remote>/$default"
+# … reproduce / test / patch / commit inside the submodule …
+```
+
+**No clear owner.** When a meta-source ticket maps to no obvious submodule, do **not**
+guess one: if it's genuinely meta-level work open a meta `prepare/<slug>`; otherwise
+**defer to `converge`** (create no branch). At `converge` the human assigns an owner
+and it reclassifies — recurse-and-run target (HAS `.tsugu/`), a bare pair, or meta
+work. A deferred item carries no committed state; it resurfaces by re-reading
+external intake (the schema-3 weakened-dedup tradeoff), no ledger.
+
+Then carry the findings on a **paired meta branch** (same slug):
+
+```bash
+# in the meta-repo working tree (<work-prefix> = the meta-policy work prefix, default prepare/*)
+git switch -c <work-prefix>/<slug>
+git add <sub>                       # stage the gitlink bump to the prepared submodule tip
+# write .tsugu/context.md narrating the work + the submodule branch name + SHA
+git add .tsugu/context.md
+git commit -m "prepare(<slug>): submodule work in <sub> @ <sha> (paired)"
+```
+
+Handoff: checking out the meta `prepare/<slug>` + `git submodule update` lands the
+submodule at the prepared commit as **detached HEAD** at the recorded SHA (not on
+`prepare/<slug>` — the human runs `git -C <sub> checkout prepare/<slug>` to resume).
+
+**5 — Depth.** Traverse **depth-first**. Arbitrary depth holds for **managed** chains
+(each level has its own `.tsugu/`). A **bare** level is driven **only one level deep** — a direct bare child
+may be meta-driven, but anything nested beneath a bare child is **surfaced, not
+driven** (it would become an N-repo gitlink-chain transaction). Note it and leave it
+for the human to restructure (e.g. `init` an intervening level).
+
+Push where policy permits: a **recurse-and-run** submodule uses its **own** `## Push`;
+a **bare** pair is governed by the **meta** `## Push` for **both** the submodule branch
+and the meta paired branch (the bare submodule has no policy of its own). The ordered
+two-repo **landing** (at `converge`) lives in `advanced.md` (§ Bare-submodule two-repo landing).

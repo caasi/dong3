@@ -177,8 +177,33 @@ is personal (see below); the shipped skill never names a skill.
 ### `## Recursion`
 
 Whether to recurse into submodules / child repos. Default: **only when relevant to
-the current goal / branch.** Keeps an omni-repo traversal scoped instead of
-descending into every nested repo unconditionally.
+the current goal / branch** — this field is the **parent's descent toggle**: it
+governs whether *this* repo descends into its children at all, keeping an omni-repo
+traversal scoped instead of descending into every nested repo unconditionally.
+
+**The ownership signal is a readable `.tsugu/policy.md` in the submodule** — that
+file is the human's claim "this repo owns its own prepare queue." Once the parent
+descends, that boolean alone decides **recurse-vs-meta-drive** per submodule; a
+submodule never separately opts out of being recursed-into, and its own policy is
+not consulted to gate it. A malformed/partial `.tsugu/` without a readable
+`policy.md` is **not** a valid signal — surface it, never silently treat it as
+bare.
+
+| Submodule state | Branch (code) | `.tsugu/` knowledge | Policy used | Lifecycle owner |
+| --- | --- | --- | --- | --- |
+| HAS `.tsugu/policy.md` | `prepare/<slug>` in the submodule | the submodule's own `.tsugu/` | the submodule's own (recurse-and-run) | the submodule (its own `converge`) |
+| no `.tsugu/` | `prepare/<slug>` in the submodule (no `.tsugu/` created there) | the **meta** `.tsugu/`, via a paired meta `prepare/<slug>` | the meta `policy.md` | the meta-repo |
+| meta-level code | `prepare/<slug>` in the meta-repo | the meta `.tsugu/` | the meta's | the meta-repo |
+
+**Source scoping (the overlap anti-pattern).** Scope each repo's intake to work it
+owns: a HAS-`.tsugu/` submodule runs **its own** board / JQL; the meta source
+covers **meta-level work** (pin bumps, omni docs) **+ bare-submodule work** only.
+Overlapping the same tracker board at the meta level double-pulls and mis-attributes
+submodule tickets — the failure that motivated this design. This is **guidance
+only — no central router, no defer/skip guard**.
+
+Recursion mechanics (enumeration, the gate test, recurse-and-run, the bare paired
+branch) live in `git-recipes.md` (§ Submodule recursion).
 
 ## Personal config (not in the repo)
 
