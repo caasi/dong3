@@ -12,7 +12,7 @@
 ## Candidate next plans
 <!-- hints which workflow skill fits — does not fire it -->
 ## Public actions requiring approval
-## Suggested handoff branch
-<!-- the slug-paired branch converge will cut under a Handoff Prefix.
+## Suggested accepted branch
+<!-- the slug-paired branch converge will cut under an Accepted Prefix.
      include mode: same commits as the work branch (merge it as-is);
      exclude mode: cut fresh from default, accepted changes applied by path. -->

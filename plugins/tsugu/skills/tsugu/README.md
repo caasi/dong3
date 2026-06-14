@@ -30,14 +30,18 @@ One lifecycle, three routines:
    skeleton and never overwrites a curated `policy.md`; re-running on an older repo
    migrates the schema).
 2. **prepare** (human absent) — fetch, derive the queue from git branches, do
-   private git work on the configured work-prefix branches (`prepare/*`,
-   `investigate/*`, `review/*`), run tests, record evidence in `context.md`, and
-   promote shareable findings into `knowledge/`. **External silence** — interrupt
-   only if the task is unsafe, destructive, or blocked.
+   private git work on the configured work-prefix branches (default `prepare/*`),
+   run tests, record evidence in `context.md`, and promote shareable findings into
+   `knowledge/`. **External silence** — interrupt only if the task is unsafe,
+   destructive, or blocked.
 3. **converge** (human present) — read the prepared branches live, present the
    status view, decide **with you** what becomes public, and complete that
-   disposition in the same session: accept (cut a handoff branch, promote knowledge,
-   open a PR — all **human-gated**), reject, or park. Tsugu presents and yields; it
+   disposition in the same session. The named dispositions are **accept** (verify,
+   push, and land the work — merge directly, or hand off to a repo-native branch,
+   open a PR — all **human-gated**), **park** (note in `context.md` what's needed to
+   resume), and **drop** (record *why*, then clean up). A branch you don't act on
+   just **continues** — that's the implicit default. Promoting a durable finding
+   into `knowledge/` rides alongside any of these. Tsugu presents and yields; it
    invokes no skill (you trigger any workflow skill by keyword). Running it just to
    look is a first-class use — the read-only pass is your **morning status view**:
    how many prepared branches are workable today, what awaits merge, what's stale.
@@ -51,9 +55,13 @@ One lifecycle, three routines:
 /tsugu:converge [branch]   # read the branches together, decide + complete in-session
 ```
 
-`prepare` is meant to run on a cadence — wire it to `/schedule` / cron so a cloud
-agent runs it. A SKILL.md cannot self-wake; the cadence always comes from an
-external driver.
+`prepare` is meant to run on a cadence — wire it to an external driver (a local
+cron, `/loop`) **on the provisioned machine**: the one that holds *both* the
+personal-folder source config *and* the live MCP/connector credentials (typically
+your local homelab). An unprovisioned cloud/headless run is allowed but degrades to
+**git-native only** — it works the queue derivable from refs, with no tracker/source
+intake. A SKILL.md cannot self-wake; the cadence always comes from an external
+driver you start.
 
 ## The `.tsugu/` namespace at a glance
 
@@ -63,7 +71,8 @@ it from `git fetch` alone. It holds exactly three things:
 
 ```text
 .tsugu/
-  policy.md      shared coordination policy (boundary, prefixes, merge method, …)
+  policy.md      shared coordination policy (boundary, work + accepted prefixes,
+                 merge method, … — `tsugu-schema: 4`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)
@@ -99,17 +108,14 @@ is single-layer, classifying each work branch by two ref-level facts:
 
 - **settled** = the work landed, derived from **containment** (the branch's tip is
   contained in the default branch).
-- **pending** (decided, awaiting merge) = a **slug-paired handoff branch** exists —
-  a branch under a configured handoff prefix sharing the work branch's slug. The
+- **pending** (decided, awaiting merge) = a **slug-paired accepted branch** exists —
+  a branch under a configured accepted prefix sharing the work branch's slug. The
   pairing is by name, so it survives anything the forge does to commits.
 
-Because settlement is derived from history, **prefer merge commits — do not
-squash-merge tsugu-managed branches**. A squash severs the ability to derive the
-landing; the work then stays "awaiting merge" because its slug-paired handoff branch
-still pairs, so it **re-surfaces live at each `converge`** until the human confirms
-the landing and runs the completion tail. (Retain the handoff branch through a
-forced squash for this to hold; no SHA is ever recorded — the durable artifact is
-the squash commit itself on the default branch.)
+Because settlement is derived from history, **prefer merge commits**. A landing that
+rewrites history (squash, rebase-before-merge, force-push) leaves the work tip
+uncontained and breaks containment-derived settlement — that path is handled in
+[`references/advanced.md`](references/advanced.md).
 
 ## Private vs public boundary
 
@@ -151,4 +157,6 @@ See the design specs for the full model:
 and [005 — the agent-first revision](../../../../docs/superpowers/specs/005-tsugu-agent-first-design.md)
 (lineage: three routines, derived state), refined by
 [006 — the workspace holds only what transfers (schema 3)](../../../../docs/superpowers/specs/006-tsugu-workspace-transfer-design.md)
-(committed WIP-knowledge layer + personal folder).
+(committed WIP-knowledge layer + personal folder) and
+[007 — the thin core (schema 4)](../../../../docs/superpowers/specs/007-tsugu-thin-core-design.md)
+(single `prepare/*` work prefix, accepted-prefixes, non-containment landings → advanced).

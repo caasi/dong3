@@ -58,14 +58,14 @@ rewriting against the then-current default during the freshness rebase.
 while history is preserved. Cross-work-branch lineage is **scratch-grade** — a
 freshness rebase may sever it, and that is acceptable; lineage never drives
 classification. A recorded copy only goes stale. (When a forced squash severs
-containment, the slug-paired handoff branch — not a written field — carries the
+containment, the slug-paired accepted branch — not a written field — carries the
 "awaiting merge" state; see `SKILL.md`'s partition and `references/git-recipes.md`.)
 
 **Backward compatibility.** Readers accept a legacy `branch.md` when `context.md`
 is absent on a work branch. A legacy `status:` field is read once and folded into
 the narrative on next touch: a legacy `status: settled` branch is a **cleanup
 candidate**; a legacy `status: converged` branch is **surfaced at the next
-`converge`** for its pending decision to be re-anchored (handoff branch or direct
+`converge`** for its pending decision to be re-anchored (accepted branch or direct
 merge).
 
 ## `knowledge/` — free-form, repo-wide agent wiki
@@ -105,8 +105,8 @@ Sections: `## Intake source`, `## Branches prepared`, `## What was tried`,
 `## Candidate next plans` (a **hint** which workflow skill fits — "ready for
 planning", "this bug needs debugging", "this can go to review-loop" — for the
 human to act on; it **does NOT fire a skill**), `## Public actions requiring
-approval`, and `## Suggested handoff branch` (a name/target for the slug-paired
-branch `converge` will cut under a Handoff Prefix — **include mode:** same commits
+approval`, and `## Suggested accepted branch` (a name/target for the slug-paired
+branch `converge` will cut under an Accepted Prefix — **include mode:** same commits
 as the work branch, merge it as-is; **exclude mode:** cut fresh from default,
 accepted changes applied by path).
 
