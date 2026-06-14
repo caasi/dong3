@@ -314,7 +314,7 @@ git -C <sub> merge-base --is-ancestor <landed-work-sha> <gitlink-target-sha>
 git -C <sub> merge-base --is-ancestor <gitlink-target-sha> <remote>/<default>
 # (c) the LANDED meta commit's own tree records that gitlink target (compare, don't just print)
 recorded=$(git ls-tree <landed-meta-sha> <submodule-path> | awk '{print $3}')
-[ "$recorded" = "<gitlink-target-sha>" ] || echo "MISMATCH: meta tree pins $recorded"
+[ "$recorded" = "<gitlink-target-sha>" ] || { echo "MISMATCH: meta tree pins $recorded" >&2; false; }
 #     … and that landed meta commit is reachable from meta default
 git merge-base --is-ancestor <landed-meta-sha> <remote>/<meta-default>
 ```
