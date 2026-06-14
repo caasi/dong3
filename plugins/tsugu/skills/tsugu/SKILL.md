@@ -62,12 +62,24 @@ Mechanics are deferred — do not re-derive git commands here:
 - `context.md` / `knowledge/` structure + the personal/derived packet → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/notes-and-packet.md`.
 - `init` re-run migration steps (schema N→N+1, including 2→3) → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/migrations.md`.
 - `init` writes the repo's committed `.tsugu/` files from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` — templates are read **by reference**, never copied into a repo `templates/` directory.
+- Submodule recursion (enumerate + `.tsugu/policy.md` gate + recurse-and-run + bare paired branch), its two-repo landing, and graduation → `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/git-recipes.md` (§ Submodule recursion), `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/advanced.md` (§ Bare-submodule two-repo landing), `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/references/notes-and-packet.md` (§ Graduation).
 
 ## The three routines
 
 ### `init`
 
 Runs when a repo has no `.tsugu/`, or re-runs to repair or migrate an existing one. Capture the **minimum** preferences for safe unattended prep — ask only a few: may agents create/commit/push prep branches automatically (**default: yes** — pushing makes the branch a message the next machine reads)? which public actions need approval (default: MR/PR, tracker comment/status, reviewer assignment, Slack, public commitments)? branch prefixes (default work-only `prepare/*`)? accepted prefixes for handoff PRs (default `feature/* bugfix/* chore/*`)? should the default branch carry the WIP-knowledge layer (`public-branch-tsugu: include|exclude`, **default `include`**)? recurse into submodules (default: only when relevant)?
+
+**`/tsugu:init [<submodule-path>]` + graduation.** With a `<submodule-path>` argument
+`init` targets that submodule directly (skips the "which repo / confirm target"
+question). When run on a submodule under a tsugu-managed omni-repo (detected via
+`git rev-parse --show-superproject-working-tree`), it **graduates** the submodule:
+it scans the omni `knowledge/` for entries naming this submodule, presents them, and
+on per-entry human confirmation **cuts** them down into the new submodule
+`knowledge/` (knowledge only). The omni gitlink **must** be bumped to the new
+`.tsugu/` commit (else a fresh checkout re-classifies the submodule as bare).
+In-flight paired meta branches are left to finish at meta `converge`. Mechanics →
+`references/notes-and-packet.md` (§ Graduation).
 
 Observation sources and opt-in skills are **personal config** — `init` does not ask for them and does not write them to `policy.md`; they are bootstrapped per-machine on the first interactive `prepare`/`converge` (see `prepare`).
 
@@ -121,6 +133,22 @@ The core routine. No human is present, so Tsugu does its own git work directly a
 6. Dispatch your **own review/investigate subagents** (built-in Task agents) when a change deserves a second pass before the human sees it — they work **inside the `prepare/<slug>` branch / its worktree**, recording findings in the work branch's `context.md` (and promoting durable findings to `knowledge/`), not as a separate same-slug branch. This is Tsugu working in private git space; it is distinct from the human-triggered review-loop, which the human triggers — Tsugu never runs it for them.
 7. Maintain **`context.md`** on the work branch (pure narrative — rewrite the inherited mainline form into the branch's own story; that first rewrite commit *is* the claim). Promote durable, shareable findings into `.tsugu/knowledge/`. Refresh the convergence **packet** (`packets/<slug>.md`) in the **personal folder** — it is a personal/derived view, never committed.
 8. **Commit the work branch (`<work-prefix>/<slug>`); push it if policy permits.** Read `## Push`'s `push-prepare-branches:` from the fetched policy (**default `yes` when the section is absent**). If yes, `git push --set-upstream <remote> <branch>` — cold-start discovery enumerates only remote-tracking refs, so pushing is what lets the human or next scheduled agent inherit the work (the branch *is* the message). If pushing is **not** permitted, commit locally and stop for approval (or use the policy-defined alternative) — never push past an explicit boundary.
+9. **Recurse into submodules (omni-repo).** After working this repo's own queue,
+   **if this repo's own `## Recursion` permits descent** (default: only when
+   relevant), enumerate submodules and gate each on a **readable `.tsugu/policy.md`**
+   (three outcomes: HAS / BARE / **INVALID** — a `.tsugu/` without a readable
+   `policy.md` is surfaced, never treated as bare) — that gate, not the submodule's
+   own policy, decides recurse-vs-meta-drive. A **HAS-`.tsugu/`** submodule takes the
+   **recurse-and-run** path — run this whole `prepare` routine inside it
+   (`git -C <submodule>`) using the submodule's own policy + personal-config intake;
+   it runs at its own schema (never force-migrated). For a **bare** submodule, the
+   branch still lands **in the submodule** but **meta** policy governs it and the
+   findings ride a **paired meta `prepare/<slug>`** (gitlink bump + `context.md`).
+   The branch always lands at the lowest repo owning the **code**; `.tsugu/`
+   knowledge lands at the lowest repo that **has** a `.tsugu/`. **Ask, don't guess:**
+   when a bare submodule's default branch is ambiguous or a rule isn't covered by
+   meta policy, ask the human if interactive, else leave the item unbranched for the
+   next `converge`. Mechanics → `references/git-recipes.md` (§ Submodule recursion).
 
 ### `converge` (human present)
 
@@ -139,6 +167,16 @@ The human-attention phase. **Tsugu presents and yields, then completes the decid
      - if the human can merge right now (solo flow), they merge the work branch directly — its tip is then contained in default, and the prep DAG + the rewritten mainline `context.md` land as committed WIP knowledge; settlement is immediate;
      - otherwise, **cut an accepted branch named for the human workflow:** `git branch <accepted-prefix>/<slug> <work-branch>` — same commits, a second name, **same slug** (prefixes like `feature/*`/`bugfix/*` per repo convention, from `policy.md` `## Accepted Prefixes`) — and open the PR **on the accepted branch**, human-approved. The partition pairs work branch and accepted branch **by slug**, so the pending state survives anything the forge does to commits. (When the landing will rewrite history rather than merge — squash, rebase-before-merge, force-push — follow the narrative-backstop + retain-branch path in `references/advanced.md`.)
    - **Accepted (`exclude` mode):** cut a clean public branch from the fetched default — named per the same accepted convention (an `<accepted-prefix>/<slug>`), **same slug** — apply accepted code/test/doc/config **by path** (no `.tsugu/` in the public diff), verify, human-approved PR. Landing is confirmed via the **public branch's** containment in default. `knowledge/` still lands on the coordination ref. **The work branch never merges here, so its own tip is never contained** — settlement reads off the public branch's slug pairing; write the "handed off — may have landed" narrative into the work branch's `context.md` now (the narrative backstop) and keep the public branch alive (disable forge auto-delete) until the completion tail removes both. (When the landing rewrites history — squash, rebase-before-merge, force-push — confirmation is the human's in-session word instead of containment; see `references/advanced.md`.)
+   - **Accepted (bare-submodule paired branch):** an **ordered two-repo
+     transaction** — land the submodule PR first, re-point the meta gitlink to the
+     submodule **default tip that now contains the landed work** (never a
+     pre-graduation ancestor), then land the meta PR; settlement is **conjunctive +
+     ancestry-based** and the completion tail **reaches across** (`git -C <sub>`) to
+     clean the submodule branches. Full procedure → `references/advanced.md`
+     (§ Bare-submodule two-repo landing). Drop / park / continue each act on **both**
+     branches of the pair. Note: meta `converge` does **not** aggregate
+     HAS-`.tsugu/` submodules' own queues — converge those by running
+     `/tsugu:converge` inside each submodule.
    - **Completion tail** (once landing is confirmed by containment in default; where the landing rewrote history, by the human's in-session confirmation instead — see `references/advanced.md`): **promote** reusable findings into `.tsugu/knowledge/`, then **clean up** worktrees then branches (worktree remove before branch delete; delete **both** the work branch and the accepted branch). Once both refs are gone the item **leaves the partition entirely** (no refs → not classified). The durable landed artifact is **the landed commits on the default branch** — the merge in a normal include/exclude landing (or the rewrite commit where history was rewritten — see `references/advanced.md`); no SHA is persisted, and there is no status to flip. The tail is **idempotent** — interrupted before cleanup, the branches remain and a later tidy re-enters.
    - **drop:** record *why* in the branch's `context.md` narrative ("dropped — do not resume: <why>"; agents read the narrative before touching any candidate), remove worktrees, delete the branch when safe. (Renamed from `reject`; the "record why" narrative is retained.)
    - **park:** update `context.md`'s narrative with what is needed to resume, and the personal packet. No status to set — a parked branch is simply a candidate whose narrative says "blocked on X".
@@ -180,4 +218,19 @@ Tsugu today is a **single agent + its built-in subagents**. The discovery layer 
 
 **Scheduling.** `prepare` is meant to run on a cadence, wired by an external driver **the human starts** — a local cron, or `/loop` (cloud `/schedule` works too). But the skill **cannot self-wake** — the driver is always external. The skill depends on no scheduler. **Recommended default locus:** the **provisioned machine** — the one holding **both** the personal-folder source config (the `read:` pointers, never committed) **AND** the MCP/connector credentials, typically the local homelab — since `prepare`'s useful signals come from interactively-authenticated sources and neither dependency transfers across machines. An **unprovisioned** cloud/headless run is still allowed but not the default: it **degrades to git-native** (it works the queue derivable from refs; no tracker/source intake), and the two gaps surface differently — **source config missing** → detectable at any *same-machine* `converge` (the existing "personal config unconfigured on this machine" notice); **credentials missing / MCP auth fails** → reported in the run's **own output only** (the driver's log on that machine), **not** auto-surfaced at a later `converge` — no committed or cross-run diagnostic is persisted (state stays single-layer), and `converge` gains no source-probing scope. The distinction is **provisioning, not cloud-vs-local**: a cloud machine independently provisioned with both does **not** degrade.
 
-**Recursion (omni-repo).** A single repo and an omni-repo are the **same abstraction**. One agent (+ its built-in subagents) traverses the repo tree — working locally, delegating downward into submodules / child repos, and promoting knowledge upward. Recurse into submodules only when relevant to the current goal / branch. **Context placement rule:** write context at the **lowest repo level where it stays true**; promote upward into `.tsugu/knowledge/` only when the knowledge affects multiple repos or future coordination, so the omni-repo never becomes a junk drawer.
+**Recursion (omni-repo).** A single repo and an omni-repo are the **same
+abstraction**. After working its own queue, `prepare` enumerates submodules and gates
+each on a **readable `.tsugu/policy.md`** (HAS / BARE / **INVALID** — a `.tsugu/`
+without a readable `policy.md` is surfaced, not treated as bare): a HAS-`.tsugu/`
+submodule takes the **recurse-and-run** path (its own policy + intake, its own
+schema); a bare submodule is **meta-driven** with
+the branch in the submodule and findings on a **paired meta branch** (gitlink bump +
+`context.md`). The branch always lands at the lowest repo owning the **code**;
+`.tsugu/` knowledge at the lowest repo that **has** a `.tsugu/` (else it bubbles up).
+The **parent's own `## Recursion`** toggle governs whether it descends at all ("only
+when relevant"); descent into a bare level goes **one level deep** (direct child
+only). **Context placement rule:** write context at the **lowest repo level where it
+stays true**; promote upward into `.tsugu/knowledge/` only when it spans repos.
+Mechanics → `references/git-recipes.md` (§ Submodule recursion); landing →
+`references/advanced.md` (§ Bare-submodule two-repo landing); graduation →
+`references/notes-and-packet.md` (§ Graduation).

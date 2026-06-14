@@ -61,7 +61,7 @@
       "name": "tsugu",
       "source": "./plugins/tsugu",
       "description": "Git-native preparation & convergence skill — committed .tsugu/ is a WIP-knowledge layer (policy.md + context.md + knowledge/); single work-prefix default prepare/*, accepted-prefixes feature/* bugfix/* chore/*; non-containment landings documented in advanced reference; state derived from refs, no intake layer; never auto-merges; invokes no user-installed skill by default",
-      "version": "0.4.0"
+      "version": "0.5.0"
     }
   ]
 }
