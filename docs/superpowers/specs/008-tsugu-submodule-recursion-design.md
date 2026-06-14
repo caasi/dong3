@@ -14,7 +14,7 @@ expands the existing `## Recursion` policy prose. It is **not a storage change**
 no new committed `.tsugu/` files or directories, **no schema bump** — the schema
 stays `tsugu-schema: 4`. Existing schema-4 repos remain valid; recursion reads
 `.tsugu/` presence at runtime. Captured from a live `/tsugu:prepare` incident on
-the `omni` meta-repo recorded in issue #40.
+the meta-repo recorded in issue #40.
 
 | Line | Change | What it supersedes |
 | --- | --- | --- |
@@ -80,16 +80,16 @@ gets its own project-key → its own `~/.claude/tsugu/<submodule-key>/` with its
 own intake sources. Consequences fall out for free:
 
 - The submodule's prepare reads **its own** `policy.md` — work/accepted prefixes,
-  `## Push`, `default-branch` (e.g. explore-ui's `develop`, not `main`), CI-skip
-  conventions (e.g. explore-ui requires `[ci skip]` for `.tsugu`-only commits).
+  `## Push`, `default-branch` (e.g. submodule-A's `develop`, not `main`), CI-skip
+  conventions (e.g. submodule-A requires `[ci skip]` for `.tsugu`-only commits).
 - **Ownership is emergent** — "the submodule's own intake claimed it." No central
   component→repo router exists or is needed.
 - The submodule's own queue read **continues an existing `prepare/<slug>`**
-  instead of duplicating it (fixes the EXP-5978 duplicate from the incident).
+  instead of duplicating it (fixes the TICKET-1 duplicate from the incident).
 - **Scope boundaries are respected emergently.** The submodule's prepare reads
-  *its own* `context.md` scope boundaries: explore-ui's prepare never sees
-  EXP-5967 (excluded in its own `context.md` / out of its board scope), while
-  exp-graph-parser-ui's own intake pulls EXP-5967 and branches it there. The
+  *its own* `context.md` scope boundaries: submodule-A's prepare never sees
+  TICKET-2 (excluded in its own `context.md` / out of its board scope), while
+  submodule-B's own intake pulls TICKET-2 and branches it there. The
   issue's "read all candidate submodules' `context.md` from a central router"
   open question **dissolves** — no central router needs to.
 - **Intake is per-machine bootstrapped.** Recurse-and-run reads the submodule's
@@ -264,8 +264,8 @@ Under recurse-and-run, each `.tsugu/`-bearing submodule's own intake pulls its
 own tickets. But if the meta-repo *also* holds a source that **overlaps** a
 submodule's source (the same tracker board feeding tickets owned by a
 `.tsugu/`-bearing submodule), the meta source would double-pull those tickets and
-mis-attribute them — exactly the incident (the omni-level EXP source duplicated
-EXP-5978 and mis-attributed EXP-5967 to explore-ui).
+mis-attribute them — exactly the incident (the omni-level tracker source duplicated
+TICKET-1 and mis-attributed TICKET-2 to submodule-A).
 
 The skill **recommends** scoping each repo's intake to work it owns:
 
@@ -276,7 +276,7 @@ The skill **recommends** scoping each repo's intake to work it owns:
 Overlapping the same board at the meta level is named as the anti-pattern. **No
 central router, no defer/skip guard** — guidance only, consistent with tsugu's
 light / script-free philosophy. The incident's fix is partly "remove the
-omni-level EXP source; let explore-ui and exp-graph-parser-ui run their own."
+omni-level tracker source; let submodule-A and submodule-B run their own."
 
 ## E — `init` graduation (`/tsugu:init [<submodule-path>]`)
 

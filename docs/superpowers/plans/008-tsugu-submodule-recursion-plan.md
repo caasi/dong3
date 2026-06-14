@@ -48,12 +48,12 @@ Expected: prints a filesystem line + `tmpfs present`.
 - [ ] **Step 2: Create the worktree on tmpfs from current `main`**
 
 ```bash
-git -C /home/caasi/GitHub/dong3 fetch origin main
-git -C /home/caasi/GitHub/dong3 worktree add /dev/shm/dong3/tsugu-submodule-recursion -b feat/tsugu-submodule-recursion origin/main
+git -C <repo-root> fetch origin main
+git -C <repo-root> worktree add /dev/shm/dong3/tsugu-submodule-recursion -b feat/tsugu-submodule-recursion origin/main
 ```
 
 If Step 1 printed `no tmpfs`, fall back to a normal-filesystem worktree at
-`/home/caasi/GitHub/dong3/.worktrees/tsugu-submodule-recursion` (deprecated but
+`<repo-root>/.worktrees/tsugu-submodule-recursion` (deprecated but
 acceptable) and use **that** path everywhere `/dev/shm/dong3/...` appears below.
 
 - [ ] **Step 3: Verify the worktree is on the new branch at spec HEAD**
