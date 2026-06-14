@@ -52,6 +52,10 @@ git -C /home/caasi/GitHub/dong3 fetch origin main
 git -C /home/caasi/GitHub/dong3 worktree add /dev/shm/dong3/tsugu-submodule-recursion -b feat/tsugu-submodule-recursion origin/main
 ```
 
+If Step 1 printed `no tmpfs`, fall back to a normal-filesystem worktree at
+`/home/caasi/GitHub/dong3/.worktrees/tsugu-submodule-recursion` (deprecated but
+acceptable) and use **that** path everywhere `/dev/shm/dong3/...` appears below.
+
 - [ ] **Step 3: Verify the worktree is on the new branch at spec HEAD**
 
 Run: `git -C /dev/shm/dong3/tsugu-submodule-recursion log --oneline -1 && git -C /dev/shm/dong3/tsugu-submodule-recursion branch --show-current`
@@ -152,11 +156,17 @@ An uninitialized submodule (leading `-`) is either initialized
 (`git submodule update --init <path>`) before gating, or **skipped with a surfaced
 note** — never silently treated as bare (it may carry `.tsugu/` once checked out).
 
-**2 — Gate on a readable `.tsugu/policy.md`.**
+**2 — Gate on a readable `.tsugu/policy.md` (three outcomes, not two).**
 
 ```bash
-test -r "<submodule-path>/.tsugu/policy.md" && echo HAS || echo BARE
+if   test -r "<sub>/.tsugu/policy.md"; then echo HAS      # managed: recurse-and-run (step 3)
+elif test -e "<sub>/.tsugu";          then echo INVALID   # .tsugu/ exists but no readable policy.md
+else                                       echo BARE      # genuinely bare: meta-drive (step 4)
+fi
 ```
+
+`INVALID` (a `.tsugu/` directory without a readable `policy.md`) is **surfaced, not
+driven** — never silently collapsed into `BARE`.
 
 **3 — HAS `.tsugu/` → recurse-and-run.** Run the full `prepare` routine inside the
 submodule, treating it as its own repo. It already has its own project-key (keyed on
@@ -170,22 +180,34 @@ git -C <submodule-path> fetch --prune <remote>
 
 The submodule runs at its **own** schema (do **not** force-migrate a schema-3
 submodule). Its own `policy.md`, `context.md` scope, default branch, and push rules
-apply. Reads its sources only if that submodule's personal config was bootstrapped
+apply; its own queue read **continues an existing `prepare/<slug>` rather than
+duplicating** it, and its `context.md` scope boundaries are respected emergently
+(no central router). Reads its sources only if that submodule's personal config was bootstrapped
 on **this** machine (interactive-only); else it degrades to git-native and surfaces
 "personal config unconfigured" at the submodule's next same-machine `converge`.
 
 **4 — no `.tsugu/` → meta-drives with a paired meta branch.** The branch still lands
 in the submodule (easy handoff), but **meta** `policy.md` governs every tsugu rule
-for it; only the submodule's default branch is detected:
+for it. **Resolve the base and rules BEFORE creating any branch** (ask-don't-guess —
+never branch on a guess):
 
 ```bash
-# work inside the submodule checkout
-git -C <sub> switch -c prepare/<slug>
-# … reproduce / test / patch / commit inside the submodule …
+git -C <sub> fetch --prune <remote>
 default=$(git -C <sub> symbolic-ref --quiet refs/remotes/<remote>/HEAD | sed 's#.*/##')
 # Ambiguous (no .../HEAD, multiple remotes) OR a rule not covered by meta policy?
-#   interactive -> ASK the human;  headless -> leave the item UNBRANCHED, surface at next converge.
+#   interactive -> ASK the human
+#   headless    -> DO NOT branch: leave the item unbranched, surface it at next converge
+# Only once base + rules are resolved:
+git -C <sub> switch -c prepare/<slug> "<remote>/$default"
+# … reproduce / test / patch / commit inside the submodule …
 ```
+
+**No clear owner.** When a meta-source ticket maps to no obvious submodule, do **not**
+guess one: if it's genuinely meta-level work open a meta `prepare/<slug>`; otherwise
+**defer to `converge`** (create no branch). At `converge` the human assigns an owner
+and it reclassifies — recurse-and-run target (HAS `.tsugu/`), a bare pair, or meta
+work. A deferred item carries no committed state; it resurfaces by re-reading
+external intake (the schema-3 weakened-dedup tradeoff), no ledger.
 
 Then carry the findings on a **paired meta branch** (same slug):
 
@@ -202,8 +224,8 @@ Handoff: checking out the meta `prepare/<slug>` + `git submodule update` lands t
 submodule at the prepared commit as **detached HEAD** at the recorded SHA (not on
 `prepare/<slug>` — the human runs `git -C <sub> checkout prepare/<slug>` to resume).
 
-**5 — Depth.** Arbitrary depth holds for **managed** chains (each level has its own
-`.tsugu/`). A **bare** level is driven **only one level deep** — a direct bare child
+**5 — Depth.** Traverse **depth-first**. Arbitrary depth holds for **managed** chains
+(each level has its own `.tsugu/`). A **bare** level is driven **only one level deep** — a direct bare child
 may be meta-driven, but anything nested beneath a bare child is **surfaced, not
 driven** (it would become an N-repo gitlink-chain transaction). Note it and leave it
 for the human to restructure (e.g. `init` an intervening level).
@@ -258,7 +280,9 @@ under squash/rebase). Human-driven throughout — tsugu never auto-merges.
    default tip also carries anything landed meanwhile, e.g. a graduation `.tsugu/`
    commit; re-pointing to an ancestor would pass reachability yet silently
    *un-graduate* the submodule). Pinning the default tip is ordinary submodule-bump
-   coupling. Open the meta PR; **immediately before merging it, re-validate against
+   coupling — if isolating the exact work matters, pin a specific commit that
+   contains the landed work + graduation instead. Open the meta PR; **immediately
+   before merging it, re-validate against
    current meta default** (a bump may have landed since) and, if needed, re-point
    onto the now-current tip first.
 3. **Settlement is conjunctive + ancestry-based** — settled only when **all** hold:
@@ -279,8 +303,21 @@ under squash/rebase). Human-driven throughout — tsugu never auto-merges.
    remote** refs per the meta `## Push` policy, never deletes a checked-out branch,
    and is **idempotent** (an already-absent ref is a no-op).
 
-**The other dispositions over a bare pair are not unchanged** — each spans two
-branches across two repos:
+Concretely, the mechanical settlement checks (all must pass):
+
+```bash
+# (a) landed-work (and graduation, if any) SHA is an ANCESTOR of the gitlink target
+git -C <sub> merge-base --is-ancestor <landed-work-sha> <gitlink-target-sha>
+# (b) the gitlink target is reachable from the submodule's fetched default
+git -C <sub> merge-base --is-ancestor <gitlink-target-sha> <remote>/<default>
+# (c) the LANDED meta commit's own tree records that gitlink target …
+git ls-tree <landed-meta-sha> <submodule-path>   # -> "160000 commit <gitlink-target-sha>\t<path>"
+#     … and that landed meta commit is reachable from meta default
+git merge-base --is-ancestor <landed-meta-sha> <remote>/<meta-default>
+```
+
+**The other dispositions change for a bare pair** — each spans two branches across
+two repos:
 - **continue** — advancing the submodule tip means refreshing the meta paired
   branch's gitlink + `context.md`, or the meta side goes stale.
 - **park** — narrate "blocked on X" in the meta `context.md`; both branches remain.
@@ -431,7 +468,9 @@ Immediately after the "**Accepted (`exclude` mode):** …" bullet (before the "*
      ancestry-based** and the completion tail **reaches across** (`git -C <sub>`) to
      clean the submodule branches. Full procedure → `references/advanced.md`
      (§ Bare-submodule two-repo landing). drop / park / continue each act on **both**
-     branches of the pair.
+     branches of the pair. Note: meta `converge` does **not** aggregate
+     HAS-`.tsugu/` submodules' own queues — converge those by running
+     `/tsugu:converge` inside each submodule.
 ```
 
 - [ ] **Step 3: Verify**
@@ -548,7 +587,7 @@ git commit -m "docs(tsugu): SKILL — tighten ## Scheduling & recursion + add re
 In `.claude-plugin/marketplace.json`, find the object with `"name": "tsugu"` (its description ends "…never auto-merges…") and change its `"version": "0.4.0"` to `"version": "0.5.0"`. Use an Edit anchored on the tsugu description text so the *other* 0.4.0 plugin is not touched.
 
 Run to confirm exactly one tsugu line changed: `grep -n -B6 '"version": "0.5.0"' .claude-plugin/marketplace.json | grep -E '"name": "tsugu"|0.5.0'`
-Expected: shows the tsugu name above the new `0.5.0`.
+Expected: shows the tsugu name above the new `0.5.0`. (The authoritative "only tsugu bumped" gate is Step 3's `grep -c … == 1`.)
 
 - [ ] **Step 2: Update the CLAUDE.md tsugu lineage**
 
@@ -597,9 +636,10 @@ Expected: **no matches** (this change is schema-4, no migration).
 
 Invoke the `review-loop` skill on the feature branch (local Claude + Codex gate; for a branch with no PR yet it reviews `branch vs base`). Resolve T1 inline, pause on T2/T3 for the author. This is the analog of a test suite for prose changes.
 
-- [ ] **Step 5: Open the PR (after the local gate is clean)**
+- [ ] **Step 5: Push the branch, then open the PR (after the local gate is clean)**
 
 ```bash
+git push -u origin feat/tsugu-submodule-recursion
 gh pr create --base main --head feat/tsugu-submodule-recursion \
   --title "feat(tsugu): submodule recursion (prepare recurses on .tsugu/ presence)" \
   --body "Implements spec 008. Closes #40."
