@@ -140,9 +140,9 @@ Append to the end of the file:
 
 ```markdown
 
-## Submodule recursion (omni-repo)
+## Submodule recursion
 
-`prepare` recurses after working the meta-repo's own queue. The branch always lands
+(Omni-repo.) `prepare` recurses after working the meta-repo's own queue. The branch always lands
 at the lowest repo that owns the **code**; `.tsugu/` knowledge lands at the lowest
 repo that **has** a `.tsugu/`.
 
@@ -193,7 +193,8 @@ never branch on a guess):
 
 ```bash
 git -C <sub> fetch --prune <remote>
-default=$(git -C <sub> symbolic-ref --quiet refs/remotes/<remote>/HEAD | sed 's#.*/##')
+ref=$(git -C <sub> symbolic-ref --quiet "refs/remotes/<remote>/HEAD")   # e.g. refs/remotes/origin/develop
+default=${ref#refs/remotes/<remote>/}                                   # prefix-strip — keeps slashes (release/v2)
 # Ambiguous (no .../HEAD, multiple remotes) OR a rule not covered by meta policy?
 #   interactive -> ASK the human
 #   headless    -> DO NOT branch: leave the item unbranched, surface it at next converge
@@ -306,12 +307,14 @@ under squash/rebase). Human-driven throughout — tsugu never auto-merges.
 Concretely, the mechanical settlement checks (all must pass):
 
 ```bash
+git -C <sub> fetch <remote>; git fetch <remote>   # make fetched default + landed SHAs local first
 # (a) landed-work (and graduation, if any) SHA is an ANCESTOR of the gitlink target
 git -C <sub> merge-base --is-ancestor <landed-work-sha> <gitlink-target-sha>
 # (b) the gitlink target is reachable from the submodule's fetched default
 git -C <sub> merge-base --is-ancestor <gitlink-target-sha> <remote>/<default>
-# (c) the LANDED meta commit's own tree records that gitlink target …
-git ls-tree <landed-meta-sha> <submodule-path>   # -> "160000 commit <gitlink-target-sha>\t<path>"
+# (c) the LANDED meta commit's own tree records that gitlink target (compare, don't just print)
+recorded=$(git ls-tree <landed-meta-sha> <submodule-path> | awk '{print $3}')
+[ "$recorded" = "<gitlink-target-sha>" ] || echo "MISMATCH: meta tree pins $recorded"
 #     … and that landed meta commit is reachable from meta default
 git merge-base --is-ancestor <landed-meta-sha> <remote>/<meta-default>
 ```
@@ -634,7 +637,7 @@ Expected: **no matches** (this change is schema-4, no migration).
 
 - [ ] **Step 4: Run the review-loop gate over the implementation diff**
 
-Invoke the `review-loop` skill on the feature branch (local Claude + Codex gate; for a branch with no PR yet it reviews `branch vs base`). Resolve T1 inline, pause on T2/T3 for the author. This is the analog of a test suite for prose changes.
+Invoke the `review-loop` skill on the feature branch (local Claude + Codex gate; for a branch with no PR yet it reviews `branch vs base`). Resolve T1 inline, pause on T2/T3 for the author. This is the analog of a test suite for prose changes. If `review-loop` / `superpowers` are not installed in the execution environment, fall back to a manual two-reviewer pass: one Claude subagent reviewing `git diff origin/main...HEAD`, plus `codex exec --sandbox read-only review --base origin/main` (or the embed-the-diff form if the commit is local-only, per dong3 #41).
 
 - [ ] **Step 5: Push the branch, then open the PR (after the local gate is clean)**
 
