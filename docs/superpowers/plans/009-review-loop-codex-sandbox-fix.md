@@ -703,11 +703,12 @@ git config user.email test@example.com; git config user.name test   # repo-local
 printf 'def withdraw(b,a):\n    return b - a  # no balance check\n' > bank.py
 git add bank.py && git commit -q -m "planted bug: unchecked withdrawal"
 sha=$(git rev-parse HEAD)
-codex exec --json --sandbox read-only -c features.use_legacy_landlock=false review --commit "$sha" 2>/dev/null \
-  | jq -rc 'select(.type=="item.completed") | .item.type' | sort | uniq -c
+r=0; codex exec --json --sandbox read-only -c features.use_legacy_landlock=false review --commit "$sha" >/tmp/pf-native.json 2>/dev/null || r=$?
+echo "codex rc=$r"   # must be 0 — otherwise the 'zero command_execution' below is a codex failure, not a false-clean
+jq -rc 'select(.type=="item.completed") | .item.type' /tmp/pf-native.json | sort | uniq -c
 cd - >/dev/null
 ```
-Expected: **zero `command_execution` items** (only GitHub `mcp_tool_call` / `agent_message`) — i.e. the structural detector (Task 4) would correctly classify this native round as a **non-review**, not a clean pass.
+Expected: `codex rc=0`, then **zero `command_execution` items** (only GitHub `mcp_tool_call` / `agent_message`) — i.e. the structural detector (Task 4) would correctly classify this native round as a **non-review**, not a clean pass. (Asserting `rc=0` first rules out a codex failure masquerading as the expected zero-command case.)
 
 - [ ] **Step 2b (optional): empirical detector check on the captured stream**
 
@@ -732,11 +733,12 @@ With legacy-landlock **active** (this host's default — omit the `-c` flag), na
 
 ```bash
 cd "$tmp"
-codex exec --json --sandbox read-only review --commit "$sha" 2>/dev/null \
-  | jq -rc 'select(.type=="item.completed") | .item.type' | sort | uniq -c
+r=0; codex exec --json --sandbox read-only review --commit "$sha" >/tmp/pf-regress.json 2>/dev/null || r=$?
+echo "codex rc=$r"   # must be 0
+jq -rc 'select(.type=="item.completed") | .item.type' /tmp/pf-regress.json | sort | uniq -c
 cd - >/dev/null; rm -rf "$tmp"
 ```
-Expected: a **non-zero `command_execution` count** (Codex read the tree via Landlock) — so the structural detector (Task 4) sees the tree was read and correctly treats the review as a real review, not a non-review. (This is the spec's regression case: usable / legacy-landlock-works host.)
+Expected: `codex rc=0`, then a **non-zero `command_execution` count** (Codex read the tree via Landlock) — so the structural detector (Task 4) sees the tree was read and correctly treats the review as a real review, not a non-review. (This is the spec's regression case: usable / legacy-landlock-works host.)
 
 - [ ] **Step 5: Record the result**
 
