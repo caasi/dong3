@@ -88,8 +88,10 @@ On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / sing
 2. capture the **branch point as a fixed SHA** — `bp=$(git merge-base "$base" HEAD)` — and `git reset --soft "$bp"` (then `git reset` to unstage). Reset to this captured SHA, **not** the moving `$base`/target ref: if the target advanced during the review, resetting onto its new tip while keeping the old feature tree would silently revert the target's newer changes *and still pass the tree-hash check*;
 3. re-commit in the chosen groups by staging the relevant paths per commit;
 4. verify the tree-hash equality (Guardrails);
-5. push per the local-only/remote rule (Guardrails);
-6. **abort/rollback on any failure** — if a stage/commit errors, the tree hashes differ, or tests fail, `git reset --hard <backup>` to restore the original history, restore the stash if one was taken, and **do not push**. Keep `<backup>` until a verified success (then prefer leaving it for the user to prune).
+5. **run the project's tests** if present (Guardrails) — *before* the push, so a failure rolls back without publishing rewritten history;
+6. push per the local-only/remote rule (Guardrails);
+7. **restore the stash** (if one was taken in step 0) so the user's pre-operation working tree is back — this happens on the **success path too**, not only on rollback;
+8. **abort/rollback on any failure** — if a stage/commit errors, the tree hashes differ, or tests fail (steps 3–5), `git reset --hard <backup>` to restore the original history, restore the stash if one was taken, and **do not push**. Keep `<backup>` until a verified success (then prefer leaving it for the user to prune).
 
 Note this groups **by file/area** (the final tree is one combined state), so per-commit splits that crossed a single file in the original history can't be reconstructed — call that out when asking the grouping shape. (`git rebase --onto` with scripted sequencing is an alternative when commit-level reordering without squashing is wanted.)
 
