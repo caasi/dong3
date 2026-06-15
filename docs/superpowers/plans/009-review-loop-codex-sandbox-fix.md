@@ -400,9 +400,10 @@ Insert this new bullet block **immediately before** it:
   ```bash
   unc="$(git diff HEAD
   git ls-files --others --exclude-standard -z \
-    | xargs -0 -I{} sh -c 'git diff --no-index /dev/null "$1" || true' _ {})"
-  # then embed "$unc" in the prompt. A genuinely empty new file yields no diff —
-  # append `git ls-files --others --exclude-standard` if its mere existence matters.
+    | xargs -0 -I{} sh -c 'git diff --no-index /dev/null "$1" || true' _ {}
+  echo "--- untracked files ---"; git ls-files --others --exclude-standard)"
+  # then embed "$unc" in the prompt. The trailing manifest is always appended so
+  # genuinely empty new files (which produce no diff) are still part of the snapshot.
   ```
   On a `usable` sandbox prefer native `review --uncommitted` instead (it covers all three directly).
 ```
