@@ -15,15 +15,15 @@ it ever reaches GitHub, so Copilot has much less to flag and rounds converge fas
 ## Reviewer roster (in priority order)
 
 1. **Claude subagent** — always; needs nothing extra.
-2. **Codex** (headless `codex exec review`) — when `codex` is on `PATH`; tmux only
-   adds an optional live-watch pane.
+2. **Codex** (headless `codex exec review`) — when `codex` is on `PATH`; tmux
+   opens a live-watch pane only when you ask (never by default).
 3. **GitHub Copilot** — only for GitHub PR targets, after the local gate is clean.
 
 ## Requirements
 
 - **Always usable:** the Claude subagent reviewer.
-- **Codex (optional):** the `codex` CLI on `PATH` (tmux optional — only for a
-  live-watch pane). `jq` is used to read the resume `thread_id` from `codex`'s
+- **Codex (optional):** the `codex` CLI on `PATH` (tmux optional — opens a
+  live-watch pane only when you ask). `jq` is used to read the resume `thread_id` from `codex`'s
   `--json` stream; without it, Codex resume falls back to `--last`.
 - **Copilot phase (optional):** an authenticated `gh` CLI and `jq`; GitHub PRs only.
 

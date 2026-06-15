@@ -7,7 +7,7 @@ description: General assisted review loop for changes — code or design artifac
 
 Assisted, not autonomous. Preserves the author's architectural voice and learning across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
-**Local reviewers are preferred and run first.** A Claude subagent and Codex (headless, via `codex exec review`) cost nothing extra and are fast, so they are the first gate. Codex runs wherever the `codex` CLI is on `PATH` — no tmux needed; tmux is only an optional live-watch layer for a human to spectate the review. GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
+**Local reviewers are preferred and run first.** A Claude subagent and Codex (headless, via `codex exec review`) cost nothing extra and are fast, so they are the first gate. Codex runs wherever the `codex` CLI is on `PATH` — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default). GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
 
 ## Why this loop exists
 
@@ -16,10 +16,10 @@ Claude and Codex reviewing **together** produces noticeably better output than e
 ## Requirements
 
 - **Always usable:** the Claude subagent reviewer needs nothing extra.
-- **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. `jq` is used to capture the resume `thread_id` from `codex`'s `--json` stream — without `jq`, resume just falls back to `--last` (§ Convergence rounds). (tmux is **not** required — it only adds an optional live-watch pane; see A2.)
+- **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. `jq` is used to capture the resume `thread_id` from `codex`'s `--json` stream — without `jq`, resume just falls back to `--last` (§ Convergence rounds). (tmux is **not** required — it only adds a live-watch pane **when you ask to watch**; see A2.)
 - **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
 
-The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`, plus `tmux` only for the optional live-watch pane) from `PATH`, so the skill is self-contained and portable across machines.
+The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`, plus `tmux` only for the live-watch pane (used only when you ask to watch)) from `PATH`, so the skill is self-contained and portable across machines.
 
 ## Inputs
 
@@ -32,7 +32,7 @@ The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`
 ## Reviewer roster & priority
 
 1. **Local Claude subagent** — always. Dispatch a subagent (Task tool) to do the review.
-2. **Local Codex** (headless `codex exec review`) — when `codex` is on `PATH`. tmux is not required; if `$TMUX` is set it only adds an optional live-watch pane. See A2.
+2. **Local Codex** (headless `codex exec review`) — when `codex` is on `PATH`. tmux is not required; it adds a live-watch pane **only when you ask to watch** (and you're in tmux). See A2.
 3. **GitHub Copilot** — only for GitHub PR targets, after the PR is open.
 
 ## Helper scripts
@@ -78,11 +78,14 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   # Claude reads "$round" (only this round); parse thread_id from "$round" too
   ```
 
-- **Optional tmux live-watch (spectating only, not the channel) — spawn it now, before the first `codex` call, so it covers round 1.** The channel is *always* `codex exec`. If `$TMUX` is set, spawn one read-only spectator pane that follows the per-run `$log` (for round 1 that `$log` is a JSON event stream — the human's authoritative summary is still Claude's relayed tier list; the pane is a raw-feed spectator aid):
+- **Optional tmux live-watch (spectating only, not the channel) — spawn it only when the user explicitly asked to watch.** The channel is *always* `codex exec`. **Default — even inside tmux — is headless: no pane.** Spawn a read-only spectator pane *only when the user asked to watch* — a `watch` argument to the command, or an in-conversation request like "let me watch" / "show me the codex pane". Being inside tmux is **required but not a request on its own**. The agent sets `watch=1` when it recognized such a request (equivalently, it just runs the spawn only then); the pane follows the per-run `$log` (a raw-feed spectator aid — the authoritative human summary is still Claude's relayed tier list):
   ```bash
-  [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
+  # spawn ONLY when the user asked to watch (watch=1, set from intent) AND inside tmux.
+  # $TMUX is necessary, not sufficient.
+  [ -n "${watch:-}" ] && [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
     -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f '$log'" 2>/dev/null) || true
   ```
+  If the user asked to watch but `$TMUX` is unset (can't split a pane), note it once — "not in a tmux session, so I can't open a watch pane; Codex findings are still relayed in the tier list" — and continue headless. Never fail on this.
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan — guard it so an unset/failed pane doesn't abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
 - **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree); for a `<PR-number>` target, `gh pr checkout <num>` first. Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. Instead use the embedded-diff form (A2): put the diff in the prompt, e.g. `codex exec --json --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
@@ -187,7 +190,7 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 **B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If `codex` is on `PATH`, have Codex review the new commits headlessly (`codex exec --sandbox read-only review --base "$base"`, or `resume "$thread_id" -` to continue the session) **before** re-requesting Copilot (local gate first).
 
 **B4. Poll** — `/loop 3m` re-run `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>`. New comments → re-classify → B2.
-- **Copilot clean-pass stop signal:** when `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh clean-pass <num>` exits 0 (newest Copilot review matches `generated no (new )?comments.` — "generated no comments." on a first review, "generated no new comments." on a re-review), **STOP immediately** — cancel the cron/`/loop` job, do not schedule another poll. Post: "Copilot review is clean — no new comments. Stopping the loop; your call on what's next (review / merge / more work)." Then wait.
+- **Copilot clean-pass stop signal:** when `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh clean-pass <num>` exits 0 (newest Copilot review matches `generated no (new )?comments.` — "generated no comments." on a first review, "generated no new comments." on a re-review), **STOP immediately** — cancel the cron/`/loop` job, do not schedule another poll. Post: "Copilot review is clean — no new comments." Then run the **After convergence — offer to group commits** step (Exit conditions) *before waiting* — without it the offer is unreachable on the GitHub path — and wait for the author's call (group commits / review / merge / more work).
 
 **B5. Repeat-comment guard (NL-based)** — for each new comment, compare semantically against prior comments on the same file/line. "Does this raise the same concern as a prior one that already had a fix commit?" If yes → **stop**, post "Copilot re-raised <X> after <commit>. Prior fix didn't satisfy it. Your call." and wait. Fingerprint (file:line + first 40 chars) is an acceptable fallback heuristic; NL comparison is the primary signal.
 
@@ -196,6 +199,25 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 - **Local gate clean + (for GitHub) Copilot clean pass** (matches "generated no comments." / "generated no new comments.") → stop and surface to the author. This is the primary, explicit stop signal — prefer it over inferring doneness from "no new comments for N polls".
 - **Codex usage limit** → stop only the Codex sub-loop; the rest of the loop continues.
 - **Merge** — never merge autonomously. Only on an explicit `merge` instruction. Default to a merge commit (`gh pr merge --merge`, not `--squash`) to preserve history; ask before deleting the branch, and prefer leaving the local branch in place for the author to prune. Honor the project's own merge conventions if they differ.
+
+### After convergence — offer to group commits (assisted, never automatic)
+
+When the loop reaches its clean/stop state and the current branch is a **non-default feature branch** carrying **≥ 2 commits** ahead of its target base, **offer** (ask — never do it automatically) to group the review fixups before merge.
+
+- **Never on a primary/default branch.** Detect the default branch across the branch's configured remote `<r>` — `git symbolic-ref --short refs/remotes/<r>/HEAD` with the `<r>/` prefix stripped — falling back to the local `main`/`master`/`develop` set and the project's stated default. If detection is inconclusive and the branch isn't clearly a feature branch, **don't offer**. On the default/primary branch, skip silently.
+- **Count** against the integration **target** base — the loop's inferred `$base` (`$base..HEAD`), **not** `@{upstream}..HEAD` (which is ~empty on a pushed PR branch). Capture the branch tip at loop start so the offer reports what the loop added; otherwise phrase it as "N commits ahead of base".
+- **Offer:** "The loop added N commits to `<branch>` (incl. M fixups). Group them before you merge? Feature branch only — I'll keep a backup; if the branch has an upstream I'll force-push to it, else group locally (no push)." Decline → do nothing.
+- **On accept — non-interactive grouping (`git rebase -i` is unavailable):**
+  1. require a clean tree — if dirty (tracked or untracked), `git stash --include-untracked`; restore later with `git stash pop --index` (refuse if the index can't be restored);
+  2. backup: `git branch <backup> HEAD`; and if the branch has an upstream, **capture the upstream SHA now, before any rewrite** — `lease=$(git rev-parse @{upstream})` — for the pinned lease in step 8 (capturing it later risks a fetch refreshing the tracking ref mid-rewrite and the lease then accepting a concurrent remote commit);
+  3. capture the branch point as a fixed SHA — `bp=$(git merge-base "$base" HEAD)` — and `git reset --soft "$bp"` then `git reset` (reset to the captured SHA, **not** a moving ref);
+  4. re-commit in the chosen groups (ask the shape: by area / coarse / squash) by staging paths per commit — grouping is **by file/area**, so per-commit splits within one file can't be reconstructed;
+  5. verify tree-hash: `git rev-parse <backup>^{tree}` equals `git rev-parse HEAD^{tree}`;
+  6. run the project's tests if present;
+  7. restore the stash (if taken) — **before** any push;
+  8. **push last, only if the branch has an upstream** (`@{upstream}` resolves): derive remote+ref from `%(upstream:remotename)`/`%(upstream:remoteref)`, and push with the lease pinned to the SHA captured **in step 2 (before the rewrite)**: `git push --force-with-lease=<remoteref>:$lease <remotename> HEAD:<remoteref>`. No upstream → group locally, **do not push or publish**;
+  9. **abort/rollback on any failure before the push** — `git reset --hard <backup>`, restore the stash (remove operation-created untracked artifacts blocking it; never the user's content; if it still won't restore, STOP and surface `<backup>` + the stash entry), and do not push. Keep `<backup>` until verified success.
+- **Invariants:** never overwrite remote commits the regrouped branch lacks; on any lease mismatch, abort and surface — never auto-retry. **Grouping preserves the base relationship; it does not advance onto a moved base** (the merge commit reconciles that; advancing is a separate, explicit, user-driven rebase). Never offer on a primary branch.
 
 ## Learning capture
 
