@@ -77,7 +77,9 @@ When the loop reaches its clean/stop state (Exit conditions: local gate clean, p
 - **Respect project git conventions** (e.g. this repo: feature-branch rebase OK when asked; preserve primary-branch history; prefer merge commits for primary).
 
 ### The offer
-> "The loop added N commits to `<branch>` (incl. M review fixups). Want me to rebase and group them before you merge? Feature branch only — I'll keep a backup branch and force-push with `--force-with-lease`."
+> "The loop added N commits to `<branch>` (incl. M review fixups). Want me to group them before you merge? Feature branch only — I'll keep a backup branch; **if the branch has a remote I'll force-push with `--force-with-lease`, otherwise I'll group it locally (no push)**."
+
+(Remote-aware wording — don't promise a push on a local-only branch.)
 
 On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / single squash), then perform it with the guardrails above. On **decline**, do nothing.
 
@@ -133,6 +135,6 @@ Manual verification:
 - [ ] Watch requested but `$TMUX` unset → a brief surfaced note, review continues headless.
 - [ ] `commands/review-loop.md` documents the `watch` arg; no prose anywhere still implies `$TMUX`-alone triggers the pane.
 - [ ] After convergence on a **feature** branch with ≥2 commits, the skill **offers** (asks) to rebase + group; the offer never fires on a primary branch.
-- [ ] Accepting groups the commits, keeps a backup branch, verifies an identical tree, and force-pushes with `--force-with-lease`; declining leaves history untouched.
+- [ ] Accepting groups the commits, keeps a backup branch, and verifies an identical tree; **if the branch has a remote** it force-pushes with `--force-with-lease`, and a **local-only** branch is grouped locally and ends **without a push**. Declining leaves history untouched.
 - [ ] `tools/review-loop/test-skill-content.sh` has anchors for both Part A and Part B, including a `refute` helper (or positive rephrasing) for the "tmux-alone is no longer the trigger" negative.
 - [ ] `review-loop` version bumped to 0.4.0 in `.claude-plugin/marketplace.json`.
