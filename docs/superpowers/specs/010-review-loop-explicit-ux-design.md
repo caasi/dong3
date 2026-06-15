@@ -80,6 +80,16 @@ When the loop reaches its clean/stop state (Exit conditions: local gate clean, p
 
 On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / single squash), then perform it with the guardrails above. On **decline**, do nothing.
 
+### Mechanism (non-interactive)
+`git rebase -i` is **not available** in this environment (interactive flags unsupported), so grouping uses a **soft-reset + re-commit** flow, which also guarantees the final tree matches the pre-rebase tip:
+1. backup: `git branch <backup> HEAD`;
+2. `git reset --soft <base>` (then `git reset` to unstage), keeping all changes in the working tree;
+3. re-commit in the chosen groups by staging the relevant paths per commit;
+4. verify the tree-hash equality (Guardrails);
+5. push per the local-only/remote rule (Guardrails).
+
+Note this groups **by file/area** (the final tree is one combined state), so per-commit splits that crossed a single file in the original history can't be reconstructed — call that out when asking the grouping shape. (`git rebase --onto` with scripted sequencing is an alternative when commit-level reordering without squashing is wanted.)
+
 ### Insertion point
 A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clean-pass stop, before/near the existing **Merge** bullet — and explicitly *before* any merge, since grouping happens on the branch prior to the merge commit).
 
