@@ -75,7 +75,13 @@ bwrap --ro-bind / / --unshare-net --dev /dev true
 Next to the existing log setup, call `sandbox-preflight.sh` and record the result (`usable` / `broken` / `unknown`) for the run.
 
 ### (b) Target reachability check (issue proposal #2)
-Determine whether the target is local-only / unpushed: `git branch -r --contains <sha>` returning empty ⇒ no remote Codex could see has it.
+Decide whether the target is local-only (on no remote the Codex connector could read), per target mode:
+
+- **`--commit <sha>` / single commit:** `git branch -r --contains <sha>` with empty stdout ⇒ local-only.
+- **`--base <base>`:** test the range — local-only if any commit in `<base>..HEAD` is unreachable (`git branch -r --contains` empty for it); in practice an unpushed `HEAD` ⇒ treat the whole target as local-only.
+- **`--uncommitted`:** **inherently local-only** (working-tree changes exist on no remote) ⇒ always embedded-diff-eligible.
+
+This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git fetch` may be needed for fresh refs, and a force-push can drop a commit that still shows as contained. It only decides *upfront routing*; the post-round detector (§e) is the real backstop, so a wrong guess here degrades gracefully rather than producing a false clean. Optionally `git fetch` first; on any fetch failure, route conservatively to embedded-diff.
 
 ### (c) Routing rule
 - preflight `broken`/`unknown` **OR** target is local/unpushed ⇒ **embedded-diff form** is the primary Codex call;
