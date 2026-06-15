@@ -704,7 +704,8 @@ printf 'def withdraw(b,a):\n    return b - a  # no balance check\n' > bank.py
 git add bank.py && git commit -q -m "planted bug: unchecked withdrawal"
 sha=$(git rev-parse HEAD)
 r=0; codex exec --json --sandbox read-only -c features.use_legacy_landlock=false review --commit "$sha" >/tmp/pf-native.json 2>/dev/null || r=$?
-if [ "$r" -ne 0 ]; then echo "ABORT: codex failed (rc=$r) — verification invalid"; else
+echo "codex rc=$r"   # must be 0
+if [ "$r" -ne 0 ]; then echo "ABORT: codex failed — verification invalid"; else
   jq -rc 'select(.type=="item.completed") | .item.type' /tmp/pf-native.json | sort | uniq -c
 fi
 cd - >/dev/null
@@ -735,7 +736,8 @@ With legacy-landlock **active** (this host's default — omit the `-c` flag), na
 ```bash
 cd "$tmp"
 r=0; codex exec --json --sandbox read-only review --commit "$sha" >/tmp/pf-regress.json 2>/dev/null || r=$?
-if [ "$r" -ne 0 ]; then echo "ABORT: codex failed (rc=$r) — verification invalid"; else
+echo "codex rc=$r"   # must be 0
+if [ "$r" -ne 0 ]; then echo "ABORT: codex failed — verification invalid"; else
   jq -rc 'select(.type=="item.completed") | .item.type' /tmp/pf-regress.json | sort | uniq -c
 fi
 cd - >/dev/null; rm -rf "$tmp"
