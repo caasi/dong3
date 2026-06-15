@@ -393,7 +393,15 @@ Insert this new bullet block **immediately before** it:
   cat "$round" >>"$log"
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true
   ```
-  Do **not** also pass a `[PROMPT]` argument alongside `-` — stdin replaces it. Target variants: `--base` embeds `$(git diff "$base"...HEAD)`. `--uncommitted` must embed the **complete** snapshot — `git diff HEAD` (staged + unstaged tracked) **plus** untracked files' contents as diffs: `git ls-files --others --exclude-standard -z | xargs -0 -I{} git diff --no-index /dev/null {}` (a filename list alone has no contents; note `git diff --no-index` exits 1 when it emits a diff — that is expected, collect stdout and ignore the status; a genuinely empty new file yields no diff). On a `usable` sandbox prefer native `review --uncommitted` instead.
+  Do **not** also pass a `[PROMPT]` argument alongside `-` — stdin replaces it. Target variants: `--base` embeds `$(git diff "$base"...HEAD)`. `--uncommitted` must embed the **complete** snapshot — `git diff HEAD` (staged + unstaged tracked) **plus** each untracked file's contents (a filename list alone has none). Because `git diff --no-index` exits 1 whenever it emits a diff, build the snapshot `set -e`-safely by swallowing that status per file:
+  ```bash
+  unc="$(git diff HEAD
+  git ls-files --others --exclude-standard -z \
+    | xargs -0 -I{} sh -c 'git diff --no-index /dev/null "$1" || true' _ {})"
+  # then embed "$unc" in the prompt. A genuinely empty new file yields no diff —
+  # append `git ls-files --others --exclude-standard` if its mere existence matters.
+  ```
+  On a `usable` sandbox prefer native `review --uncommitted` instead (it covers all three directly).
 ```
 
 - [ ] **Step 4: Verify the edits read coherently**
