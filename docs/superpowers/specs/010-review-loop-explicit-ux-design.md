@@ -92,6 +92,8 @@ On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / sing
 
 Note this groups **by file/area** (the final tree is one combined state), so per-commit splits that crossed a single file in the original history can't be reconstructed — call that out when asking the grouping shape. (`git rebase --onto` with scripted sequencing is an alternative when commit-level reordering without squashing is wanted.)
 
+**Scope — grouping preserves the base relationship; it does not advance onto a moved base.** Resetting to the captured branch-point (`bp`) regroups the branch's own commits *on their original ancestor*. If the integration base advanced during the review, the regrouped branch stays based where it already was — which is correct and safe (the eventual merge commit reconciles the advanced base). Auto-*rebasing* a feature branch onto a moved base is **out of scope**: it is conflict-prone and unsafe to resolve unattended in an assisted skill, and it is not what "group the fixup commits" needs. If the user explicitly wants to advance onto the new base, that is a separate, manual rebase (with conflict handling) — offer to do it, but never as part of the automatic grouping. (The offer wording says "group" for this reason; "rebase" in the colloquial ask means "tidy the commits", not "replay onto a new base".)
+
 ### Insertion point
 A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clean-pass stop, before/near the existing **Merge** bullet — and explicitly *before* any merge, since grouping happens on the branch prior to the merge commit).
 
@@ -106,6 +108,7 @@ A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clea
 - Not auto-spawning the pane; not auto-rebasing; not changing merge behavior (still never merges autonomously, still merge-commit by default).
 - Not adding a real CLI argument parser — the LLM interprets `watch` and the rebase offer/accept from intent.
 - Not rebasing or rewriting primary branches, ever.
+- **Not auto-advancing a feature branch onto a moved integration base.** Grouping preserves the existing base relationship (regroups on the captured branch-point); replaying onto an advanced base is conflict-prone and reserved for an explicit, separate, user-driven rebase. The merge commit handles base advancement at merge time.
 - Not a squash-merge tool.
 
 ## Testing
