@@ -380,7 +380,7 @@ Insert this new bullet block **immediately before** it:
 ```
 - **Route by sandbox state, not by target.** The preflight `$sandbox` decides which Codex form is primary:
   - `usable` → native `review` (below): it reads the local tree directly, correct for pushed *and* unpushed targets (no remote fallback happens).
-  - `broken` / `unknown` → **embedded-diff form** (below): native would fall back to the connected GitHub repo, which for a local-only target silently false-cleans. Embedding the diff sidesteps the sandbox entirely, so it is safe for every target on such a host. This also skips the wasted false-clean round on the common docs-to-`main` (unpushed design-artifact) case.
+  - `broken` / `unknown` → **embedded-diff form** (below): native may be unable to read the tree (a `broken` host falls back to the connected GitHub repo, which for a local-only target silently false-cleans; `unknown` is inconclusive — bwrap absent, working Landlock, or an unrecognized failure), so route conservatively. Embedding the diff sidesteps the sandbox entirely, so it is safe for every target on such a host. This also skips the wasted false-clean round on the common docs-to-`main` (unpushed design-artifact) case.
 
   The **local-only** check is routing rationale (it explains *why* a broken host is dangerous), not a separate gate — it never overrides a `usable` sandbox. Detect local-only per target mode (heuristic, not proof — remote-tracking refs can be stale, so optionally `git fetch` first; the post-round detector is the real backstop): `--commit <sha>` → `git branch -r --contains <sha>` empty; `--base <base>` → any commit in `<base>..HEAD` unreachable (an unpushed `HEAD` ⇒ treat the whole target as local-only); `--uncommitted` → inherently local-only.
 
@@ -442,7 +442,7 @@ Find the first "Three outcomes" bullet:
 Replace it with:
 
 ```
-  - **`rc == 0` → first confirm Codex actually read the tree, *then* read the review.** Read **this round's `$round`** (not the cumulative `$log`). **Post-round detector (the guarantee) — native `review` rounds only:** a native round that ran **zero `command_execution` items** never executed a local command, so it never read the tree (a sandbox false-clean). `codex exec --json` nests item kinds under `.item.type`, not top-level `.type`, so test:
+  - **`rc == 0` → first confirm Codex actually read the tree, *then* read the review.** Read **this round's `$round`** (not the cumulative `$log`). **Post-round detector (the guarantee) — all native-path rounds (initial `review`, `resume`, and the fresh native fallback):** a native round that ran **zero `command_execution` items** never executed a local command, so it never read the tree (a sandbox false-clean). `codex exec --json` nests item kinds under `.item.type`, not top-level `.type`, so test:
     ```bash
     # set -e-safe: `jq -e` exits non-zero on no match, so branch on it (never run it bare).
     if ! jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null; then
