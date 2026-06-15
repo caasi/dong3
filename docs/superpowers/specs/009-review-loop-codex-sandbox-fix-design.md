@@ -135,9 +135,9 @@ This guarantees the sandbox failure cannot reappear mid-loop.
 
 A pick-your-own menu of optional host-level fixes (the skill never applies these), distilled from issue #41's survey. Each entry lists: what it changes · sudo & scope · trade-off / residual risk · verify command · when to prefer.
 
-1. **`features.use_legacy_landlock=true`** (`~/.codex/config.toml` or `-c`) — no sudo, scoped to codex, uses the already-active Landlock LSM, read-only sandbox preserved. **Recommended default.** Caveat: the `legacy` name suggests OpenAI may retire it.
-2. **`bwrap-userns-restrict`** (Ubuntu `apparmor-profiles`; default in 25.04, backportable to 24.04) — durable native answer; also blocks a sandboxed child from creating *further* namespaces (closes the nested-escape gap). Needs sudo; affects all bwrap callers.
-3. **Hand-rolled `/etc/apparmor.d/bwrap` `flags=(unconfined) { userns }`** — works, but is the **least strict** variant (nested-escape hole). Documented as **inferior to #2**; included for completeness.
+1. **`bwrap-userns-restrict`** (Ubuntu `apparmor-profiles`; default in 25.04, backportable to 24.04) — restores bwrap's userns under an AppArmor profile **and** blocks a sandboxed child from creating *further* namespaces (closes the nested-escape gap). Needs sudo; affects all bwrap callers. **Recommended durable default** when a native `review` path is wanted.
+2. **`features.use_legacy_landlock=true`** (`~/.codex/config.toml` or `-c`) — no sudo, scoped to codex, uses the already-active Landlock LSM, read-only sandbox preserved. Works today, but recent `codex` marks it **deprecated** — treat it as a **temporary compatibility workaround**, not a long-term default; if it is removed, fall back to #1 or the skill-side embedded-diff path.
+3. **Hand-rolled `/etc/apparmor.d/bwrap` `flags=(unconfined) { userns }`** — works, but is the **least strict** variant (sandboxed children also get userns — the nested-escape hole that `bwrap-userns-restrict` closes). Documented as **inferior to `bwrap-userns-restrict`**; included for completeness.
 4. **`sysctl kernel.apparmor_restrict_unprivileged_userns=0`** — global, last-resort; **drops the hardening for the whole system**. Not recommended.
 5. **Skill-side embedded-diff** — no host change at all. This is what the skill now does automatically (Component 2); listed so the user knows the zero-config option exists.
 
