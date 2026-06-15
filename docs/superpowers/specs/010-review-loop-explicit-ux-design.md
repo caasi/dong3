@@ -37,9 +37,10 @@ A `watch` intent the skill recognizes from **either**:
 A lone `watch` token (`/review-loop watch`) is the **watch request against the default target** (current branch vs base), **not** a branch named `watch`. To review a branch actually named `watch`, name it unambiguously (e.g. its full ref `refs/heads/watch`).
 
 ### The gate
+The agent **sets the `watch` flag from the recognized intent** before the gate runs — when it recognizes a watch request (the `watch` arg or an in-conversation ask), it sets `watch=1`; otherwise `watch` stays unset. (Equivalently, the agent simply runs the spawn command only when it recognized the request — there is no parser, so the flag is just a way to express the gate.) Then:
 ```bash
-# spawn ONLY when the user asked to watch (the `watch` arg or an in-conversation
-# request) AND we're inside tmux. $TMUX is necessary, not sufficient.
+# spawn ONLY when the user asked to watch (watch=1, set above from intent) AND
+# we're inside tmux. $TMUX is necessary, not sufficient.
 [ -n "${watch:-}" ] && [ -n "${TMUX:-}" ] && watch_pane=$(tmux split-window -h -P \
   -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f '$log'" 2>/dev/null) || true
 ```
