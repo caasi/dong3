@@ -83,7 +83,7 @@ A broken sandbox is *silently* dangerous only when the target is **local-only** 
 - **`--base <base>`:** local-only if any commit in `<base>..HEAD` is unreachable (`git branch -r --contains` empty for it); in practice an unpushed `HEAD` ⇒ treat the whole target as local-only.
 - **`--uncommitted`:** inherently local-only (working-tree changes exist on no remote).
 
-This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git fetch` may be needed for fresh refs, and a force-push can drop a commit that still shows as contained. Its job is to (1) flag *when* a broken sandbox would false-clean and (2) sharpen the post-round detector (§e) — a non-review on a local-only target is unambiguously a false clean. It does **not** by itself force embedded-diff when the sandbox is `usable`.
+This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git fetch` may be needed for fresh refs, and a force-push can drop a commit that still shows as contained. Its job is to explain *when* a broken sandbox would silently false-clean (a local-only target) — the rationale behind §c routing a `broken`/`unknown` host to embedded-diff. It is routing rationale, not a separate gate: it does **not** force embedded-diff when the sandbox is `usable`, and the §e detector is the independent backstop on the native path.
 
 ### (c) Routing rule
 The trigger is **sandbox state**, not the target:
