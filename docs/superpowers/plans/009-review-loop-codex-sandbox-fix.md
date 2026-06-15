@@ -72,6 +72,7 @@ EOF
 make_stub usable 0 ""
 make_stub broken 1 "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
 make_stub other  1 "bwrap: something unrelated went wrong"
+make_stub noctx  1 "some-tool: Operation not permitted"   # EPERM but no bwrap: context
 
 run() { # $1=PATH to use ; prints "<stdout> <exit>"
   local out rc=0
@@ -94,6 +95,10 @@ pass "absent"
 echo "Test 4: non-EPERM failure -> unknown/2"
 [ "$(run "$tmp/other:$PATH")" = "unknown 2" ] || fail "expected 'unknown 2'"
 pass "non-EPERM"
+
+echo "Test 5: EPERM without a bwrap: setup line -> unknown/2"
+[ "$(run "$tmp/noctx:$PATH")" = "unknown 2" ] || fail "expected 'unknown 2'"
+pass "EPERM-without-bwrap-context"
 
 echo "All sandbox-preflight tests passed."
 ```
@@ -142,8 +147,10 @@ if [ "$rc" -eq 0 ]; then
   exit 0
 fi
 
-# Userns/loopback EPERM (Ubuntu apparmor_restrict_unprivileged_userns) ⇒ broken.
-pat='Operation not permitted|Permission denied'
+# Userns/loopback EPERM on a bwrap setup line (Ubuntu apparmor_restrict_unprivileged_userns)
+# ⇒ broken. Scope to bwrap's own diagnostics (the `bwrap:` prefix) so an unrelated EPERM
+# from elsewhere stays `unknown`, per spec Component 1 ("in a bwrap setup line").
+pat='bwrap:.*(Operation not permitted|Permission denied)'
 if [[ "$errout" =~ $pat ]]; then
   echo broken
   exit 1
