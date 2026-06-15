@@ -700,13 +700,25 @@ cd "$tmp"
 printf '%s\n\n%s\n' "Review this diff for correctness and risk. List concrete defects:" "$(git show HEAD)" \
   | codex exec --json --sandbox read-only -c features.use_legacy_landlock=false - 2>/dev/null \
   | jq -r 'select(.type=="item.completed") | .item | select(.type=="agent_message") | .text' | tail -20
-cd - >/dev/null; rm -rf "$tmp"
+cd - >/dev/null
 ```
 Expected: a real review naming the unchecked-withdrawal (and/or missing-balance) defect — proving the embedded-diff path produces a genuine review where native false-cleaned.
 
-- [ ] **Step 4: Record the result**
+- [ ] **Step 4: Regression — a genuine native review must NOT be flagged a non-review**
 
-Note the outcomes of Steps 1–3 in the PR description (Task 10). No commit.
+With legacy-landlock **active** (this host's default — omit the `-c` flag), native `review` reads the tree via Landlock, so a clean/real review still emits `command_execution` items and the detector must not misfire:
+
+```bash
+cd "$tmp"
+codex exec --json --sandbox read-only review --commit "$sha" 2>/dev/null \
+  | jq -rc 'select(.type=="item.completed") | .item.type' | sort | uniq -c
+cd - >/dev/null; rm -rf "$tmp"
+```
+Expected: a **non-zero `command_execution` count** (Codex read the tree via Landlock) — so the structural detector (Task 4) sees the tree was read and correctly treats the review as a real review, not a non-review. (This is the spec's regression case: usable / legacy-landlock-works host.)
+
+- [ ] **Step 5: Record the result**
+
+Note the outcomes of Steps 1–4 in the PR description (Task 10). No commit.
 
 ---
 
@@ -758,7 +770,7 @@ Per the project workflow, run `/review-loop <PR#>` to add the Copilot gate befor
 
 ## Self-Review (completed by plan author)
 
-- **Spec coverage:** Component 1 → Task 1; Component 2 §a–d → Task 3; §e–f → Task 4; §g → Task 5; Component 3 → Task 2; Testing (unit) → Tasks 1 & 6; Testing (E2E) → Task 9; version bump → Task 7. All spec sections mapped.
+- **Spec coverage:** Component 1 → Task 1; Component 2 §a–d → Task 3; §e–f → Task 4; §g → Task 5; Component 3 → Task 2; Testing (unit) → Tasks 1 & 6; Testing (E2E reproduction) → Task 9 Steps 1–3; Testing (regression, usable / legacy-landlock-works host) → Task 9 Step 4; version bump → Task 7. All spec sections mapped. (Note: the *regression* — detector not misfiring on a genuine review — is behavioral and covered by Task 9 Step 4 + the `usable` branch of the Task 1 unit test, not by a standalone unit test.)
 - **Placeholder scan:** no TBD/TODO; every code/edit step shows full content and exact anchors.
 - **Name consistency:** `sandbox-preflight.sh`, statuses `usable`/`broken`/`unknown`, the jq predicate `.item.type=="command_execution"`, `$sandbox`/`$round`/`$err`/`$thread_id`, and `references/codex-sandbox-host-fixes.md` are used identically across script, SKILL edits, tests, and PR body.
 - **Branch discipline:** all work on `feat/review-loop-codex-sandbox-fix` (implementation, not main).
