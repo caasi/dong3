@@ -97,10 +97,14 @@ $(git show "$sha")"
 **Large-diff / ARG_MAX note:** for very large diffs, feed the *prompt* via stdin instead — `printf '%s\n%s' "<instructions>" "$(git show "$sha")" | codex exec --json --sandbox read-only -`, where trailing `-` reads the **prompt** from stdin. The diff still travels in the prompt; only the delivery channel changes.
 
 ### (e) Post-round detector — the guarantee
-Before counting **any** `rc=0` Codex round as clean, confirm Codex actually read the tree. Treat the round as a **non-review (not a clean pass)** if **either**:
+Before counting **any** inspected Codex round as clean, confirm Codex actually read the tree. Every inspected round runs with `--json` (see §f). The `codex exec --json` stream is JSONL whose item kinds are nested under `.item.type` (e.g. `command_execution`, `mcp_tool_call`, `agent_message`) — **not** top-level `.type` (only `thread.started` / `turn.*` / `item.completed` appear there). Treat the round as a **non-review (not a clean pass)** if **either**:
 
-- **Structural** (from `--json`): the round ran **zero `command_execution` items** and only GitHub `mcp_tool_call`s (e.g. `github_search_commits`, `github_list_repositories`) — Codex never touched the local tree; **or**
-- **Text markers:** the review text matches `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository|confidence is low`.
+- **Structural (primary):** the round ran **zero `command_execution` items** — Codex never executed a local command, so it never read the tree. Exact predicate:
+  ```bash
+  jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null
+  ```
+  Zero matches (non-zero exit) ⇒ non-review. Do **not** condition on a positive "only GitHub MCP tools" match: a genuine review also emits `agent_message` / `reasoning` items, and the exact connector tool names are version-dependent. **Absence of `command_execution` is the robust signal**; any `github_*` `mcp_tool_call` names (`github_search_commits`, `github_list_repositories`, …) are illustrative only, not part of the predicate.
+- **Text (corroborating):** the review text shows a sandbox / remote-fallback access marker — `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`. Treat a bare `confidence is low` as a non-review **only in combination** with one of those access markers — a valid review can be low-confidence for unrelated reasons.
 
 On a non-review: **retry with the embedded-diff form.** If embedded-diff still cannot produce a real review, **degrade to Claude-only with a surfaced note** (e.g. "Codex couldn't read the target locally — proceeding Claude-only for the Codex gate"). **Never a silent clean.**
 
@@ -145,7 +149,7 @@ Tests live under repo-level `tools/review-loop/` (dev tooling stays out of the i
 
 - [ ] A review-loop run whose target is a **local unpushed commit on `main`** produces a real Codex review **or** cleanly degrades to Claude-only with a surfaced note — never a silent false clean. (Issue #41 acceptance.)
 - [ ] `sandbox-preflight.sh` returns the documented word/exit for `usable` / `broken` / `unknown`, verified by stubbed-`bwrap` unit tests.
-- [ ] The post-round structural detector reclassifies a zero-`command_execution`, GitHub-tools-only `rc=0` round as a non-review.
+- [ ] The post-round structural detector reclassifies a round with **zero `command_execution` items** (matched at `.item.type`, not top-level `.type`) as a non-review, regardless of MCP/GitHub tool activity.
 - [ ] SKILL.md documents the local-unpushed-on-`main` case and the corrected stdin semantics (`-` = prompt, not diff).
 - [ ] `references/codex-sandbox-host-fixes.md` lists the five options with trade-offs and verify commands; A2 links it.
 - [ ] `review-loop` version bumped to 0.3.0 in `.claude-plugin/marketplace.json`.
