@@ -516,16 +516,16 @@ Implements spec **§(g)**: name the local-unpushed-on-`main` case, correct the s
 
 - [ ] **Step 1: Correct the stdin note in the "Resolve the target" bullet**
 
-Find this sentence inside the "Resolve the target into the working tree first." bullet:
+Find the **entire** parenthetical inside the "Resolve the target into the working tree first." bullet (replace all of it, not just the first sentence — otherwise the old "plain-exec fallback" text is left dangling):
 
 ```
-(If checkout isn't possible, **don't** pipe `gh pr diff` into `review -` — `review`'s stdin is *instructions*, not the diff, so it would still review the current checkout.
+(If checkout isn't possible, **don't** pipe `gh pr diff` into `review -` — `review`'s stdin is *instructions*, not the diff, so it would still review the current checkout. Use the plain-exec fallback below with the diff embedded in the prompt: `codex exec --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
 ```
 
 Replace it with:
 
 ```
-(If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. To feed Codex a diff, embed it in the prompt (the embedded-diff form in A2).
+(If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. Instead use the embedded-diff form (A2): put the diff in the prompt, e.g. `codex exec --json --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
 ```
 
 - [ ] **Step 2: Add the local-unpushed-on-`main` note + reference pointer at the end of A2**
