@@ -108,9 +108,9 @@ A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clea
 
 ## Testing
 
-`SKILL.md` and the command doc are prose (system prompt) — no unit test. Extend the existing content-regression guard `tools/review-loop/test-skill-content.sh` with anchors so a future edit can't silently revert:
-- **Part A:** assert the §A2 pane gate text references an explicit watch request (e.g. matches `watch` in the gate) and that tmux-alone is not the trigger.
-- **Part B:** assert an "after convergence" section mentions offering to rebase/group commits, feature-branch-only, and never-auto.
+`SKILL.md` and the command doc are prose (system prompt) — no unit test. Extend the existing content-regression guard `tools/review-loop/test-skill-content.sh` with anchors so a future edit can't silently revert. The current harness only has `need <regex>` (assert **present**), which can't express "tmux-alone is no longer the trigger" — so **add a small `refute <regex>` helper** (fails if the regex IS present), or phrase every check positively. Suggested anchors:
+- **Part A (positive):** `need 'asked to watch'` (or the watch-gated condition). **Part A (negative):** `refute` that the spawn line still gates on `${TMUX:-}` *without* a watch condition — e.g. refute a `watch`-free `[ -n "${TMUX:-}" ] && watch_pane=` line. (Pin the refute to the gate line so unrelated `$TMUX` mentions don't trip it.)
+- **Part B:** `need 'After convergence'`, `need 'force-with-lease'`, `need 'feature.branch'`, and a never-auto anchor (`need 'never.*auto'` or similar).
 
 Manual verification:
 - In tmux, default `/review-loop` → **no pane** spawned.
@@ -126,5 +126,5 @@ Manual verification:
 - [ ] `commands/review-loop.md` documents the `watch` arg; no prose anywhere still implies `$TMUX`-alone triggers the pane.
 - [ ] After convergence on a **feature** branch with ≥2 commits, the skill **offers** (asks) to rebase + group; the offer never fires on a primary branch.
 - [ ] Accepting groups the commits, keeps a backup branch, verifies an identical tree, and force-pushes with `--force-with-lease`; declining leaves history untouched.
-- [ ] `tools/review-loop/test-skill-content.sh` has anchors for both Part A and Part B.
+- [ ] `tools/review-loop/test-skill-content.sh` has anchors for both Part A and Part B, including a `refute` helper (or positive rephrasing) for the "tmux-alone is no longer the trigger" negative.
 - [ ] `review-loop` version bumped to 0.4.0 in `.claude-plugin/marketplace.json`.
