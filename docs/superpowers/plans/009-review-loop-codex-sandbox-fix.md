@@ -444,7 +444,10 @@ Replace it with:
 ```
   - **`rc == 0` → first confirm Codex actually read the tree, *then* read the review.** Read **this round's `$round`** (not the cumulative `$log`). **Post-round detector (the guarantee) — native `review` rounds only:** a native round that ran **zero `command_execution` items** never executed a local command, so it never read the tree (a sandbox false-clean). `codex exec --json` nests item kinds under `.item.type`, not top-level `.type`, so test:
     ```bash
-    jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null   # zero matches (non-zero exit) ⇒ non-review
+    # set -e-safe: `jq -e` exits non-zero on no match, so branch on it (never run it bare).
+    if ! jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null; then
+      :  # zero command_execution items ⇒ non-review (handle per below)
+    fi
     ```
     Corroborate with text markers `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`; treat a bare `confidence is low` as a non-review **only** alongside one of those markers. **Embedded-diff rounds are exempt** — the diff is in the prompt, so zero `command_execution` is expected and *not* a failure; judge them by reading the review (text markers only as a sanity check). On a **non-review**, retry with the embedded-diff form; if that still can't produce a real review, **degrade to Claude-only with a surfaced note** ("Codex couldn't read the target locally — proceeding Claude-only for the Codex gate") — never a silent clean. Otherwise Claude reads the review and classifies it into T1/T2/T3 or judges "no remaining problems," exactly as for its own subagent review.
 ```
