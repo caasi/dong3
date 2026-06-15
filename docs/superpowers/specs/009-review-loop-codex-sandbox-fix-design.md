@@ -152,11 +152,14 @@ Verification commands per entry mirror issue #41's verified table (`bwrap … --
 
 Tests live under repo-level `tools/review-loop/` (dev tooling stays out of the install boundary `plugins/review-loop/`).
 
-**End-to-end (this machine — Ubuntu 24.04.4, kernel 6.8, where the bug reproduces):**
-1. `sandbox-preflight.sh` reports `broken` (no host fix applied).
-2. A throwaway repo with an **unpushed** commit containing a planted bug: the embedded-diff Codex review finds the bug (real review), and the native `review --commit` path is correctly detected as a non-review by the post-round detector rather than counted clean.
+**End-to-end (this machine — Ubuntu 24.04.4, kernel 6.8, where bwrap fails to build):**
 
-**Regression:** on a machine where the sandbox is `usable` (or `use_legacy_landlock` is set), the native `review` path still runs and the detector does not misfire on a genuinely clean review.
+> Note: this machine has `features.use_legacy_landlock=true` in `~/.codex/config.toml`, so native `review` currently **bypasses bwrap and works** here. To reproduce the original bwrap false-clean, the E2E run must disable that feature — pass `-c features.use_legacy_landlock=false`, or point `CODEX_HOME` at an isolated config that omits it.
+
+1. `sandbox-preflight.sh` reports `broken` (the bwrap probe fails regardless of the legacy-landlock setting).
+2. With legacy-landlock disabled, a throwaway repo with an **unpushed** commit containing a planted bug: native `review --commit` is correctly detected as a non-review by the post-round detector (not counted clean), and the embedded-diff form finds the bug (real review).
+
+**Regression:** with the sandbox `usable` **or** `use_legacy_landlock` active, the native `review` path still runs and the detector does not misfire on a genuinely clean review (a clean review still emits `command_execution` items, so the detector sees the tree was read).
 
 ## Acceptance criteria
 
