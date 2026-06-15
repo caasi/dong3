@@ -66,10 +66,13 @@ Never fail or block on this; the review proceeds exactly as the default headless
 ### Trigger
 When the loop reaches its clean/stop state (Exit conditions: local gate clean, plus — for GitHub targets — a Copilot clean pass) **and** the branch carries **≥ 2 commits** ahead of its base on a **non-primary feature branch**, the skill **offers** to rebase and group the commits before merge. It **asks**; it never rebases automatically.
 
+**Counting commits / base.** Capture the branch tip **at loop start** as a baseline, so the offer can report what the loop *added* (and how many are review fixups) accurately. Base for the count is `@{upstream}..HEAD`, or the inferred `$base..HEAD` (the loop's existing base inference, SKILL §Inputs) when there is no upstream. If no loop-start baseline is available, phrase the count as "**N commits ahead of base**" rather than "N added by the loop" — never claim the loop added pre-existing commits.
+
 ### Guardrails (load-bearing)
 - **Feature branches only.** Never offer (and never perform) a rebase on the **default/primary branch**. Detect it robustly — `git symbolic-ref --short refs/remotes/origin/HEAD` (the remote's default), falling back to the local `main`/`master`/`develop` set and the project's stated default — **not** a hardcoded triple (repos whose default is `trunk`/`production`/etc. must be protected too). If the current branch is the default/primary, skip the offer entirely.
 - **Assisted, not autonomous.** Present the offer and wait. Declining leaves history exactly as-is.
-- **Safety first on accept:** create a backup branch at the current tip before rewriting; group commits; verify the resulting tree is **identical** to the pre-rebase tree (`git diff <orig> HEAD` empty); run the project's tests if present; **force-push with `--force-with-lease`** only.
+- **Safety first on accept:** create a backup branch at the current tip before rewriting; group commits; verify the resulting tree is **identical** to the pre-rebase tip by **tree hash** (`git rev-parse <backup>^{tree}` == `git rev-parse HEAD^{tree}`, robust even with a dirty working tree); run the project's tests if present.
+- **Push only an already-remote branch.** The loop also supports **local-only** targets. If the branch has an upstream/remote, **force-push with `--force-with-lease`**; if it is local-only (no remote), group the history **locally and do not push or publish it** — accepting "group commits" must never turn a private branch into a published one, and a force-push would otherwise fail for lack of an upstream.
 - **Respect project git conventions** (e.g. this repo: feature-branch rebase OK when asked; preserve primary-branch history; prefer merge commits for primary).
 
 ### The offer
