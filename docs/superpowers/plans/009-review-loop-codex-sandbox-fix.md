@@ -174,7 +174,10 @@ Expected: PASS — all 5 tests, ending with `All sandbox-preflight tests passed.
 
 - [ ] **Step 5: Sanity-run on this host**
 
-Run: `plugins/review-loop/skills/review-loop/scripts/sandbox-preflight.sh; echo "exit=$?"`
+Run (set -e-safe — the script exits non-zero on `broken`/`unknown`, so capture it):
+```bash
+rc=0; plugins/review-loop/skills/review-loop/scripts/sandbox-preflight.sh || rc=$?; echo "exit=$rc"
+```
 Expected on this Ubuntu 24.04 box: `broken` then `exit=1` (bwrap can't build its namespace here — this is the bug environment). On a host without bwrap: `unknown` / `exit=2`.
 
 - [ ] **Step 6: Commit**
@@ -685,7 +688,10 @@ Confirms the whole chain against the real bug, per spec **Testing → End-to-end
 
 - [ ] **Step 1: Preflight reports broken**
 
-Run: `plugins/review-loop/skills/review-loop/scripts/sandbox-preflight.sh; echo "exit=$?"`
+Run (set -e-safe):
+```bash
+rc=0; plugins/review-loop/skills/review-loop/scripts/sandbox-preflight.sh || rc=$?; echo "exit=$rc"
+```
 Expected: `broken` / `exit=1` (bwrap can't build a namespace here regardless of the legacy-landlock setting).
 
 - [ ] **Step 2: Reproduce the native false-clean with legacy-landlock disabled**
