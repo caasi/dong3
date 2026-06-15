@@ -170,7 +170,7 @@ chmod +x plugins/review-loop/skills/review-loop/scripts/sandbox-preflight.sh
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `bash tools/review-loop/test-sandbox-preflight.sh`
-Expected: PASS — all 4 tests, ending with `All sandbox-preflight tests passed.`
+Expected: PASS — all 5 tests, ending with `All sandbox-preflight tests passed.`
 
 - [ ] **Step 5: Sanity-run on this host**
 
@@ -771,6 +771,8 @@ Closes #41.
 - native `review --commit <unpushed>` (legacy-landlock disabled) → zero
   `command_execution` ⇒ detector classifies non-review.
 - embedded-diff → real review, planted bug found.
+- regression: native `review` with legacy-landlock active → non-zero
+  `command_execution` ⇒ detector does not misfire (treats it as a real review).
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
@@ -785,7 +787,7 @@ Per the project workflow, run `/review-loop <PR#>` to add the Copilot gate befor
 
 ## Self-Review (completed by plan author)
 
-- **Spec coverage:** Component 1 → Task 1; Component 2 §a–d → Task 3; §e–f → Task 4; §g → Task 5; Component 3 → Task 2; Testing (unit) → Tasks 1 & 6; Testing (E2E reproduction) → Task 9 Steps 1–3; Testing (regression, usable / legacy-landlock-works host) → Task 9 Step 4; version bump → Task 7. All spec sections mapped. (Note: the *regression* — detector not misfiring on a genuine review — is behavioral and covered by Task 9 Step 4 + the `usable` branch of the Task 1 unit test, not by a standalone unit test.)
+- **Spec coverage:** Component 1 → Task 1; Component 2 §a–d → Task 3; §e–f → Task 4; §g → Task 5; Component 3 → Task 2; Testing (unit) → Tasks 1 & 6; Testing (E2E reproduction) → Task 9 Steps 1–3; Testing (regression, usable / legacy-landlock-works host) → Task 9 Step 4; version bump → Task 7. All spec sections mapped. (Note: the *detector* regression — not misfiring on a genuine review — is behavioral, covered by Task 9 Step 4 only; the Task 1 `usable` test covers *preflight* classification, not the detector.)
 - **Placeholder scan:** no TBD/TODO; every code/edit step shows full content and exact anchors.
 - **Name consistency:** `sandbox-preflight.sh`, statuses `usable`/`broken`/`unknown`, the jq predicate `.item.type=="command_execution"`, `$sandbox`/`$round`/`$err`/`$thread_id`, and `references/codex-sandbox-host-fixes.md` are used identically across script, SKILL edits, tests, and PR body.
 - **Branch discipline:** all work on `feat/review-loop-codex-sandbox-fix` (implementation, not main).
