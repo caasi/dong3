@@ -84,10 +84,11 @@ On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / sing
 `git rebase -i` is **not available** in this environment (interactive flags unsupported), so grouping uses a **soft-reset + re-commit** flow, which also guarantees the final tree matches the pre-rebase tip:
 0. **require a clean working tree** — if the tree is dirty (tracked **or untracked**), `git stash --include-untracked` first and restore afterward (or refuse and ask the user to commit/stash). Otherwise the soft-reset folds unrelated tracked edits into the regrouped commits, and staging whole paths would `git add` any unrelated **untracked** file lying under a staged path; the tree-hash check below only detects the corruption *after* history is rewritten, so it must be prevented up front;
 1. backup: `git branch <backup> HEAD`;
-2. `git reset --soft <base>` (then `git reset` to unstage), keeping all changes in the working tree;
+2. capture the **branch point as a fixed SHA** — `bp=$(git merge-base "$base" HEAD)` — and `git reset --soft "$bp"` (then `git reset` to unstage). Reset to this captured SHA, **not** the moving `$base`/target ref: if the target advanced during the review, resetting onto its new tip while keeping the old feature tree would silently revert the target's newer changes *and still pass the tree-hash check*;
 3. re-commit in the chosen groups by staging the relevant paths per commit;
 4. verify the tree-hash equality (Guardrails);
-5. push per the local-only/remote rule (Guardrails).
+5. push per the local-only/remote rule (Guardrails);
+6. **abort/rollback on any failure** — if a stage/commit errors, the tree hashes differ, or tests fail, `git reset --hard <backup>` to restore the original history, restore the stash if one was taken, and **do not push**. Keep `<backup>` until a verified success (then prefer leaving it for the user to prune).
 
 Note this groups **by file/area** (the final tree is one combined state), so per-commit splits that crossed a single file in the original history can't be reconstructed — call that out when asking the grouping shape. (`git rebase --onto` with scripted sequencing is an alternative when commit-level reordering without squashing is wanted.)
 
