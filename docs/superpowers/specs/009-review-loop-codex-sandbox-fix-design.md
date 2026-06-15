@@ -54,15 +54,17 @@ A new executable helper alongside `copilot.sh` / `pr-comments.sh`, invoked via `
 **Sole job:** run one cheap probe of whether Codex's local command sandbox can build here, in the exact shape Codex uses (userns + net namespace):
 
 ```bash
-bwrap --ro-bind / / --unshare-net --dev /dev true
+bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev true
 ```
+
+(`--unshare-user --unshare-net` matches the namespaces Codex's own `bwrap` invocation creates, per the `strace` capture in issue #41 — `--unshare-user` is included explicitly rather than relying on non-setuid bwrap implying it.)
 
 **Contract:**
 
 | stdout | exit | Meaning | SKILL routing |
 |--------|------|---------|---------------|
 | `usable` | 0 | Probe built the sandbox | native `review` path OK |
-| `broken` | 1 | Probe failed with a userns/loopback EPERM (`setting up uid map: Permission denied`, `loopback: Failed RTM_NEWADDR`, `write failed /proc/self/uid_map`) | route to embedded-diff |
+| `broken` | 1 | Probe failed at bwrap's userns/loopback setup with an `EPERM` — match the **union** `Operation not permitted\|Permission denied` in a bwrap setup line. Observed variants (which differ even between runs on the same host): `loopback: Failed RTM_NEWADDR: Operation not permitted`, `loopback: Failed to create NETLINK_ROUTE socket: Operation not permitted`, `setting up uid map: Permission denied`. (Do **not** match `write failed /proc/self/uid_map` — that is an `unshare` diagnostic, not this bwrap probe.) | route to embedded-diff |
 | `unknown` | 2 | `bwrap` not on `PATH`, or a non-EPERM failure — can't conclude | route conservatively (treat like `broken` for routing; the post-round detector still guards) |
 
 **Conventions:** `set -euo pipefail`, full-length options, self-contained (resolve `bwrap` from `PATH`). The probe's own stderr is captured, not leaked.
