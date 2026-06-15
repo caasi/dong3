@@ -452,18 +452,38 @@ Replace it with:
     Corroborate with text markers `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`; treat a bare `confidence is low` as a non-review **only** alongside one of those markers. **Embedded-diff rounds are exempt** — the diff is in the prompt, so zero `command_execution` is expected and *not* a failure; judge them by reading the review (text markers only as a sanity check). On a **non-review**, retry with the embedded-diff form; if that still can't produce a real review, **degrade to Claude-only with a surfaced note** ("Codex couldn't read the target locally — proceeding Claude-only for the Codex gate") — never a silent clean. Otherwise Claude reads the review and classifies it into T1/T2/T3 or judges "no remaining problems," exactly as for its own subagent review.
 ```
 
-- [ ] **Step 2: Make convergence sticky on the embedded-diff path**
+- [ ] **Step 2a: Switch native convergence to `--json` so the detector keeps working**
 
-Find the "Convergence rounds" bullet heading:
-
-```
-- **Convergence rounds — resume the same session (plain, no `--json`).**
-```
-
-and the fenced `resume` block plus its **Fallbacks** paragraph that follow it. Insert this new bullet **immediately after** that whole "Convergence rounds" block (before "Loop Codex until clean…"):
+The existing convergence block resumes *plain, no `--json`*, which means the post-round detector (Step 1) cannot run after round 1 — a spec §f violation. Edit the existing block. First, replace the heading sentence. Find:
 
 ```
-- **Sticky embedded-diff convergence.** If the run is on the embedded-diff path (routed there, or moved there by the detector), keep **all** convergence rounds on it — re-embed the *complete* current target diff each round (`git show <sha>` / `git diff "$base"...HEAD`), **not** just the latest fix commit (a delta would hide regressions in earlier hunks). Resume against `thread_id` is fine only when the full current diff is embedded. Keep `--json` for `thread_id` + parsing; the structural detector does not apply to embedded-diff rounds (their guarantee is inherent). For the **native** path, run `resume` with `--json` too so the detector keeps working; any unavoidably plain-text round falls back to text markers alone.
+- **Convergence rounds — resume the same session (plain, no `--json`).** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. No `--json` here — `resume` produces readable output and there's no new id to capture (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
+```
+
+Replace with:
+
+```
+- **Convergence rounds — resume the same session, with `--json`.** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. **Keep `--json`** so the post-round detector (above) can still run on the resume round — read the review text from the assistant/agent-message events, exactly as on the first round (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
+```
+
+Then add `--json` to the resume command. Find:
+
+```
+    | codex exec --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
+```
+
+Replace with:
+
+```
+    | codex exec --json --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
+```
+
+- [ ] **Step 2b: Add the sticky-embedded-diff convergence bullet**
+
+Find the fenced `resume` block's **Fallbacks** paragraph (`**Fallbacks, in order:**…review.`) and insert this new bullet **immediately after** it (before "Loop Codex until clean…"):
+
+```
+- **Sticky embedded-diff convergence.** If the run is on the embedded-diff path (routed there, or moved there by the detector), keep **all** convergence rounds on it — re-embed the *complete* current target diff each round (`git show <sha>` / `git diff "$base"...HEAD`), **not** just the latest fix commit (a delta would hide regressions in earlier hunks). Resume against `thread_id` is fine only when the full current diff is embedded. Keep `--json` for `thread_id` + parsing; the structural detector does not apply to embedded-diff rounds (their guarantee is inherent — the diff is in the prompt). Any unavoidably plain-text round falls back to text markers alone.
 ```
 
 - [ ] **Step 3: Verify**
