@@ -123,12 +123,12 @@ On a non-review: **retry with the embedded-diff form.** If embedded-diff still c
 This is consistent with the existing three-outcome model: a sandbox-failure `rc=0` is reclassified out of "outcome 1 (read the review)" into the degrade-with-note path, rather than being trusted.
 
 ### (f) Sticky embedded-diff
-Once a run is on the embedded-diff path (by routing or by detector), **all** convergence rounds for that run stay on it. Two rules keep the §(e) guarantee holding across rounds:
+Once a run is on the embedded-diff path (by routing or by detector), **all** convergence rounds for that run stay on it. Two rules keep convergence safe:
 
 - **Re-embed the complete current target each round** — embed the *full* corrected diff for the target (`git show <sha>` for a commit target; `git diff "$base"...HEAD` for a base target), **not** just the latest fix commit. A delta-only `git show <newsha>` would hide regressions or unaddressed findings in earlier hunks. Resume against the captured `thread_id` is permitted only when the full current diff is embedded in the follow-up prompt.
-- **Run every inspected round with `--json`** so the structural detector can run on it. The existing plain-text `resume` convergence form (§ Convergence rounds in the current SKILL) cannot be inspected structurally; on the embedded-diff path, keep `--json` on each round. Any round that is unavoidably plain text falls back to the text-marker detector alone — call this out so the guarantee's coverage is explicit.
+- **Keep `--json` on every round** — for `thread_id` capture and uniform parsing. Note (per §e) the structural detector does **not** apply to embedded-diff rounds: their guarantee is *inherent* (the diff is in the prompt, so there is no sandbox to fail), and a valid embedded-diff review legitimately runs zero `command_execution` items. The structural detector is for the **native** path; its plain-text `resume` convergence form must likewise be run with `--json` to stay inspectable, and any unavoidably plain-text round falls back to the text-marker check alone.
 
-This guarantees the sandbox failure cannot reappear mid-loop.
+On the embedded-diff path this guarantees the sandbox failure cannot reappear mid-loop.
 
 ### (g) Documentation fixes (issue proposals #3, #4)
 - **Name the case.** A short A2 subsection states that **local, unpushed commits on `main`** are the *default* for design-artifact reviews under the docs-to-main convention — a first-class scenario, not an edge case.
