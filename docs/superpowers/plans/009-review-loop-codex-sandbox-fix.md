@@ -400,7 +400,7 @@ Insert this new bullet block **immediately before** it:
   ```bash
   unc="$(git diff HEAD
   git ls-files --others --exclude-standard -z \
-    | xargs -0 -I{} sh -c 'git diff --no-index /dev/null "$1" || true' _ {}
+    | xargs -0 -I{} sh -c 'git diff --no-index -- /dev/null "$1" || true' _ {}
   echo "--- untracked files ---"; git ls-files --others --exclude-standard)"
   # then embed "$unc" in the prompt. The trailing manifest is always appended so
   # genuinely empty new files (which produce no diff) are still part of the snapshot.
@@ -501,7 +501,7 @@ Replace with:
 Find the fenced `resume` block's **Fallbacks** paragraph (`**Fallbacks, in order:**…review.`) and insert this new bullet **immediately after** it (before "Loop Codex until clean…"):
 
 ```
-- **Sticky embedded-diff convergence.** If the run is on the embedded-diff path (routed there, or moved there by the detector), keep **all** convergence rounds on it — re-embed the *complete* current target diff each round (`git show <sha>` / `git diff "$base"...HEAD`), **not** just the latest fix commit (a delta would hide regressions in earlier hunks). Resume against `thread_id` is fine only when the full current diff is embedded. Keep `--json` for `thread_id` + parsing; the structural detector does not apply to embedded-diff rounds (their guarantee is inherent — the diff is in the prompt). Any unavoidably plain-text round falls back to text markers alone.
+- **Sticky embedded-diff convergence.** If the run is on the embedded-diff path (routed there, or moved there by the detector), keep **all** convergence rounds on it — re-embed the *complete* current target diff each round (`git show <sha>` / `git diff "$base"...HEAD`), **not** just the latest fix commit (a delta would hide regressions in earlier hunks). Resume against `thread_id` is fine only when the full current diff is embedded. **On the embedded path, the resume-failure fallback is a *fresh embedded-diff* call carrying the complete diff — not the generic fresh native `review -`** (which would re-trigger the sandbox false-clean on a broken host). Keep `--json` for `thread_id` + parsing; the structural detector does not apply to embedded-diff rounds (their guarantee is inherent — the diff is in the prompt). Any unavoidably plain-text round falls back to text markers alone.
 ```
 
 - [ ] **Step 3: Verify**
@@ -714,8 +714,10 @@ Expected: `codex rc=0`, then **zero `command_execution` items** (only GitHub `mc
 
 - [ ] **Step 2b (optional): empirical detector check on the captured stream**
 
-If you saved the stream to a file `$round`, run:
-`jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null; echo "exit=$? (non-zero ⇒ non-review)"`
+If you saved the stream to a file `$round`, run (set -e-safe — `jq -e` exits non-zero on no match):
+```bash
+rc=0; jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null || rc=$?; echo "exit=$rc (non-zero ⇒ non-review)"
+```
 Expected: non-zero exit (no `command_execution`) ⇒ non-review.
 
 - [ ] **Step 3: Embedded-diff finds the planted bug (the fallback the skill uses)**
