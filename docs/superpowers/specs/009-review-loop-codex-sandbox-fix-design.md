@@ -77,19 +77,21 @@ bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev true
 Next to the existing log setup, call `sandbox-preflight.sh` and record the result (`usable` / `broken` / `unknown`) for the run.
 
 ### (b) Target reachability check (issue proposal #2)
-Decide whether the target is local-only (on no remote the Codex connector could read), per target mode:
+A broken sandbox is *silently* dangerous only when the target is **local-only** (on no remote the Codex connector can read) — that's when Codex's remote fallback reviews nothing yet reports clean. A *pushed* target survives the fallback (the remote has it); a *usable* sandbox never falls back at all. Detect local-only per mode:
 
 - **`--commit <sha>` / single commit:** `git branch -r --contains <sha>` with empty stdout ⇒ local-only.
-- **`--base <base>`:** test the range — local-only if any commit in `<base>..HEAD` is unreachable (`git branch -r --contains` empty for it); in practice an unpushed `HEAD` ⇒ treat the whole target as local-only.
-- **`--uncommitted`:** **inherently local-only** (working-tree changes exist on no remote) ⇒ always embedded-diff-eligible.
+- **`--base <base>`:** local-only if any commit in `<base>..HEAD` is unreachable (`git branch -r --contains` empty for it); in practice an unpushed `HEAD` ⇒ treat the whole target as local-only.
+- **`--uncommitted`:** inherently local-only (working-tree changes exist on no remote).
 
-This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git fetch` may be needed for fresh refs, and a force-push can drop a commit that still shows as contained. It only decides *upfront routing*; the post-round detector (§e) is the real backstop, so a wrong guess here degrades gracefully rather than producing a false clean. Optionally `git fetch` first; on any fetch failure, route conservatively to embedded-diff.
+This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git fetch` may be needed for fresh refs, and a force-push can drop a commit that still shows as contained. Its job is to (1) flag *when* a broken sandbox would false-clean and (2) sharpen the post-round detector (§e) — a non-review on a local-only target is unambiguously a false clean. It does **not** by itself force embedded-diff when the sandbox is `usable`.
 
 ### (c) Routing rule
-- preflight `broken`/`unknown` **OR** target is local/unpushed ⇒ **embedded-diff form** is the primary Codex call;
-- otherwise ⇒ the existing `review --base/--commit/--uncommitted` form (unchanged).
+The trigger is **sandbox state**, not the target:
 
-This avoids spending a wasted false-clean round on the common docs-to-main case.
+- sandbox `usable` ⇒ native `review --base/--commit/--uncommitted` — it reads the local tree directly, so it is correct for pushed *and* unpushed targets alike (no remote fallback happens).
+- sandbox `broken`/`unknown` ⇒ **embedded-diff form** — native would fall back to the remote, which for a local-only target silently false-cleans; embedding the diff sidesteps the sandbox entirely, so it is the safe form for every target on a broken host.
+
+This still avoids the wasted false-clean round on the common docs-to-main case: a broken host routes straight to embedded-diff. The local-only check (§b) does **not** override a `usable` sandbox — it feeds the §e detector, which catches the rare case where a `usable` probe is wrong.
 
 ### (d) Embedded-diff form
 Place the diff **into the prompt**, matching the skill's existing `$(gh pr diff <num>)` fallback pattern — no sandboxed subprocess is needed to read the tree, so the failure cannot occur:
