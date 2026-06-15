@@ -65,7 +65,7 @@ bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev true
 |--------|------|---------|---------------|
 | `usable` | 0 | Probe built the sandbox | native `review` path OK |
 | `broken` | 1 | Probe failed at bwrap's userns/loopback setup with an `EPERM` — match the **union** `Operation not permitted\|Permission denied` in a bwrap setup line. Observed variants (which differ even between runs on the same host): `loopback: Failed RTM_NEWADDR: Operation not permitted`, `loopback: Failed to create NETLINK_ROUTE socket: Operation not permitted`, `setting up uid map: Permission denied`. (Do **not** match `write failed /proc/self/uid_map` — that is an `unshare` diagnostic, not this bwrap probe.) | route to embedded-diff |
-| `unknown` | 2 | `bwrap` not on `PATH`, or a non-EPERM failure — can't conclude | route conservatively (treat like `broken` for routing; the post-round detector still guards) |
+| `unknown` | 2 | `bwrap` not on `PATH`, or a non-EPERM failure — can't conclude | route conservatively like `broken` → embedded-diff, whose guarantee is inherent (the diff is in the prompt, so no sandbox to fail) |
 
 **Conventions:** `set -euo pipefail`, full-length options, self-contained (resolve `bwrap` from `PATH`). The probe's own stderr is captured, not leaked.
 
@@ -91,7 +91,7 @@ The trigger is **sandbox state**, not the target:
 - sandbox `usable` ⇒ native `review --base/--commit/--uncommitted` — it reads the local tree directly, so it is correct for pushed *and* unpushed targets alike (no remote fallback happens).
 - sandbox `broken`/`unknown` ⇒ **embedded-diff form** — native would fall back to the remote, which for a local-only target silently false-cleans; embedding the diff sidesteps the sandbox entirely, so it is the safe form for every target on a broken host.
 
-This still avoids the wasted false-clean round on the common docs-to-main case: a broken host routes straight to embedded-diff. The local-only check (§b) does **not** override a `usable` sandbox — it feeds the §e detector, which catches the rare case where a `usable` probe is wrong.
+This still avoids the wasted false-clean round on the common docs-to-main case: a broken host routes straight to embedded-diff. The local-only check (§b) does **not** override a `usable` sandbox — its role is the routing rationale above; the §e detector independently catches the rare case where a `usable` probe is wrong (a native round that reads nothing).
 
 ### (d) Embedded-diff form
 Place the diff **into the prompt**, matching the skill's existing `$(gh pr diff <num>)` fallback pattern — no sandboxed subprocess is needed to read the tree, so the failure cannot occur:
@@ -102,7 +102,7 @@ codex exec --json --sandbox read-only \
 $(git show "$sha")"
 ```
 
-`--base` targets embed `$(git diff "$base"...HEAD)`. `--uncommitted` must embed the **complete** working-tree snapshot — staged, unstaged, **and** untracked — because plain `git diff` shows only unstaged tracked changes whereas `review --uncommitted` covers all three: embed `git diff HEAD` (staged + unstaged tracked) **plus the untracked files' contents rendered as diffs** — `git ls-files --others --exclude-standard -z | xargs -0 -I{} git diff --no-index /dev/null {}` (a bare filename list carries no contents, so it is not enough). Two caveats for the implementer: `git diff --no-index` **exits 1 whenever it emits a diff** — that is expected, so collect its stdout and ignore the non-zero status rather than letting `set -e`/`xargs` abort; and a genuinely empty new file produces no diff, so list such names separately if their mere existence matters. Since `--uncommitted` only reaches embedded-diff on a **broken** sandbox (§c), this recipe is the broken-host fallback; on a `usable` sandbox native `review --uncommitted` covers all three directly. `--json` is kept so the first embedded-diff round still captures `thread_id` for resume.
+`--base` targets embed `$(git diff "$base"...HEAD)`. `--uncommitted` must embed the **complete** working-tree snapshot — staged, unstaged, **and** untracked — because plain `git diff` shows only unstaged tracked changes whereas `review --uncommitted` covers all three: embed `git diff HEAD` (staged + unstaged tracked) **plus the untracked files' contents rendered as diffs** — `git ls-files --others --exclude-standard -z | xargs -0 -I{} git diff --no-index /dev/null {}` (a bare filename list carries no contents, so it is not enough). Two caveats for the implementer: `git diff --no-index` **exits 1 whenever it emits a diff** — that is expected, so collect its stdout and ignore the non-zero status rather than letting `set -e`/`xargs` abort; and a genuinely empty new file produces no diff, so list such names separately if their mere existence matters. Since `--uncommitted` only reaches embedded-diff on a **broken/unknown** sandbox (§c), this recipe is the fallback for those hosts; on a `usable` sandbox native `review --uncommitted` covers all three directly. `--json` is kept so the first embedded-diff round still captures `thread_id` for resume.
 
 **Large-diff / ARG_MAX note:** for very large diffs, feed the *prompt* via stdin instead — `printf '%s\n%s' "<instructions>" "$(git show "$sha")" | codex exec --json --sandbox read-only -`, where trailing `-` reads the **entire prompt** from stdin. Do **not** also pass a `[PROMPT]` argument alongside `-` — stdin replaces it. (Distinct behavior worth noting: plain `codex exec "<instructions>"` with piped stdin appends the pipe as a `<stdin>` block, so `git show | codex exec "<instructions>"` also validly puts the diff in context — but `review -` treats piped data as *instructions only*, never as a diff/target.) The diff still travels in the prompt; only the delivery channel changes.
 
@@ -171,7 +171,7 @@ Tests live under repo-level `tools/review-loop/` (dev tooling stays out of the i
 
 - [ ] A review-loop run whose target is a **local unpushed commit on `main`** produces a real Codex review **or** cleanly degrades to Claude-only with a surfaced note — never a silent false clean. (Issue #41 acceptance.)
 - [ ] `sandbox-preflight.sh` returns the documented word/exit for `usable` / `broken` / `unknown`, verified by stubbed-`bwrap` unit tests.
-- [ ] The post-round structural detector reclassifies a round with **zero `command_execution` items** (matched at `.item.type`, not top-level `.type`) as a non-review, regardless of MCP/GitHub tool activity.
+- [ ] On the **native `review` path**, the post-round structural detector reclassifies a round with **zero `command_execution` items** (matched at `.item.type`, not top-level `.type`) as a non-review, regardless of MCP/GitHub tool activity; embedded-diff rounds are exempt (their guarantee is inherent).
 - [ ] SKILL.md documents the local-unpushed-on-`main` case and the corrected stdin semantics (`-` = prompt, not diff).
 - [ ] `references/codex-sandbox-host-fixes.md` lists the five options with trade-offs and verify commands; A2 links it.
 - [ ] `review-loop` version bumped to 0.3.0 in `.claude-plugin/marketplace.json`.
