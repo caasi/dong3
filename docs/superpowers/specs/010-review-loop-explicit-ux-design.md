@@ -66,7 +66,7 @@ Never fail or block on this; the review proceeds exactly as the default headless
 ### Trigger
 When the loop reaches its clean/stop state (Exit conditions: local gate clean, plus — for GitHub targets — a Copilot clean pass) **and** the branch carries **≥ 2 commits** ahead of its base on a **non-primary feature branch**, the skill **offers** to rebase and group the commits before merge. It **asks**; it never rebases automatically.
 
-**Counting commits / base.** Capture the branch tip **at loop start** as a baseline, so the offer can report what the loop *added* (and how many are review fixups) accurately. Base for the count is `@{upstream}..HEAD`, or the inferred `$base..HEAD` (the loop's existing base inference, SKILL §Inputs) when there is no upstream. If no loop-start baseline is available, phrase the count as "**N commits ahead of base**" rather than "N added by the loop" — never claim the loop added pre-existing commits.
+**Counting commits / base.** Capture the branch tip **at loop start** as a baseline, so the offer can report what the loop *added* (and how many are review fixups) accurately. Count against the **integration base** — the loop's inferred `$base` (its merge-base with the default branch, SKILL §Inputs), i.e. `$base..HEAD`. Do **not** count against `@{upstream}..HEAD`: on a pushed PR branch tracking `origin/<feature>`, upstream..HEAD is ~empty after each fix is pushed, so the ≥2-commit offer would wrongly skip even on a branch full of commits. Upstream/remote detection is reserved for the **push** decision (Guardrails), a separate concern from the count. If no loop-start baseline is available, phrase the count as "**N commits ahead of base**" rather than "N added by the loop" — never claim the loop added pre-existing commits.
 
 ### Guardrails (load-bearing)
 - **Feature branches only.** Never offer (and never perform) a rebase on the **default/primary branch**. Detect it robustly — `git symbolic-ref --short refs/remotes/origin/HEAD` (the remote's default), falling back to the local `main`/`master`/`develop` set and the project's stated default — **not** a hardcoded triple (repos whose default is `trunk`/`production`/etc. must be protected too). If the current branch is the default/primary, skip the offer entirely.
@@ -82,6 +82,7 @@ On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / sing
 
 ### Mechanism (non-interactive)
 `git rebase -i` is **not available** in this environment (interactive flags unsupported), so grouping uses a **soft-reset + re-commit** flow, which also guarantees the final tree matches the pre-rebase tip:
+0. **require a clean working tree** — if there are uncommitted tracked changes, `git stash` them first and restore afterward (or refuse and ask the user to commit/stash). Otherwise the soft-reset folds those unrelated edits into the regrouped commits (and staging whole paths would commit them); the tree-hash check below only detects the corruption *after* history is rewritten, so it must be prevented up front;
 1. backup: `git branch <backup> HEAD`;
 2. `git reset --soft <base>` (then `git reset` to unstage), keeping all changes in the working tree;
 3. re-commit in the chosen groups by staging the relevant paths per commit;
