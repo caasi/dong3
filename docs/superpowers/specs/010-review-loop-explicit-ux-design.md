@@ -34,6 +34,8 @@ A `watch` intent the skill recognizes from **either**:
 
 (The skill is LLM-driven: it reads `SKILL.md` and interprets intent, so "argument" and "request" both reduce to the agent recognizing an explicit ask — there is no real CLI parser.)
 
+A lone `watch` token (`/review-loop watch`) is the **watch request against the default target** (current branch vs base), **not** a branch named `watch`. To review a branch actually named `watch`, name it unambiguously (e.g. its full ref `refs/heads/watch`).
+
 ### The gate
 ```bash
 # spawn ONLY when the user asked to watch (the `watch` arg or an in-conversation
@@ -51,13 +53,13 @@ Never fail or block on this; the review proceeds exactly as the default headless
 
 ### Files (Part A)
 - `plugins/review-loop/skills/review-loop/SKILL.md`:
-  - §A2 spawn block (lines ~81–86): the gate above + reframed prose ("spawn **only when the user explicitly asked to watch** … inside tmux is required but not a request on its own … **default — even inside tmux — is headless: no pane**").
+  - §A2 spawn block: replace the gate code (lines ~83–84) with the gated form above, **and rewrite the bullet's prose at line 81** — the sentence "If `$TMUX` is set, spawn one read-only spectator pane …" is the most explicit tmux-alone trigger and must become "spawn **only when the user explicitly asked to watch** … inside tmux is required but not a request on its own … **default — even inside tmux — is headless: no pane**".
   - Add the no-tmux-but-requested note.
-  - Consistency edits to the prose mentions that currently imply `$TMUX`-alone triggers the pane (lines ~10, 19, 22, 35): reword to "only when you ask to watch (and you're in tmux)".
+  - Consistency edits to the other prose mentions that currently imply `$TMUX`-alone triggers the pane (lines ~10, 19, 22, 35): reword to "only when you ask to watch (and you're in tmux)".
 - `plugins/review-loop/commands/review-loop.md`:
   - **Usage:** add the `watch` arg — `/review-loop [target] [watch]` — "append `watch` to open a live spectator pane; requires a tmux session."
   - Invariant line (~27–28): "tmux is optional and opens a live-watch pane **only when you ask**, never by default."
-- `README.md`: **no change** — it currently contains no mention of the pane, so there is nothing to mirror (this corrects the issue's assumption).
+- `plugins/review-loop/skills/review-loop/README.md`: **reword the two existing pane mentions** so neither implies tmux-alone opens the pane — lines ~18–19 ("tmux only adds an optional live-watch pane") and ~25–26 ("tmux optional — only for a live-watch pane") → "opens a live-watch pane **only when you ask**". (The issue was right that README needs mirroring; the path is `…/skills/review-loop/README.md`, not a top-level `README.md`.)
 
 ## Part B — After convergence, offer to rebase + group commits
 
