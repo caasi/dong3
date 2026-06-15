@@ -724,12 +724,15 @@ Expected: non-zero exit (no `command_execution`) ⇒ non-review.
 
 ```bash
 cd "$tmp"
-printf '%s\n\n%s\n' "Review this diff for correctness and risk. List concrete defects:" "$(git show HEAD)" \
-  | codex exec --json --sandbox read-only -c features.use_legacy_landlock=false - 2>/dev/null \
-  | jq -r 'select(.type=="item.completed") | .item | select(.type=="agent_message") | .text' | tail -20
+r=0; printf '%s\n\n%s\n' "Review this diff for correctness and risk. List concrete defects:" "$(git show HEAD)" \
+  | codex exec --json --sandbox read-only -c features.use_legacy_landlock=false - >/tmp/pf-embed.json 2>/dev/null || r=$?
+echo "codex rc=$r"   # must be 0
+if [ "$r" -ne 0 ]; then echo "ABORT: codex failed — verification invalid"; else
+  jq -r 'select(.type=="item.completed") | .item | select(.type=="agent_message") | .text' /tmp/pf-embed.json | tail -20
+fi
 cd - >/dev/null
 ```
-Expected: a real review naming the unchecked-withdrawal (and/or missing-balance) defect — proving the embedded-diff path produces a genuine review where native false-cleaned.
+Expected: `codex rc=0`, then a real review naming the unchecked-withdrawal (and/or missing-balance) defect — proving the embedded-diff path produces a genuine review where native false-cleaned.
 
 - [ ] **Step 4: Regression — a genuine native review must NOT be flagged a non-review**
 
