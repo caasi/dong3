@@ -369,9 +369,13 @@ need 'references/codex-sandbox-host-fixes\.md'           "host-fix reference lin
 # spec 010 Part A — watch pane gated behind explicit request
 need 'asked to watch'                                    "watch pane gated on explicit request"
 refute 'is set, spawn'                                   "old tmux-alone spawn prose"
+# code-level guard: the spawn line must NOT gate on $TMUX alone (line-anchored so
+# the new watch-first gate and incidental $TMUX prose don't trip it).
+refute '^[[:space:]]*\[ -n "\$\{TMUX:-\}" \] && watch_pane'  "old tmux-only spawn gate (code)"
 
 # spec 010 Part B — after-convergence group-commits offer
 need 'After convergence'                                 "after-convergence offer section"
+need 'feature.branch'                                    "offer is feature-branch only"
 need 'force-with-lease'                                  "pinned-lease push guidance"
 need 'never automatic'                                   "offer is assisted, never automatic"
 
@@ -382,7 +386,7 @@ echo "All SKILL.md content checks passed."
 
 Run: `bash tools/review-loop/test-skill-content.sh`
 Expected: PASS — all checks (including `no longer present: old tmux-alone spawn prose`), ending `All SKILL.md content checks passed.`
-If `refute 'is set, spawn'` FAILS, the Task 1 prose still contains "is set, spawn" — fix the Task 1 wording, not the test.
+If `refute 'is set, spawn'` FAILS, the Task 1 prose still contains "is set, spawn" — fix the Task 1 wording, not the test. If the **code** refute fails, the spawn gate regressed to a `$TMUX`-only line — fix the Task 1 gate (it must lead with `[ -n "${watch:-}" ]`), not the test.
 
 - [ ] **Step 4: Commit**
 
