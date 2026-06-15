@@ -263,7 +263,10 @@ codex exec --sandbox read-only review --commit <unpushed-sha>   # produces a rea
 Works, but is the **least strict** variant: sandboxed children also get userns (the
 nested-escape hole that `bwrap-userns-restrict` closes). Use only if option 1 is unavailable.
 
-```
+Create the profile and load it:
+
+```bash
+sudo tee /etc/apparmor.d/bwrap >/dev/null <<'EOF'
 abi <abi/4.0>,
 include <tunables/global>
 
@@ -271,11 +274,14 @@ profile bwrap /usr/bin/bwrap flags=(unconfined) {
   userns,
   include if exists <local/bwrap>
 }
+EOF
+sudo apparmor_parser -r /etc/apparmor.d/bwrap
 ```
 
+Verify:
+
 ```bash
-sudo install -m 0644 bwrap-profile /etc/apparmor.d/bwrap
-sudo apparmor_parser -r /etc/apparmor.d/bwrap
+bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev echo OK   # prints OK
 ```
 
 ## 4. `sysctl …=0` (last resort — drops hardening system-wide)
@@ -287,12 +293,27 @@ sudo sysctl --system
 
 This disables the 24.04 unprivileged-userns hardening for **every** process. Not recommended.
 
+Verify:
+
+```bash
+sysctl kernel.apparmor_restrict_unprivileged_userns                  # = 0
+bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev echo OK  # prints OK
+```
+
 ## 5. Skill-side embedded-diff (no host change)
 
 This is what `review-loop` does automatically on a `broken`/`unknown` host: it embeds the
 diff in the prompt (`git show <sha>` / `git diff <base>...HEAD`), so Codex needs no
 sandboxed subprocess to read the tree. Zero config; always available. The other options
 only matter if you specifically want the native `review` path back.
+
+Verify (no host change — confirm the fallback itself yields a real review):
+
+```bash
+sha=$(git rev-parse HEAD)
+printf '%s\n\n%s\n' "Review this diff for correctness and risk:" "$(git show "$sha")" \
+  | codex exec --sandbox read-only -        # produces a real review with no native sandbox
+```
 ````
 
 - [ ] **Step 2: Verify it renders and links resolve**
