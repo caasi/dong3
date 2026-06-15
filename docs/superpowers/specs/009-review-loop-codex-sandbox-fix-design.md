@@ -42,10 +42,10 @@ Three layers, in order of authority:
 | Layer | Role | Where |
 |-------|------|-------|
 | **Preflight probe** | Cheap *routing hint*, run once at loop start: can Codex's command sandbox build here? | new `scripts/sandbox-preflight.sh` |
-| **Upfront routing** | For `broken` sandbox **or** local/unpushed targets, use the embedded-diff form as the primary Codex call | SKILL.md A2 |
-| **Post-round detector** | The *guarantee*: after any `rc=0` round, confirm Codex actually read the tree; if not, it's a non-review | SKILL.md A2 |
+| **Upfront routing** | A `usable` sandbox uses native `review`; a `broken`/`unknown` sandbox uses the embedded-diff form as the primary Codex call | SKILL.md A2 |
+| **Post-round detector** | The *guarantee* on the native `review` path: after a round, confirm Codex actually read the tree; if not, it's a non-review | SKILL.md A2 |
 
-**Key invariant:** the preflight is only a hint. The **post-round structural detector** is the safety guarantee — it directly observes whether Codex ran any local command, so it catches a false-clean even when the preflight guessed wrong (e.g. the user configured `use_legacy_landlock`, so bwrap is never used). **Embedded-diff** is always a safe landing because it places the diff *inside the prompt*, so no sandboxed subprocess is needed at all.
+**Key invariant:** the preflight is only a hint. The **post-round structural detector** is the safety guarantee on the native path — it directly observes whether Codex ran any local command, so it catches a false-clean even if a `usable` probe is wrong and native Codex still fails to read the tree. **Embedded-diff** is always a safe landing because it places the diff *inside the prompt*, so no sandboxed subprocess is needed at all — which is also why a probe that wrongly reports `broken` on a host where Codex actually works via `use_legacy_landlock` is harmless (embedded-diff still produces a real review).
 
 ## Component 1 — `scripts/sandbox-preflight.sh`
 
