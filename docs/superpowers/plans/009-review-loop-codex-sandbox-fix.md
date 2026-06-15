@@ -714,9 +714,9 @@ Expected: `codex rc=0`, then **zero `command_execution` items** (only GitHub `mc
 
 - [ ] **Step 2b (optional): empirical detector check on the captured stream**
 
-If you saved the stream to a file `$round`, run (set -e-safe — `jq -e` exits non-zero on no match):
+Using the stream Step 2 saved to `/tmp/pf-native.json`, run (set -e-safe — `jq -e` exits non-zero on no match):
 ```bash
-rc=0; jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' "$round" >/dev/null || rc=$?; echo "exit=$rc (non-zero ⇒ non-review)"
+rc=0; jq -e 'select(.type=="item.completed") | select(.item.type=="command_execution")' /tmp/pf-native.json >/dev/null || rc=$?; echo "exit=$rc (non-zero ⇒ non-review)"
 ```
 Expected: non-zero exit (no `command_execution`) ⇒ non-review.
 
