@@ -126,7 +126,10 @@ Manual verification:
 - In tmux, default `/review-loop` → **no pane** spawned.
 - `/review-loop … watch` (or "show me the codex pane") in tmux → pane spawned, torn down at loop end.
 - Watch requested, **not** in tmux → brief note, headless, review unaffected.
-- Loop converges on a feature branch with ≥2 commits → offer appears; decline leaves history; accept groups + backup + `--force-with-lease`, primary untouched.
+- Loop converges on a feature branch with ≥2 commits → offer appears; decline leaves history untouched. Accept always groups + keeps a backup, with two scenarios:
+  - **remote-tracking branch:** force-pushes with `--force-with-lease`;
+  - **local-only branch:** groups locally and ends **without a push** (nothing published).
+- On a primary/default branch (any remote): no offer appears (primary untouched).
 
 ## Acceptance criteria
 
