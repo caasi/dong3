@@ -92,9 +92,9 @@ codex exec --json --sandbox read-only \
 $(git show "$sha")"
 ```
 
-(`--base` targets use `$(git diff "$base"...HEAD)`; `--uncommitted` uses `$(git diff)`.) `--json` is kept so the first embedded-diff round still captures `thread_id` for resume.
+`--base` targets embed `$(git diff "$base"...HEAD)`. `--uncommitted` must embed the **complete** working-tree snapshot — staged, unstaged, **and** untracked — because plain `git diff` shows only unstaged tracked changes whereas `review --uncommitted` covers all three: use `git diff HEAD` (staged + unstaged tracked) plus the untracked files reported by `git ls-files --others --exclude-standard`. When the sandbox is `usable`, prefer native `review --uncommitted` for this target; embedded-diff is the degraded fallback. `--json` is kept so the first embedded-diff round still captures `thread_id` for resume.
 
-**Large-diff / ARG_MAX note:** for very large diffs, feed the *prompt* via stdin instead — `printf '%s\n%s' "<instructions>" "$(git show "$sha")" | codex exec --json --sandbox read-only -`, where trailing `-` reads the **prompt** from stdin. The diff still travels in the prompt; only the delivery channel changes.
+**Large-diff / ARG_MAX note:** for very large diffs, feed the *prompt* via stdin instead — `printf '%s\n%s' "<instructions>" "$(git show "$sha")" | codex exec --json --sandbox read-only -`, where trailing `-` reads the **entire prompt** from stdin. Do **not** also pass a `[PROMPT]` argument alongside `-` — stdin replaces it. (Distinct behavior worth noting: plain `codex exec "<instructions>"` with piped stdin appends the pipe as a `<stdin>` block, so `git show | codex exec "<instructions>"` also validly puts the diff in context — but `review -` treats piped data as *instructions only*, never as a diff/target.) The diff still travels in the prompt; only the delivery channel changes.
 
 ### (e) Post-round detector — the guarantee
 Before counting **any** inspected Codex round as clean, confirm Codex actually read the tree. Every inspected round runs with `--json` (see §f). The `codex exec --json` stream is JSONL whose item kinds are nested under `.item.type` (e.g. `command_execution`, `mcp_tool_call`, `agent_message`) — **not** top-level `.type` (only `thread.started` / `turn.*` / `item.completed` appear there). Treat the round as a **non-review (not a clean pass)** if **either**:
