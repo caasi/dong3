@@ -89,7 +89,7 @@ This is a **heuristic, not proof**: remote-tracking refs can be stale — a `git
 The trigger is **sandbox state**, not the target:
 
 - sandbox `usable` ⇒ native `review --base/--commit/--uncommitted` — it reads the local tree directly, so it is correct for pushed *and* unpushed targets alike (no remote fallback happens).
-- sandbox `broken`/`unknown` ⇒ **embedded-diff form** — native would fall back to the remote, which for a local-only target silently false-cleans; embedding the diff sidesteps the sandbox entirely, so it is the safe form for every target on a broken host.
+- sandbox `broken`/`unknown` ⇒ **embedded-diff form** — native would fall back to the remote, which for a local-only target silently false-cleans; embedding the diff sidesteps the sandbox entirely, so it is the safe form for every target on a `broken`/`unknown` host.
 
 This still avoids the wasted false-clean round on the common docs-to-main case: a broken host routes straight to embedded-diff. The local-only check (§b) does **not** override a `usable` sandbox — its role is the routing rationale above; the §e detector independently catches the rare case where a `usable` probe is wrong (a native round that reads nothing).
 
