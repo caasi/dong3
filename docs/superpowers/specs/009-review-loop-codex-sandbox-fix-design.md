@@ -163,7 +163,9 @@ Tests live under repo-level `tools/review-loop/` (dev tooling stays out of the i
 1. `sandbox-preflight.sh` reports `broken` (the bwrap probe fails regardless of the legacy-landlock setting).
 2. With legacy-landlock disabled, a throwaway repo with an **unpushed** commit containing a planted bug: native `review --commit` is correctly detected as a non-review by the post-round detector (not counted clean), and the embedded-diff form finds the bug (real review).
 
-**Regression:** with the sandbox `usable` **or** `use_legacy_landlock` active, the native `review` path still runs and the detector does not misfire on a genuinely clean review (a clean review still emits `command_execution` items, so the detector sees the tree was read).
+**Regression:**
+- On a host where the probe reports `usable`, the native `review` path runs and the structural detector does **not** misfire on a genuinely clean review — a clean review still emits `command_execution` items, so the detector sees the tree was read.
+- On a host where the probe reports `broken` but Codex actually works via `use_legacy_landlock`, §c routes to embedded-diff, which still produces a real review (the documented harmless false-negative). No native round runs, so the structural detector does not apply — and that is correct, not a miss.
 
 ## Acceptance criteria
 
