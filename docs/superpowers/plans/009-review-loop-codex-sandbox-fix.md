@@ -478,7 +478,21 @@ Replace with:
     | codex exec --json --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
 ```
 
-- [ ] **Step 2b: Add the sticky-embedded-diff convergence bullet**
+- [ ] **Step 2b: Keep `--json` on the native fallback fresh-review too**
+
+The Fallbacks paragraph drops to a fresh native `review` when `resume` fails — that is also a native inspected round, so it needs `--json` for the detector. Find:
+
+```
+→ a **fresh** `codex exec --sandbox read-only review -` (freeform, no target flag) with the prior findings restated
+```
+
+Replace with:
+
+```
+→ a **fresh** `codex exec --json --sandbox read-only review -` (freeform, no target flag) with the prior findings restated
+```
+
+- [ ] **Step 2c: Add the sticky-embedded-diff convergence bullet**
 
 Find the fenced `resume` block's **Fallbacks** paragraph (`**Fallbacks, in order:**…review.`) and insert this new bullet **immediately after** it (before "Loop Codex until clean…"):
 
