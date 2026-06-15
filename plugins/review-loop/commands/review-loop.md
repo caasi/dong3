@@ -32,3 +32,5 @@ Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
 - **Copilot is GitHub-only** — requested only for PR targets, after the local gate.
 - **Never merges autonomously** — the author decides T2/T3 fixes and the final
   merge. Default to a merge commit to preserve history.
+- **After convergence** — offers to group the review fixup commits; never
+  auto-rebases, feature-branch only, never touches a primary branch.
