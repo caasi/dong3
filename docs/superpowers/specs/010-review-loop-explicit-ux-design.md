@@ -67,7 +67,7 @@ Never fail or block on this; the review proceeds exactly as the default headless
 When the loop reaches its clean/stop state (Exit conditions: local gate clean, plus — for GitHub targets — a Copilot clean pass) **and** the branch carries **≥ 2 commits** ahead of its base on a **non-primary feature branch**, the skill **offers** to rebase and group the commits before merge. It **asks**; it never rebases automatically.
 
 ### Guardrails (load-bearing)
-- **Feature branches only.** Never offer (and never perform) a rebase on a primary branch (`main`/`develop`/`master`). Detect the current branch; if it's primary, skip the offer entirely.
+- **Feature branches only.** Never offer (and never perform) a rebase on the **default/primary branch**. Detect it robustly — `git symbolic-ref --short refs/remotes/origin/HEAD` (the remote's default), falling back to the local `main`/`master`/`develop` set and the project's stated default — **not** a hardcoded triple (repos whose default is `trunk`/`production`/etc. must be protected too). If the current branch is the default/primary, skip the offer entirely.
 - **Assisted, not autonomous.** Present the offer and wait. Declining leaves history exactly as-is.
 - **Safety first on accept:** create a backup branch at the current tip before rewriting; group commits; verify the resulting tree is **identical** to the pre-rebase tree (`git diff <orig> HEAD` empty); run the project's tests if present; **force-push with `--force-with-lease`** only.
 - **Respect project git conventions** (e.g. this repo: feature-branch rebase OK when asked; preserve primary-branch history; prefer merge commits for primary).
@@ -78,11 +78,13 @@ When the loop reaches its clean/stop state (Exit conditions: local gate clean, p
 On **accept**, ask the grouping shape (e.g. by area / a few coarse groups / single squash), then perform it with the guardrails above. On **decline**, do nothing.
 
 ### Insertion point
-A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clean-pass stop, before/near the existing **Merge** bullet — and explicitly *before* any merge, since grouping should happen on the branch prior to the merge commit). Mirror a one-line behavior note in `commands/review-loop.md` invariants ("after convergence, offers to rebase + group commits; never auto-rebases, feature-branch only").
+A new subsection at the end of **Exit conditions** in `SKILL.md` (after the clean-pass stop, before/near the existing **Merge** bullet — and explicitly *before* any merge, since grouping happens on the branch prior to the merge commit).
+
+**Reachability — also amend §B4.** The existing §B4 "Copilot clean-pass stop signal" (line ~190) currently ends with "**STOP immediately** … Then wait." — so for a GitHub target, a clean Copilot pass jumps straight to waiting and the new offer under Exit conditions is **never reached**. §B4 must be edited so that on a clean pass it **makes the post-convergence offer first, then waits**. Without this edit the offer only fires for local (non-PR) targets.
 
 ### Files (Part B)
-- `plugins/review-loop/skills/review-loop/SKILL.md` — Exit conditions section (~194–198): new "After convergence — offer to group commits" bullet/subsection.
-- `plugins/review-loop/commands/review-loop.md` — one invariant line.
+- `plugins/review-loop/skills/review-loop/SKILL.md` — Exit conditions section (~194–198): new "After convergence — offer to group commits" subsection; **and §B4 (line ~190): route the clean-pass stop through the offer before waiting.**
+- `plugins/review-loop/commands/review-loop.md` — one invariant line ("after convergence, offers to rebase + group commits; never auto-rebases, feature-branch only").
 
 ## Non-goals
 
