@@ -678,6 +678,7 @@ Expected: `broken` / `exit=1` (bwrap can't build a namespace here regardless of 
 
 ```bash
 tmp=$(mktemp -d); git -C "$tmp" init -q; cd "$tmp"
+git config user.email test@example.com; git config user.name test   # repo-local identity (clean-machine safe)
 printf 'def withdraw(b,a):\n    return b - a  # no balance check\n' > bank.py
 git add bank.py && git commit -q -m "planted bug: unchecked withdrawal"
 sha=$(git rev-parse HEAD)
