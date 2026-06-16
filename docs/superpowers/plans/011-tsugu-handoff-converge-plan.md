@@ -747,8 +747,8 @@ Expected: no live default-path completion-tail prose, and no un-narrowed "never 
 
 - [ ] **Step 3a: Confirm the no-schema-bump invariant held**
 
-Run: `git diff main -- plugins/tsugu/skills/tsugu/references/migrations.md plugins/tsugu/skills/tsugu/templates/policy.md | grep -i 'tsugu-schema'`
-Expected: **empty** — spec 011 is explicit that `tsugu-schema` stays `4` and `migrations.md` is not touched. Any `tsugu-schema:` line in the diff means an accidental schema edit; revert it. (The `templates/policy.md` edit in Task 10a touches only `## Housekeeping`, never the schema stamp.)
+Run: `git diff main -- plugins/tsugu/skills/tsugu/references/migrations.md plugins/tsugu/skills/tsugu/templates/policy.md | grep -i 'tsugu-schema' || true`
+Expected: **empty** output — spec 011 is explicit that `tsugu-schema` stays `4` and `migrations.md` is not touched. (The `|| true` keeps the no-match case from tripping `set -e`.) Any `tsugu-schema:` line in the diff means an accidental schema edit; revert it. (The `templates/policy.md` edit in Task 10a touches only `## Housekeeping`, never the schema stamp.)
 
 - [ ] **Step 4: Validate all touched JSON**
 
