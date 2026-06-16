@@ -45,6 +45,7 @@ Each task edits a focused file set and is committed independently. The SKILL.md 
 
 ```bash
 df --human-readable /dev/shm >/dev/null 2>&1 || { echo "no /dev/shm tmpfs — ask the user"; exit 1; }
+mkdir -p /dev/shm/dong3   # parent dir for the worktree (git won't create intermediate dirs)
 git -C /home/caasi/GitHub/dong3 worktree add /dev/shm/dong3/tsugu-011 -b feat/tsugu-handoff-converge main
 cd /dev/shm/dong3/tsugu-011
 ```
@@ -563,11 +564,17 @@ git commit -m "docs(tsugu): notes-and-packet — knowledge/ lean discipline + ag
 ```bash
 # --- Task 10a: housekeeping field reframed to prune + converge-flag consumers ---
 PI='plugins/tsugu/skills/tsugu/references/policy-and-intake.md'
+TP='plugins/tsugu/skills/tsugu/templates/policy.md'
 need_in "$PI" 'prune'                              "policy-and-intake housekeeping mentions prune"
-# the old "converge ... housekeeping cleanup" framing must be gone (present => fail):
+# the old "converge ... housekeeping cleanup" framing must be gone in BOTH files (present => fail):
 grep -Eiq 'converge[^.]*housekeeping (section|cleanup|surfac)' "$ROOT/$PI" \
   && fail "policy-and-intake still frames housekeeping as a converge cleanup block" \
-  || pass "housekeeping no longer framed as converge cleanup"
+  || pass "policy-and-intake: housekeeping not framed as converge cleanup"
+grep -Eiq 'converge[^.]*housekeeping (section|cleanup|surfac)' "$ROOT/$TP" \
+  && fail "templates/policy still frames housekeeping as a converge cleanup block" \
+  || pass "templates/policy: housekeeping not framed as converge cleanup"
+# the stale-after field itself must SURVIVE in the template (it's still consumed by prune + converge flag):
+need_in "$TP" 'stale-after'                        "templates/policy keeps the stale-after field"
 ```
 
 - [ ] **Step 2: Run — verify it fails**
@@ -578,7 +585,7 @@ Expected: `FAIL: plugins/.../policy-and-intake.md missing: policy-and-intake hou
 - [ ] **Step 3: Edit both files**
 
 - `policy-and-intake.md` `## Housekeeping` section: keep documenting the `stale-after` field, but reframe its **consumers** — stale in-progress branches are surfaced **read-only by `prune`** and shown as a **stale flag on converge's candidate list**; there is **no converge "housekeeping cleanup" block** anymore (spec 011 §E4). MUST mention `prune`.
-- `templates/policy.md` `## Housekeeping`: keep the `stale-after: 30 days` field/comment; if the inline comment frames it as converge-driven cleanup, reword to "consumed by `prune` (surfacing) + converge's stale candidate flag."
+- `templates/policy.md` `## Housekeeping`: the current section is just the heading + `<!-- stale-after: 30 days -->`. **Keep the field.** It carries no converge-cleanup framing today, so no rewrite is required — optionally add a one-line comment "consumed by `prune` (surfacing) + converge's stale candidate flag." The guard only *refutes* converge-cleanup wording here (a regression guard) and asserts `stale-after` survives; it does not force a `prune` mention into the template.
 
 - [ ] **Step 4: Run — verify it passes**
 
