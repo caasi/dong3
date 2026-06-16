@@ -1,4 +1,4 @@
-# 009 — Tsugu explore→handoff: `prepare` gathers (doesn't finalize), `converge` hands off (doesn't complete), + findings curation + a `prune` routine (schema 4, no bump)
+# 011 — Tsugu explore→handoff: `prepare` gathers (doesn't finalize), `converge` hands off (doesn't complete), + findings curation + a `prune` routine (schema 4, no bump)
 
 ## Relationship to 004 / 005 / 006 / 007 / 008
 
@@ -12,13 +12,13 @@ boundary.
 
 **One inherited invariant is explicitly superseded.** 004–008 state "Tsugu never
 renames a branch" (names are write-once identity, so name-level slug joins survive
-forge rewrites). 009 **narrows** that: identity is the **slug**, and the slug is
+forge rewrites). 011 **narrows** that: identity is the **slug**, and the slug is
 never renamed. Handoff renames only the **prefix** (`prepare/<slug>` →
 `<accepted-prefix>/<slug>`), preserving the slug — so the slug-join identity the
 invariant protected is intact. Wherever 004–008 say "never renames a branch," read
-"never renames the **slug**" post-009.
+"never renames the **slug**" post-011.
 
-009 **re-aligns the two human-facing ends of the lifecycle to one intent — agents
+011 **re-aligns the two human-facing ends of the lifecycle to one intent — agents
 explore; humans own design and completion.** It changes routine *behavior*; it is
 **not a storage change**: no new committed `.tsugu/` files or directories, **no
 schema bump** — the schema stays `tsugu-schema: 4`. Existing schema-4 repos remain
@@ -65,7 +65,7 @@ completion that depends on it) to the human.
 
 This is the same philosophy SKILL.md already states ("Tsugu prepares the board.
 Workflow skills play the game with the human." / "It is **not** an implementation
-methodology."). The pre-009 implementation **drifted** from it on both ends:
+methodology."). The pre-011 implementation **drifted** from it on both ends:
 
 - `prepare` could read as "implement the whole thing" (only "tries reversible
   patches" hinted otherwise) — over-investing in a "final" implementation that
@@ -75,7 +75,7 @@ methodology."). The pre-009 implementation **drifted** from it on both ends:
   **choose** the "finish/implement" workflow and (2) **run it to completion** —
   both human-only acts.
 
-009 pulls both ends back to the stated intent.
+011 pulls both ends back to the stated intent.
 
 ### The one exception the principle permits
 
@@ -139,7 +139,7 @@ path that carries work to completion is the human-marked **maintenance exception
 (Change C). So "implement the 2 decision-free items" means "prove them with working
 code," not "finish and ship them" — that keeps A and C from blurring.
 
-**Out of scope for 009:** the partition reads, the push/commit mechanics, and
+**Out of scope for 011:** the partition reads, the push/commit mechanics, and
 submodule recursion at `prepare` are unchanged. A only edits the **framing** of
 what `prepare` is *for*.
 
@@ -185,7 +185,7 @@ mainline narrative, push, or open a PR.
 Between the local rename (B1) and the human's remote reconcile (B3), the remote
 `origin/prepare/<slug>` **still exists** (the agent doesn't delete it — B3 is the
 human's). A scheduled `prepare` would otherwise **rediscover `origin/prepare/<slug>`
-and resume already-handed-off work.** 009 adds **no new marker** for this — the
+and resume already-handed-off work.** 011 adds **no new marker** for this — the
 **existing two-fact partition already guards it**, checked in this order:
 
 1. **Containment (settled).** `git merge-base --is-ancestor <prepare-tip>
@@ -216,7 +216,7 @@ the accepted branch deleted — neither fact holds: containment can't confirm an
 there's no slug pair. (The **maintenance complete path** makes this reachable even
 with a merge commit, because its freshness-rebase changes the accepted tip away from
 the stale remote `prepare/<slug>` tip — so there the guard is specifically *retain
-the accepted branch* / fact 2, not containment.) In the residual, 009 does **not**
+the accepted branch* / fact 2, not containment.) In the residual, 011 does **not**
 claim a scheduled `prepare` is auto-guarded; instead:
 
 - `prepare`'s **judgment leans conservative** — a `prepare/<slug>` it can neither
@@ -229,7 +229,7 @@ claim a scheduled `prepare` is auto-guarded; instead:
   are the authoritative recourse.
 
 This is the **same guarantee level 004–008 already give for history-rewriting
-landings** — 009 introduces nothing weaker, and adds no polluting marker. The
+landings** — 011 introduces nothing weaker, and adds no polluting marker. The
 **cross-machine, accepted-still-unpushed** window (machine A holds the local accepted
 branch, machine B runs `prepare` before B3) is the **deferred multi-agent concurrency
 case** tsugu already scopes out ("no locks; two agents grabbing the same branch is
@@ -244,9 +244,9 @@ default accept recipe. The `.tsugu/` exploration commits ride along on
 the human decides whether to strip `.tsugu/` when *they* open their public PR.
 
 **This is an explicit narrowing of `exclude`, not "untouched."** The setting is not
-removed (no schema change), but its **scope shrinks**: pre-009 it governed both (a)
+removed (no schema change), but its **scope shrinks**: pre-011 it governed both (a)
 whether `.tsugu/` rode the default branch **and** (b) whether converge's accepted /
-handoff branch was cut `.tsugu/`-free. 009 drops (b) entirely — converge no longer
+handoff branch was cut `.tsugu/`-free. 011 drops (b) entirely — converge no longer
 cuts a clean public branch — and keeps only (a). An `exclude`-mode repo that
 depended on tsugu producing a `.tsugu/`-free handoff branch must now do that
 stripping itself when the human opens the public PR. Stated plainly so no repo is
@@ -285,11 +285,11 @@ containment, or decided via slug-pairing against the local/remote accepted branc
 per B1a). Once the remote `prepare/<slug>` is deleted there is no longer a work ref
 to track, and no work-branch ↔ accepted-branch slug pair.
 
-**The old "Completion tail" step is dissolved, not merely "not run."** Pre-009 the
+**The old "Completion tail" step is dissolved, not merely "not run."** Pre-011 the
 SKILL.md "Completion tail" bullet did two things after a landing: **promote**
-findings into `knowledge/` and **clean up** worktrees/branches. 009 re-homes both:
+findings into `knowledge/` and **clean up** worktrees/branches. 011 re-homes both:
 **promotion → curation (Change D)** and **cleanup → `prune` (Change E)**. So
-`converge` keeps **no** named completion tail of its own. ("Complete path" in 009
+`converge` keeps **no** named completion tail of its own. ("Complete path" in 011
 refers *only* to the human-marked maintenance recipe — Change C — never to this
 dissolved promote+cleanup step.)
 
