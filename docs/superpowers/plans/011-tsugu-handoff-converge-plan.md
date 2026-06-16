@@ -18,18 +18,46 @@ Files created or modified (from spec 011 §"Files touched"):
 
 | File | Responsibility | Tasks |
 | --- | --- | --- |
-| `tools/tsugu/test-skill-content.sh` | **New.** Content-regression guard: `need`/`refute` anchors over SKILL.md + cross-file checks (prune.md exists, version, descriptions). The executable acceptance test. | 1–11 (grown task-by-task) |
+| *(workspace)* | Feature-branch worktree on `/dev/shm` — implementation must not land on `main` | 0 |
+| `tools/tsugu/test-skill-content.sh` | **New.** Content-regression guard: `need`/`refute` anchors over SKILL.md + cross-file checks (prune.md, version, descriptions, CLAUDE.md). The executable acceptance test. | 1–12 (grown task-by-task) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` | Frontmatter routing; `prepare` framing (A); `converge` handoff accept (B) + maintenance (C); curation + boundary (D); `prune` routine (E); remove housekeeping block; rename-invariant supersession; submodule converge → handoff | 1–6 |
 | `plugins/tsugu/commands/prune.md` | **New.** `/tsugu:prune` command file (invokes the skill's prune routine) | 7 |
 | `plugins/tsugu/commands/converge.md` | Description: handoff-only; complete only on human-marked maintenance; points to `prune` | 7 |
 | `plugins/tsugu/skills/tsugu/references/git-recipes.md` | Remove default accept recipe + exclude clean-cut + `## Completion tail` step; retain+re-scope rebase/verify recipe to maintenance; add handoff-rename + prune-sweep recipes; state local+remote accepted enumeration; sweep completion-tail cross-refs; keep Freshness + Cleanup-order | 8 |
 | `plugins/tsugu/skills/tsugu/references/advanced.md` | Reduce "Bare-submodule two-repo landing" to handoff | 9 |
 | `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | Curation discipline (write-gate, promote-as-move, the line) + knowledge↔agent-md boundary | 10 |
-| `.claude-plugin/marketplace.json` | Bump tsugu `0.5.0 → 0.6.0`; description: four routines | 11 |
+| `plugins/tsugu/skills/tsugu/references/policy-and-intake.md` | `## Housekeeping` field: keep `stale-after`, reframe consumers (prune surfacing + converge stale flag; no converge cleanup block) | 10a |
+| `plugins/tsugu/skills/tsugu/templates/policy.md` | `## Housekeeping` (`stale-after`) field stays; update converge-cleanup comment | 10a |
+| `plugins/tsugu/skills/tsugu/README.md` | User-facing doc: three routines → four (add `prune`); converge = handoff | 10b |
+| `.claude-plugin/marketplace.json` | Bump tsugu `0.5.0 → 0.6.0`; description: four routines (names `prune`) | 11 |
 | `plugins/tsugu/.claude-plugin/plugin.json` | Description: four routines; converge = handoff | 11 |
 | `CLAUDE.md` (project root) | tsugu summary: three routines → four; converge = handoff | 12 |
 
-Each task edits a focused file set and is committed independently. The SKILL.md changes (Tasks 1–6) are sequenced by spec change-letter so each commit is one coherent behavior shift.
+Each task edits a focused file set and is committed independently. The SKILL.md changes (Tasks 1–6) are sequenced by spec change-letter so each commit is one coherent behavior shift. Tasks 10a/10b cover shipped consumers of the housekeeping field + README that the spec's original Files-touched list under-scoped (added after review).
+
+---
+
+## Task 0: Create the feature-branch worktree (run before any edit)
+
+**Files:** none (workspace setup). This is implementation → it must **not** land on `main`.
+
+- [ ] **Step 1: Create the worktree on the RAM disk and cd into it**
+
+```bash
+df --human-readable /dev/shm >/dev/null 2>&1 || { echo "no /dev/shm tmpfs — ask the user"; exit 1; }
+git -C /home/caasi/GitHub/dong3 worktree add /dev/shm/dong3/tsugu-011 -b feat/tsugu-handoff-converge main
+cd /dev/shm/dong3/tsugu-011
+```
+
+- [ ] **Step 2: Verify you are on the feature branch, not main**
+
+Run: `git branch --show-current`
+Expected: `feat/tsugu-handoff-converge` (NOT `main`). Every command in Tasks 1–13 runs from this worktree (`/dev/shm/dong3/tsugu-011`). If any later `git commit` reports a commit on `main`, stop — you are in the wrong cwd.
+
+- [ ] **Step 3: Confirm the spec is reachable here**
+
+Run: `ls docs/superpowers/specs/011-tsugu-handoff-converge-design.md`
+Expected: the path exists (the spec landed on `main`, which this branch forks from).
 
 ---
 
@@ -149,9 +177,16 @@ need 'move, not (a )?copy'                  "handoff is a move not a copy"
 need 'prints these'                         "B3 remote reconcile is print-only"
 need '/tsugu:prune'                         "B4 prune reminder in converge"
 need 'handoff-pending window|two-fact partition'  "B1a window guarded by partition"
-# superseded default-accept recipe must be gone as the DEFAULT path:
+# superseded default-accept recipe must be gone as the DEFAULT path. NOTE: this exact
+# arrow-chain is the OLD include-mode default accept (current SKILL.md line ~166). Change C
+# (Task 4) re-scopes a rebase/verify recipe to the maintenance path, but per spec 011 that
+# recipe lives in git-recipes.md — so Task 4's SKILL.md maintenance prose MUST NOT reproduce
+# this literal "freshness-rebase onto the fetched default → verify … → rewrite" chain, or this
+# refute will break. Describe the maintenance path in different words (see Task 4 Step 3).
 refute 'freshness-rebase onto the fetched default → verify .*→ rewrite'  "old default completion-tail accept"
-refute '## .*[Hh]ousekeeping'               "dedicated housekeeping block removed"
+# The housekeeping block is a SUB-BULLET ("- a **housekeeping section** —"), not a heading,
+# so refute the actual prose, not a '##' heading (a heading refute is a no-op — passes today):
+refute 'housekeeping section'               "dedicated converge housekeeping block removed"
 ```
 
 - [ ] **Step 2: Run — verify it fails**
@@ -165,7 +200,7 @@ Replace the `converge` accept (the old include/exclude full-tail) with the hando
 - B1: `git branch -m prepare/<slug> <accepted-prefix>/<slug>` (move, not copy; slug preserved); cold-start variant `git branch <accepted-prefix>/<slug> <remote>/prepare/<slug>`; collision check before rename. Agent does NOT rebase/verify/rewrite/push/PR.
 - B1a: the handoff-pending window is guarded by the **existing two-fact partition** (containment, then slug-pairing across local+remote accepted refs) — no new marker; residual (history-rewrite + deleted accepted) scoped to the 004–008 guarantee level (conservative prepare judgment + prune confirm).
 - B2: mode-agnostic; exclude by-path clean-cut removed; `.tsugu/` rides the accepted branch; exclude narrowing stated.
-- B3: remote reconcile is print-only (`git push --set-upstream …`, `git push --delete prepare/<slug>`); agent does not run them.
+- B3: remote reconcile is print-only (`git push --set-upstream <remote> <accepted-prefix>/<slug>`, `git push <remote> --delete prepare/<slug>` — the `<remote>` argument is required on the delete); agent does not run them.
 - B4: prune reminder (no current-count claim).
 - B5: settlement/slug-pairing tracking dropped; the old "Completion tail" step dissolved → promotion to curation (D), cleanup to prune (E).
 - **Remove** the dedicated converge `housekeeping` section; staleness becomes a flag on the normal candidate list (spec 011 §E4).
@@ -209,6 +244,8 @@ Expected: `FAIL: SKILL.md missing: maintenance exception is human-marked`.
 
 Per spec 011 §"Change C": default is handoff; the **complete** path (rename first → freshness-rebase → verify → ready-to-merge) is unlocked ONLY by an explicit human marking — channel 1 (human-authored task-source designation recorded verbatim in `context.md`; agent must not synthesize from diff content; ambiguous provenance → fall back to channel 2) or channel 2 (live at converge). Still **never auto-merges**; "ready-to-merge" = accepted-branch readiness (exclude repos still strip `.tsugu/` themselves). MUST contain `human-marked maintenance`, `never self-classif`, `never auto-merges`, and a provenance-fallback phrase.
 
+> **Sequencing landmine — do NOT reproduce the old default arrow-chain in SKILL.md.** Task 3's `refute 'freshness-rebase onto the fetched default → verify .*→ rewrite'` guards that the *old default* accept recipe is gone. The full maintenance recipe lives in `git-recipes.md` (Task 8), not SKILL.md. So when writing this maintenance prose in SKILL.md, describe the complete path in **different words** (e.g. "rename first, then bring the accepted branch current and verified per the maintenance recipe in git-recipes.md") — do **not** paste the literal `freshness-rebase onto the fetched default → verify … → rewrite` chain, or Task 3's refute will fail after this task. After this task, re-run the guard to confirm Task 3's refute still passes.
+
 - [ ] **Step 4: Run — verify it passes**
 
 Run: `tools/tsugu/test-skill-content.sh`
@@ -233,10 +270,12 @@ git commit -m "feat(tsugu): human-marked maintenance exception may complete; age
 
 ```bash
 # --- Task 5: curation + knowledge<->agent-md boundary (Change D) ---
-need 'curat'                                "findings curation present"
-need 'CLAUDE\.md|AGENTS\.md|agent md'       "curation targets the agent md"
+# NOTE: do NOT use a bare `need 'curat'` — "curated wiki" already exists in SKILL.md, so it
+# passes without the real change. Anchor on phrases unique to Change D's new prose:
 need 'one place|exactly one place'          "a finding lives in exactly one place"
 need 'promote = move|promote-as-move|move, not copy' "promote is move not copy"
+need 'orthogonal .*(curation|checklist)|curation .*(orthogonal|checklist item)' "curation is an orthogonal checklist item"
+need 'knowledge/.{0,3}(↔|<->|to|→).{0,3}agent.?md|agent.?md .*boundary' "knowledge/ <-> agent-md boundary stated"
 ```
 
 - [ ] **Step 2: Run — verify it fails**
@@ -272,13 +311,16 @@ git commit -m "feat(tsugu): findings curation as orthogonal converge item + know
 
 ```bash
 # --- Task 6: prune routine (Change E) + submodule handoff ---
-need '### .*prune|`prune`'                  "prune routine section"
+need '^### .*prune'                         "prune routine section (heading)"
 need 'human-present'                        "prune is human-present"
 need 'read-only until'                      "prune read-only until confirmation"
 need 'possibly-landed'                      "prune possibly-landed bucket"
 need 'never deletes .*in-progress|stale in-progress' "prune never deletes unfinished work"
 need 'renamed to a human work branch'       "submodule converge = handoff rename"
 need 'meta repo no longer manages'          "meta no longer manages submodule handoff"
+# force the routing prose off "three routines" (both headings + the inline routing line):
+refute 'one lifecycle, three routines'      "routing prose no longer says three routines"
+refute '^## The three routines'             "the-three-routines heading updated to four"
 ```
 
 - [ ] **Step 2: Run — verify it fails**
@@ -288,8 +330,8 @@ Expected: `FAIL: SKILL.md missing: prune routine section`.
 
 - [ ] **Step 3: Edit SKILL.md — routing + prune routine + submodule**
 
-- In `## Routing`, list `prune` as the fourth routine.
-- Add a `### prune` routine section per spec 011 §"Change E" (E1–E4): human-present, read-only until per-item confirm; deletes only **settled** + **leftover-worktree** on confirm; **possibly-landed / dropped / orphaned-accepted** surface-and-confirm; **stale in-progress** surfaced read-only → points to converge, never deleted; remote deletes run after per-item confirm (unify rule "no remote delete without explicit human approval"; B3 prints-only).
+- Update **all** the "three routines" spots — SKILL.md has two headings and a routing line: (1) `## Routing` (line ~50) and its inline list `/tsugu:init · /tsugu:prepare · /tsugu:converge — one lifecycle, three routines:` (line ~52); (2) the `## The three routines` heading (line ~67). Change both headings/list to **four** routines and add `/tsugu:prune`. Also update the mechanics-deferred bullet (line ~61) that references the now-dissolved "completion tail" to point at `prune`/curation.
+- Add a `### prune` routine section (use a `### ` heading) per spec 011 §"Change E" (E1–E4): human-present, read-only until per-item confirm; deletes only **settled** + **leftover-worktree** on confirm; **possibly-landed / dropped / orphaned-accepted** surface-and-confirm; **stale in-progress** surfaced read-only → points to converge, never deleted; remote deletes run after per-item confirm (unify rule "no remote delete without explicit human approval"; B3 prints-only).
 - Update the submodule converge prose (spec 011 §"Submodule consequence"): bare-submodule accept → handoff (rename to a human work branch in the submodule, **meta repo no longer manages it**); the paired meta branch is classified by the existing meta partition, no new marker.
 
 - [ ] **Step 4: Run — verify it passes**
@@ -383,13 +425,16 @@ git commit -m "feat(tsugu): add /tsugu:prune command; converge command -> handof
 # --- Task 8: git-recipes ---
 GR='plugins/tsugu/skills/tsugu/references/git-recipes.md'
 need_in "$GR" 'git branch -m prepare/'           "handoff rename recipe"
-need_in "$GR" 'prune'                             "prune sweep recipe"
+# 'prune' alone matches 'git fetch --prune' (already in the file) — anchor on a prune SWEEP heading/phrase:
+need_in "$GR" '[Pp]rune sweep|^## .*[Pp]rune'    "prune sweep recipe (heading/phrase)"
 need_in "$GR" 'local \+ remote|local and remote'  "accepted enumerated across local+remote"
-# old completion-tail step gone as a standalone heading:
-grep -Eq '^## Completion tail' "$ROOT/$GR" && fail "git-recipes still has '## Completion tail' heading" || pass "completion-tail heading removed"
+# old recipes/heading gone (inline greps because refute is SKILL-scoped); each: present => fail, absent => pass:
+grep -Eq '^## Completion tail' "$ROOT/$GR"        && fail "git-recipes still has '## Completion tail' heading"        || pass "completion-tail heading removed"
+grep -Eq '^## Hand off for merge' "$ROOT/$GR"     && fail "git-recipes still has '## Hand off for merge' (old default accept)" || pass "old include-mode accept recipe removed"
+grep -Eq 'Cut a clean public branch' "$ROOT/$GR"  && fail "git-recipes still has 'Cut a clean public branch' (old exclude clean-cut)" || pass "old exclude clean-cut removed"
 ```
 
-(Add `GR=...` once; the `grep` line is inline because `refute` is SKILL-scoped.)
+(Add `GR=...` once; the `grep` lines are inline because `refute` is SKILL-scoped.)
 
 - [ ] **Step 2: Run — verify it fails**
 
@@ -435,7 +480,10 @@ git commit -m "docs(tsugu): git-recipes — handoff rename + prune sweep; remove
 
 ```bash
 # --- Task 9: advanced.md submodule handoff ---
-need_in 'plugins/tsugu/skills/tsugu/references/advanced.md' 'hand off|handoff' "bare-submodule landing reduced to handoff"
+AD='plugins/tsugu/skills/tsugu/references/advanced.md'
+need_in "$AD" 'hand off|handoff'  "bare-submodule landing reduced to handoff"
+# the old agent-driven transaction must be gone (present => fail, absent => pass):
+grep -Eq 'ordered.{0,4}two-repo (landing )?transaction' "$ROOT/$AD" && fail "advanced.md still describes the ordered two-repo transaction" || pass "old two-repo transaction removed"
 ```
 
 - [ ] **Step 2: Run — verify it fails (or passes if already present)**
@@ -499,6 +547,93 @@ git commit -m "docs(tsugu): notes-and-packet — knowledge/ lean discipline + ag
 
 ---
 
+## Task 10a: `references/policy-and-intake.md` + `templates/policy.md` — housekeeping reframe
+
+> Added after review: these are shipped consumers of the `## Housekeeping` / `stale-after`
+> field that the spec's original Files-touched list missed. `stale-after` **stays**; only the
+> prose describing who consumes it changes (converge's dedicated cleanup block is gone).
+
+**Files:**
+- Modify: `plugins/tsugu/skills/tsugu/references/policy-and-intake.md` (the `## Housekeeping` section, ~line 127–130)
+- Modify: `plugins/tsugu/skills/tsugu/templates/policy.md` (the `## Housekeeping` section, ~line 38–39)
+- Modify: `tools/tsugu/test-skill-content.sh` (Task-10a anchors)
+
+- [ ] **Step 1: Add failing anchors**
+
+```bash
+# --- Task 10a: housekeeping field reframed to prune + converge-flag consumers ---
+PI='plugins/tsugu/skills/tsugu/references/policy-and-intake.md'
+need_in "$PI" 'prune'                              "policy-and-intake housekeeping mentions prune"
+# the old "converge ... housekeeping cleanup" framing must be gone (present => fail):
+grep -Eiq 'converge[^.]*housekeeping (section|cleanup|surfac)' "$ROOT/$PI" \
+  && fail "policy-and-intake still frames housekeeping as a converge cleanup block" \
+  || pass "housekeeping no longer framed as converge cleanup"
+```
+
+- [ ] **Step 2: Run — verify it fails**
+
+Run: `tools/tsugu/test-skill-content.sh`
+Expected: `FAIL: plugins/.../policy-and-intake.md missing: policy-and-intake housekeeping mentions prune`.
+
+- [ ] **Step 3: Edit both files**
+
+- `policy-and-intake.md` `## Housekeeping` section: keep documenting the `stale-after` field, but reframe its **consumers** — stale in-progress branches are surfaced **read-only by `prune`** and shown as a **stale flag on converge's candidate list**; there is **no converge "housekeeping cleanup" block** anymore (spec 011 §E4). MUST mention `prune`.
+- `templates/policy.md` `## Housekeeping`: keep the `stale-after: 30 days` field/comment; if the inline comment frames it as converge-driven cleanup, reword to "consumed by `prune` (surfacing) + converge's stale candidate flag."
+
+- [ ] **Step 4: Run — verify it passes**
+
+Run: `tools/tsugu/test-skill-content.sh`
+Expected: all PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tools/tsugu/test-skill-content.sh plugins/tsugu/skills/tsugu/references/policy-and-intake.md plugins/tsugu/skills/tsugu/templates/policy.md
+git commit -m "docs(tsugu): reframe Housekeeping/stale-after consumers (prune + converge flag), drop converge cleanup block (spec 011)"
+```
+
+---
+
+## Task 10b: `README.md` — four routines, converge = handoff
+
+**Files:**
+- Modify: `plugins/tsugu/skills/tsugu/README.md`
+- Modify: `tools/tsugu/test-skill-content.sh` (Task-10b anchors)
+
+- [ ] **Step 1: Add failing anchors**
+
+```bash
+# --- Task 10b: README four routines + handoff ---
+RM='plugins/tsugu/skills/tsugu/README.md'
+need_in "$RM" '/tsugu:prune|four routines'   "README lists prune / four routines"
+need_in "$RM" 'hand off|handoff'             "README says converge hands off"
+grep -Eiq 'one lifecycle, three routines|three routines' "$ROOT/$RM" \
+  && fail "README still says three routines" || pass "README no longer says three routines"
+```
+
+- [ ] **Step 2: Run — verify it fails**
+
+Run: `tools/tsugu/test-skill-content.sh`
+Expected: `FAIL: README still says three routines` (or the prune anchor fails first).
+
+- [ ] **Step 3: Edit `README.md`**
+
+Update the user-facing doc per spec 011: `## The three routines` → four routines (add `prune`); the "One lifecycle, three routines:" line → four; describe `converge` as **handing off** (not "completes/lands work"); add `/tsugu:prune` to the slash-command list. (The "lineage: three routines" historical mention near the bottom may stay if it refers to a past schema — judge per context; the `refute` above targets the live "one lifecycle, three routines" framing.)
+
+- [ ] **Step 4: Run — verify it passes**
+
+Run: `tools/tsugu/test-skill-content.sh`
+Expected: all PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tools/tsugu/test-skill-content.sh plugins/tsugu/skills/tsugu/README.md
+git commit -m "docs(tsugu): README — four routines (add prune), converge hands off (spec 011)"
+```
+
+---
+
 ## Task 11: Version bump + plugin/marketplace descriptions
 
 **Files:**
@@ -510,13 +645,15 @@ git commit -m "docs(tsugu): notes-and-packet — knowledge/ lean discipline + ag
 
 ```bash
 # --- Task 11: version + descriptions ---
-# tsugu's marketplace entry must be at 0.6.0 (match within the tsugu block):
-grep -Pzoq '"name":\s*"tsugu"[\s\S]*?"version":\s*"0\.6\.0"' "$ROOT/.claude-plugin/marketplace.json" \
-  && pass "tsugu version 0.6.0" || fail "marketplace.json: tsugu not at 0.6.0"
-need_in 'plugins/tsugu/.claude-plugin/plugin.json' 'prune'  "plugin.json mentions prune"
+# jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.6.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.6.0" || fail "marketplace.json: tsugu not at 0.6.0"
+# guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
+jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
+jq -e '.description|test("prune")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
+  && pass "plugin.json description names prune" || fail "plugin.json: description missing prune"
 ```
-
-(If `grep -P` / `-z` is unavailable, fall back to a `jq` check: `jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.6.0"' .claude-plugin/marketplace.json`.)
 
 - [ ] **Step 2: Run — verify it fails**
 
@@ -556,15 +693,27 @@ Expected: the `**tsugu:**` paragraph that says "Three routines: `init` … `prep
 
 Update to **four** routines / four slash commands — add `prune` (the human-approved sweep of unused local+remote branches); change the `converge` description to handoff-only accept (with the human-marked maintenance exception) instead of the full completion tail; add `/tsugu:prune` to the slash-command list and `docs/superpowers/specs/011-tsugu-handoff-converge-design.md` to the spec list.
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 3: Add CLAUDE.md anchors to the regression guard**
 
-Run: `grep -n 'prune\|/tsugu:prune\|011-tsugu' CLAUDE.md`
-Expected: the new `prune` mentions and the 011 spec reference are present.
-
-- [ ] **Step 4: Commit**
+Append before the final `echo` in `test-skill-content.sh` (CLAUDE.md is part of the content-regression model too):
 
 ```bash
-git add CLAUDE.md
+# --- Task 12: project CLAUDE.md ---
+need_in 'CLAUDE.md' '/tsugu:prune'   "CLAUDE.md lists the prune command"
+need_in 'CLAUDE.md' '011-tsugu'      "CLAUDE.md references spec 011"
+grep -Eiq 'Three routines|/tsugu:init., ./tsugu:prepare., ./tsugu:converge.[^,]*$' "$ROOT/CLAUDE.md" \
+  && fail "CLAUDE.md tsugu summary still says three routines" || pass "CLAUDE.md updated past three routines"
+```
+
+- [ ] **Step 4: Run — verify it passes (after the Step 2 edit)**
+
+Run: `tools/tsugu/test-skill-content.sh`
+Expected: all PASS, including the three Task-12 lines.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tools/tsugu/test-skill-content.sh CLAUDE.md
 git commit -m "docs: CLAUDE.md — tsugu now four routines (add prune); converge = handoff (spec 011)"
 ```
 
@@ -588,6 +737,11 @@ Expected: both pass (this change shouldn't touch them; a failure means an accide
 
 Run: `grep -rn 'completion tail\|freshness-rebase.*verify.*rewrite\|never renames a branch' plugins/tsugu/`
 Expected: no live default-path completion-tail prose, and no un-narrowed "never renames a branch"; only intentional historical/explanatory mentions remain. Fix and re-run Step 1 if any slip through.
+
+- [ ] **Step 3a: Confirm the no-schema-bump invariant held**
+
+Run: `git diff main -- plugins/tsugu/skills/tsugu/references/migrations.md plugins/tsugu/skills/tsugu/templates/policy.md | grep -i 'tsugu-schema'`
+Expected: **empty** — spec 011 is explicit that `tsugu-schema` stays `4` and `migrations.md` is not touched. Any `tsugu-schema:` line in the diff means an accidental schema edit; revert it. (The `templates/policy.md` edit in Task 10a touches only `## Housekeeping`, never the schema stamp.)
 
 - [ ] **Step 4: Validate all touched JSON**
 
