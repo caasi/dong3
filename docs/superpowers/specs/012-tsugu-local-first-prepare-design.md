@@ -34,7 +34,7 @@ default into existing repos (preserves their behavior). New `init` stamps 5 → 
 | --- | --- | --- | --- |
 | A | **Local-first `prepare`.** `push-prepare-branches` defaults **`no`**; `prepare` keeps work on **local** `prepare/*`; discovery enumerates work-prefix branches **local + remote**; remote push of `prepare/*` is an **opt-in** for cross-machine agent collaboration | 008's `push-prepare-branches: yes` default + SKILL.md step 8 "cold-start discovery enumerates *only* remote-tracking refs, so pushing is what lets the next agent inherit" | #52 |
 | B | **Human-takeover detection (containment-primary).** A `prepare/<slug>` whose tip is **contained** by a **branch** that is neither the default (nor its aliases) nor a work-prefix ref (local or remote) is **taken over** — a human carried the work onto their own branch. Fresh `git for-each-ref --contains` scoped to `refs/heads`/`refs/remotes` | 011 saw a takeover **only** by the accepted-prefix slug name (B1a fact 2), missing a human's own-named branch (`isaac/fix-thing`). 012 **generalizes** to containment by any branch and **keeps** slug-pairing as the complementary squash-catch — not a replacement | #52 |
-| C | **Takeover disposition (cleanup).** A taken-over `prepare/<slug>` **leaves the queue** (never worked/pushed); the **local** ref is **auto-deleted** (fully contained → nothing lost); a **remote** ref (from a prior opt-in push) is **prompted** for deletion via `prune`, human-confirmed | n/a (new) | #52 |
+| C | **Takeover disposition (cleanup).** A taken-over `prepare/<slug>` is **suppressed from auto-work** and **surfaced** for the human to confirm; on confirmation the redundant ref is deleted — **local *and* remote, both human-confirmed** (**never** auto-deleted: the containment signal can false-positive on a build-on-top branch) | n/a (new) | #52 |
 | D | **Auto-push invariant.** `prepare` **never auto-pushes a non-work-prefix branch** (accepted / human). The sole exception — cross-machine **agent-to-agent** push with no human present — is deferred (*Multi-agent: reserved*) | implicit before; #52 asks it be explicit so "the agent pushes an already-converged local branch" cannot happen | #52 |
 
 Everything in 004–011 not named here is unchanged. In particular: 011's accept = handoff
@@ -103,7 +103,17 @@ union shape 011's B1a established for accepted prefixes).
 **Discovery reads remote work refs regardless of the push default.** Only *pushing* is
 gated by the opt-in; *reading* always includes remote work refs, because a leftover or
 opt-in-pushed remote `prepare/*` must still be seen — it is exactly what the
-takeover/`prune` cleanup targets (#52). The one statement that needs softening is
+takeover/`prune` cleanup targets (#52).
+
+**Classification is per-ref (per-tip), not per-slug.** The union-by-slug is a *display*
+merge — but the settled / taken-over / in-progress predicates each run on a **specific
+tip**. When the local `prepare/<slug>` and a (stale) remote `<remote>/prepare/<slug>`
+**diverge**, classify each ref by its own tip: a remote stale tip may be *taken over* (its
+commits sit on a human branch) while the **local** tip carries **newer in-progress work**
+and is *not* contained — so the local item stays workable. Never mark the local in-progress
+ref taken-over from the remote tip's containment. The slug-level view shows both, flagged.
+
+The one statement that needs softening is
 **SKILL.md's flat "Read the queue from remote-tracking refs"** (the only *unconditional*
 remote-only line); the recipes' enumeration logic mostly stands — just **rename both mode
 labels** ("pushed mode" → "cross-machine opt-in mode"; "no-push mode is local" →
@@ -181,9 +191,15 @@ a scratch/experiment branch, or a second item a human based **on top of** the pr
 also contains it (Change B). Because the containment signal can false-positive, the
 disposition **never auto-deletes** — it surfaces for the human to confirm:
 
-1. **Leaves the queue (automatic, safe).** Discovery classifies it *taken over*, not
-   *in-progress* — the agent **never works or pushes it**. This is safe **regardless** of
-   whether the containing branch is a real takeover: not working a branch loses nothing.
+1. **Suppressed from auto-work + surfaced — not silently dropped.** Discovery classifies
+   it *taken over* and the agent **does not auto-resume** it (resuming could duplicate or
+   conflict with the human's take). But because containment is only a guess, it is **not**
+   silently dropped from the queue — it is **surfaced** at the next `prune`/`converge` for
+   the human to **confirm or reject**: a real takeover → cleanup (step 2); a false-positive
+   (a build-on-top branch, a sibling item) → the human says "keep working" and it returns
+   to *in-progress*. A scheduled (human-absent) `prepare` simply **leaves it for `converge`**
+   — the same conservative-judgment posture 011 takes for its non-derivable residual.
+   *Suppress-and-surface, never silent-drop, never auto-delete.*
 2. **Cleanup is surfaced, human-confirmed — never auto, never silent.** `prune` (and
    optionally `converge`) surfaces it: *"`prepare/<slug>` is fully carried by `<branch>` —
    remove the redundant `prepare/<slug>`?"* The human confirms it is a real takeover; only
@@ -251,8 +267,9 @@ structural change is the stamp + the explicit policy field.
 ## State model (unchanged invariant, restated)
 
 No disposition sets a **status field**. *Taken over* is **derived** (containment by a
-non-default/non-work ref); the local auto-delete is a branch action; the remote prompt is
-human-confirmed. State stays derived from refs / DAG / containment / recency.
+non-default/non-work branch) and only **suppresses auto-work + surfaces**; the cleanup is a
+**human-confirmed** branch action (local *and* remote) — never auto. State stays derived
+from refs / DAG / containment / recency.
 *Narrative informs judgment, never classification.* The discovery model is now:
 
 ```
