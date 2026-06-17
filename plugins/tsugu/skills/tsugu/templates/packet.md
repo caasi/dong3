@@ -13,6 +13,6 @@
 <!-- hints which workflow skill fits — does not fire it -->
 ## Public actions requiring approval
 ## Suggested accepted branch
-<!-- the slug-paired branch converge will cut under an Accepted Prefix.
-     include mode: same commits as the work branch (merge it as-is);
-     exclude mode: cut fresh from default, accepted changes applied by path. -->
+<!-- the Accepted-Prefix name the handoff RENAMES prepare/<slug> to (mode-agnostic:
+     same commits, .tsugu/ rides along; in exclude mode the human strips .tsugu/
+     when opening the public PR). Converge no longer cuts a branch. -->

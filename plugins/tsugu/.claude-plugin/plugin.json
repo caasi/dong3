@@ -1,6 +1,6 @@
 {
   "name": "tsugu",
-  "description": "Git-native preparation & convergence — committed .tsugu/ is a WIP-knowledge layer (policy.md + context.md + knowledge/); observation sources, opt-in skills, and packets are personal config never committed; state derived from refs (single-layer, no intake notes); never auto-merges; invokes no user-installed skill by default.",
+  "description": "Git-native preparation & convergence — four routines: init/prepare/converge/prune. prepare gathers understanding; converge accept defaults to a handoff-only rename (with a human-marked maintenance exception); prune sweeps unused local + remote branches (human-present, read-only until approved). Committed .tsugu/ is a WIP-knowledge layer (policy.md + context.md + knowledge/); observation sources, opt-in skills, and packets are personal config never committed; state derived from refs (single-layer, no intake notes); never auto-merges; invokes no user-installed skill by default.",
   "author": { "name": "caasi" },
   "homepage": "https://github.com/caasi/dong3",
   "repository": "https://github.com/caasi/dong3",

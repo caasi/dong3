@@ -73,8 +73,8 @@ order on the `init/*` branch.
 
 **1. Add `public-branch-tsugu:` to `policy.md`** — ask once, default `include`.
 This field is behavior-changing (it decides whether the work branch's `.tsugu/`
-evidence lands on the default branch, or a clean public branch is cut by path),
-so a step MAY ask the human. If the human does not decide, write `include` and
+evidence rides the default branch, or is kept off it — the human strips it when
+publishing), so a step MAY ask the human. If the human does not decide, write `include` and
 note the default in the commit message. Condition: the field is absent. Do not
 touch any existing `policy.md` content.
 

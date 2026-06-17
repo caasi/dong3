@@ -81,10 +81,41 @@ ephemeral, never the committed wiki. A **half-formed** insight meant for the tea
 is still shareable; the split is audience, not maturity.
 
 **No prescribed structure.** Agents organize, reorganize, and prune as they judge
-(each a `.tsugu/`-only commit). There is no fixed layout and no promotion gate —
-smarter future models inherit the freedom, not a frozen taxonomy. It absorbs the
-shareable findings a session produces (the underlying transcript is ephemeral and
-is not kept).
+(each a `.tsugu/`-only commit). There is no fixed **layout** — smarter future models
+inherit the freedom, not a frozen taxonomy. It absorbs the shareable findings a
+session produces (the underlying transcript is ephemeral and is not kept).
+
+**Lean discipline (a finding lives in exactly one place).** Layout is free, but
+`knowledge/` follows the same rule a good memory system does — *don't record what
+the repo already records* — so it stays a lean synthesis layer, not a second copy of
+git history or the agent md:
+
+- **Write-gate (the entry gate).** Before **writing** a finding **into**
+  `knowledge/`, check it isn't already in a commit message / derivable from the DAG,
+  or already in the agent md (`CLAUDE.md` / `AGENTS.md`). If it is → **don't
+  duplicate.** *Do not record what the repo, a commit, or the agent md already
+  records.*
+- **Promote-as-move (the one-way exit).** Promotion runs in **one direction only**:
+  `knowledge/` → agent md, once a finding has **stabilised into a durable convention**
+  and the human endorses it. **Promote = move, not copy** — once a finding graduates
+  into the agent md, **remove it from `knowledge/`** (leave at most a pointer), so a
+  finding sits in **one place**, never two drifting copies.
+- **The line (so culling doesn't over-delete).** *Don't restate a single commit*
+  (history has it). *Do keep cross-commit synthesis and the "why" no single commit
+  holds* — e.g. "these 4 fixes share root cause X"; "this gotcha spans explore-ui and
+  portal-api." git history is durable but not legible at a glance; that synthesis is
+  exactly what `knowledge/` is for.
+
+**The `knowledge/` ↔ agent-md boundary.** `knowledge/` holds **WIP / still-evolving /
+cross-cutting** agent-shared findings; the **agent md** (`CLAUDE.md` / `AGENTS.md`)
+holds **durable, stabilised, human-endorsed conventions**. The two stores are not
+interchangeable, and the write-gate + promote-as-move together keep any one finding
+in exactly one of them. Promotion into the agent md is **public coordination** — the
+agent drafts, the human approves; it is never an autonomous write.
+
+Converge **may** also surface `knowledge/` entries gone redundant (already promoted,
+or merely restating a commit) and offer to remove them — an optional cull, not a
+required step.
 
 ## The packet — personal and derived
 
@@ -105,10 +136,10 @@ Sections: `## Intake source`, `## Branches prepared`, `## What was tried`,
 `## Candidate next plans` (a **hint** which workflow skill fits — "ready for
 planning", "this bug needs debugging", "this can go to review-loop" — for the
 human to act on; it **does NOT fire a skill**), `## Public actions requiring
-approval`, and `## Suggested accepted branch` (a name/target for the slug-paired
-branch `converge` will cut under an Accepted Prefix — **include mode:** same commits
-as the work branch, merge it as-is; **exclude mode:** cut fresh from default,
-accepted changes applied by path).
+approval`, and `## Suggested accepted branch` (the Accepted-Prefix name the handoff
+**renames** `prepare/<slug>` to — mode-agnostic: the same commits, with `.tsugu/`
+riding along in both modes; in `exclude` the human strips `.tsugu/` when they open
+the public PR. Converge no longer *cuts* a branch).
 
 ## Context placement rule (omni-repo framing)
 
