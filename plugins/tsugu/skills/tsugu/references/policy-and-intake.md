@@ -52,7 +52,8 @@ branch.
 
 ### `## Accepted Prefixes`
 
-The **human-workflow** namespaces a converge cut hands work into for a PR.
+The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into for
+the human's PR (converge renames, never cuts).
 Default `feature/* bugfix/* chore/*`. An accepted branch is **not** a queue item;
 it exists so the partition can read one ref-level fact: an accepted branch whose
 **slug pairs** a work branch's slug means **that work is decided, awaiting
@@ -94,13 +95,14 @@ Two values, default **`include`**:
   evidence-landing step. The trade-off, stated openly: mainline history carries
   the agent's preparation commits and `context.md` — and in the agent-first
   orientation that history *is* the memory.
-- **`exclude` (opt-out):** cut a **fresh** public branch from the fetched default
-  (accepted-named, same slug) and apply accepted changes **by path**, so the public
-  diff introduces **no** `.tsugu/` changes (the guarantee is "never introduced",
-  not "stripped afterward"). For collaborative repos where human reviewers should
-  not see coordination metadata in the PR. Landing is then confirmed via the
-  **public branch's** containment, not the work branch's (by-path application breaks
-  the work branch's own containment).
+- **`exclude` (opt-out):** keeps `.tsugu/` **off the default branch**, for
+  collaborative repos where human reviewers should not see coordination metadata in
+  public history. Under the mode-agnostic handoff (Change B), converge no longer cuts
+  a by-path public branch — accept is the same rename in both modes (the accepted
+  branch carries `.tsugu/`), and the **human strips `.tsugu/` when they open the
+  public PR**. Settlement is read the same as `include`: the accepted branch's
+  containment, or — where the strip/rewrite breaks containment — `prune`'s
+  *possibly-landed (no containment) — confirm* bucket.
 
 **`knowledge/` lands on the coordination ref regardless of mode** — it is the
 team's shared brain in both `include` and `exclude`; the field governs only the
@@ -115,13 +117,17 @@ rebase-before-merge, or force-push of the accepted branch) rewrite history so th
 work tip is never contained in default — that heavier path lives in
 `references/advanced.md`.
 
-For the **`exclude`-mode** retain case: the repo **should disable the forge's
-auto-delete-head-branch for the accepted/public branch**, because in `exclude`
-mode the work branch never merges — **settlement is derived from the public
-branch's own containment**, so that ref must survive to carry the settlement
-evidence until the human's completion tail confirms the landing and deletes both
-branches. (Once the public branch merges, the item is **settled**, not awaiting —
-the ref is kept for the settlement signal, not a pending state.) This is a
+The retain recommendation is **mode-agnostic**: the repo **should disable the
+forge's auto-delete-head-branch for the accepted branch** so the slug pairing
+survives the merge. Settlement reads off the **accepted branch's** containment in
+both `include` and `exclude` mode (accept renames the work branch to the accepted
+branch in both — see Change B). Where the landing rewrites history — squash /
+rebase / force-push, or an `exclude`-mode human stripping `.tsugu/` into a fresh
+published branch — containment can't confirm it, so the accepted ref must survive
+to carry the disposition until the human confirms the landing and `prune` deletes
+the accepted branch (its *possibly-landed (no containment) — confirm* bucket; plus
+the stale remote `prepare/<slug>` if not already reconciled). Once the
+work is contained in default the item is **settled**, not awaiting. This is a
 recommendation, not a hard gate.
 
 ### `## Housekeeping`
@@ -131,14 +137,23 @@ recommendation, not a hard gate.
 <!-- stale-after: 30 days -->
 ```
 
-`stale-after:` is the age threshold past which an **in-progress** branch is
-**surfaced for cleanup**. It ships **commented** — `converge` records the
-threshold here progressively on first use (ask once), so it reflects a real
-decision rather than a hardcoded guess. Staleness itself is **derived**, never
-written: a branch is stale when its last commit is older than `stale-after`.
-Surfacing is for **human-decided cleanup** — the list of over-threshold branches
-is shown at `converge` for a person to act on. **A scheduled `prepare` never
-cleans up** on its own.
+`stale-after:` is the age threshold past which an **in-progress** branch counts as
+stale. It ships **commented** — `converge` records the threshold here progressively
+on first use (ask once), so it reflects a real decision rather than a hardcoded
+guess. Staleness itself is **derived**, never written: a branch is stale when its
+last commit is older than `stale-after`.
+
+**Two consumers read this field** (there is **no dedicated converge "housekeeping
+cleanup" block** any more — spec 011 §E4 removed it):
+
+- **`prune`** surfaces stale in-progress branches **read-only**, marked *"not
+  deletable here — decide at `converge`."* It only points; `prune` never deletes
+  unfinished work.
+- **`converge`** shows staleness as a **flag on the normal candidate list** (a
+  candidate whose last activity predates `stale-after` is shown with a "stale"
+  marker), handled by the usual accept / park / drop / continue dispositions.
+
+**A scheduled `prepare` never cleans up** on its own.
 
 ### `remote:`
 
