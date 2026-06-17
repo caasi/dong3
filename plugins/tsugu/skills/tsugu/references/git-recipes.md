@@ -147,9 +147,11 @@ refs either way** — only *pushing* is gated by the opt-in; reading always incl
 remote work refs, because a leftover or opt-in-pushed remote `prepare/*` must still
 be seen (it is exactly what the takeover / `prune` cleanup targets).
 
-Each kept line is **already a full remote-qualified ref** (e.g.
-`origin/prepare/foo`). Use it **verbatim** in every command below — never
-re-prefix `<remote>/`, which would double-prefix into `origin/origin/prepare/foo`.
+Each kept line is **either a local ref** (`prepare/foo`) **or a full remote-qualified
+ref** (`origin/prepare/foo`) — the queue is the union of both (local-first by default;
+remote read too). Use each **verbatim** in every command below — never re-prefix
+`<remote>/` onto a remote-qualified line, which would double-prefix into
+`origin/origin/prepare/foo`.
 
 **4b. Detect a human takeover by containment.** A `prepare/<slug>` is **taken
 over** when its tip is **contained** by a **branch** that is neither the default
@@ -166,11 +168,13 @@ fetch-first + branch-scope + alias/work-ref exclusion below are **load-bearing**
 git for-each-ref --contains "<prepare/slug-tip>" refs/heads refs/remotes/<remote> \
      --format='%(refname:short)'    # scope to BRANCHES only — never tags / other namespaces
 # Normalize the <remote>/ prefix off remote-tracking names (so origin/isaac/fix == isaac/fix),
-# then EXCLUDE:
-#   • the default and its aliases:  <default>, <remote>/<default>, <remote>/HEAD
-#       (containment there is the SETTLED row of step 6, not a takeover)
-#   • work-prefix refs, LOCAL *and* remote:  <work-prefix>/*  and  <remote>/<work-prefix>/*
-#       (a pushed work branch's OWN remote ref must NOT count as a foreign takeover ref)
+# then EXCLUDE — match the NORMALIZED forms (origin/<default> → <default>, origin/HEAD → HEAD):
+#   • the default and its aliases:  <default>  AND  HEAD
+#       (origin/<default> and origin/HEAD both normalize to these; containment there is
+#        the SETTLED row of step 6, not a takeover — excluding only <remote>/HEAD would
+#        leave the normalized bare HEAD to slip through and false-positive)
+#   • work-prefix refs:  <work-prefix>/*   (local <work-prefix>/* AND normalized origin/<work-prefix>/*
+#       both reduce to this; a pushed work branch's OWN ref must NOT count as a foreign takeover ref)
 # Anything LEFT ⇒ a NON-WORK, NON-DEFAULT branch carries this work ⇒ taken over (→ Change C).
 ```
 
