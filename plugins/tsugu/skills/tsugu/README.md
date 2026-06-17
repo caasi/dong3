@@ -115,8 +115,10 @@ does not transfer across machines — the only cross-machine contract is the pus
 git branches, so each machine seeds its own config (Tsugu asks once, on the first
 interactive `prepare`/`converge`).
 
-After `git fetch`, the queue is read from remote-tracking refs — branch names plus
-each branch's `context.md` must be legible enough that a cold-start agent can
+After `git fetch`, the queue is read from **local + remote** work-prefix refs
+(local-first by default; remote work refs are read too, for opt-in pushes and
+leftovers) — branch names plus each branch's `context.md` must be legible enough
+that a cold-start agent can
 reconstruct what branches exist, why, and what's next, with **zero conversation
 transcript**.
 

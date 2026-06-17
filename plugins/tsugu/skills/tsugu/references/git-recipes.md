@@ -507,6 +507,12 @@ auto-deletes on a guess):
   including the *retained* accepted ref the rewrite/exclude-strip recommendation tells
   the human to keep (disable auto-delete) precisely so it survives to be confirmed
   here. Surface + confirm each; never auto-delete on a guess.
+- **taken-over (redundant prepare)** — a `prepare/<slug>` whose tip a **non-default,
+  non-work branch** contains (a human carried the work onto their own branch — see the
+  containment-takeover read above). Surface + confirm each, like *possibly-landed*; on
+  confirmation delete the redundant `prepare/<slug>` **local and remote, both
+  human-confirmed**; never auto-delete. Precedence: classify as *settled* when default
+  contains the tip, else *taken-over*.
 - **dropped** — the `context.md` narrative says "do not resume" (a hint the present
   human confirms); the backstop for branches `drop` recorded but couldn't delete.
 - **orphaned accepted** — a pushed accepted branch with no open PR and no recent
