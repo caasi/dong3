@@ -117,9 +117,13 @@ The core routine. No human is present, so Tsugu does its own git work directly a
 
    | Fact | State | Disposition |
    | --- | --- | --- |
-   | tip contained in `<remote>/<default>` | **settled** — the work landed | skip; `prune` cleanup candidate |
-   | a branch with the **same slug** exists under a configured `## Accepted Prefixes` | **decided, awaiting merge** | skip as a candidate; shown in `converge`'s awaiting-merge section |
-   | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
+   | tip contained in `<remote>/<default>` (or its remote aliases) | **settled** — the work landed | skip; `prune` cleanup candidate |
+   | a slug-paired branch (by name) exists under a configured `## Accepted Prefixes` **OR** any **non-default, non-work** branch contains the tip | **decided / taken over** — a human carried the work onto their own branch | skip as a candidate; surfaced at `prune`/`converge` (see *taken-over*, Change C) |
+   | none of the above | **in progress** | candidate: read `context.md`, judge from the narrative |
+
+   **Takeover by containment (Change B).** A `prepare/<slug>` is **taken over** when its tip is **contained** by a **branch** that is neither the default (nor its aliases `<remote>/<default>` / `<remote>/HEAD`) nor a work-prefix ref (local *and* remote `<work-prefix>/*`). This **generalizes** 011's accepted-prefix slug-pairing to a **human's own-named branch** (`isaac/fix-thing`) — the #52 gap where slug-pairing alone could not see the take. **Slug-name pairing stays** as the complementary catch for the squashed / rewritten take (where the human's branch no longer contains the tip but the name still pairs). The precise check — fresh `git fetch --prune` first, `git for-each-ref --contains` scoped to `refs/heads`/`refs/remotes`, the `<remote>/` prefix normalized before matching, default aliases + local-and-remote work refs excluded — lives in `references/git-recipes.md` (do not re-derive here). **Git-native, script-free:** this is one native `git for-each-ref --contains` plus inline filtering, documented as a recipe, **not a shipped script** (tsugu ships no scripts).
+
+   **Classification is per-ref (per-tip), not per-slug.** The local + remote union-by-slug is a **display** merge only; the settled / taken-over / in-progress predicates each run on a **specific tip**. When the local `prepare/<slug>` and a stale `<remote>/prepare/<slug>` **diverge**, classify **each ref by its own tip**: a stale remote tip contained by a human branch is *taken over*, but a **newer local** in-progress tip that nothing contains stays workable — never mark the local in-progress ref taken-over from the remote tip's containment. The slug-level view shows both, flagged.
 
    Containment is `git merge-base --is-ancestor` / `git for-each-ref --contains` against remote-tracking refs (mechanics → `references/git-recipes.md`). Five notes, condensed:
 

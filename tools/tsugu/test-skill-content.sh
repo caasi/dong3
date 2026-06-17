@@ -173,4 +173,12 @@ need 'cross-machine opt-in'                           "remote push is a cross-ma
 refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
 refute 'enumerates only remote-tracking refs'         "old 'only remote-tracking refs' framing removed"
 
+# --- Task 2: human-takeover detection by containment (Change B) ---
+need 'taken over|taken-over'                          "takeover state named"
+need 'human.?s own branch|own-named|human-named'      "recognizes a human's own-named branch (the #52 gap; 'for-each-ref --contains' alone is a no-op — it already exists at SKILL.md:124)"
+need 'non-default.*non-work|non-work.*non-default'    "filter: non-default, non-work ref"
+need 'generaliz'                                      "containment generalizes slug-pairing"
+need 'script-free|ships no script|not a shipped'      "git-native, no shipped script note"
+need 'classification is per-ref|each ref by its own tip|union.{0,12}display' "per-ref/per-tip classification — a divergent local in-progress tip is not suppressed by a stale remote tip's containment (spec A2)"
+
 echo "All tsugu SKILL.md content checks passed."
