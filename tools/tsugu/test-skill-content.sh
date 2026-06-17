@@ -163,4 +163,14 @@ grep -rIF "applied by path"          "$ROOT/plugins/tsugu/skills/" >/dev/null 2>
 # converge RENAMES, never cuts an accepted branch:
 grep -rIE "converge cuts?|converge cut hands|a converge cut" "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&1 && fail "stale old-model: 'converge cut(s)' (handoff renames, never cuts)" || pass "no stale old-model: converge cuts"
 
+# --- Task 1: local-first prepare + schema-aware push read + schema 5 ---
+# (dropped bare `need 'push-prepare-branches'` — pre-satisfied by the old default-yes prose)
+need 'local-first|stays on local|keep work .*local'   "prepare is local-first by default"
+need 'schema 4 else|tsugu-schema: 4.*yes|absent.*schema' "schema-aware push default read"
+need 'tsugu-schema: 5|tsugu-schema. 5|schema . 5'     "init stamps schema 5"
+need 'cross-machine opt-in'                           "remote push is a cross-machine opt-in (bigram — bare 'opt-in' appears 5x in SKILL already)"
+# the OLD unconditional framing must be gone:
+refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
+refute 'enumerates only remote-tracking refs'         "old 'only remote-tracking refs' framing removed"
+
 echo "All tsugu SKILL.md content checks passed."
