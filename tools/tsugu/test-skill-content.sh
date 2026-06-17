@@ -217,4 +217,10 @@ need_in "$MG" 'tsugu-schema: 5|tsugu-schema. 5'       "4->5 stamps schema 5"
 need_in 'plugins/tsugu/commands/init.md' '1.2.3.4.5|tsugu-schema. 5' "init.md updated to schema 5 / 1->...->5"
 need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' '1.2.3.4.5|schema . 5' "policy-and-intake updated to 1->...->5 / schema 5"
 
+# --- Task 6: prune taken-over category + command descriptions ---
+NP='plugins/tsugu/skills/tsugu/references/notes-and-packet.md'
+need_in "$NP" 'taken-over|redundant prepare'          "notes-and-packet documents the taken-over prune category"
+need_in 'plugins/tsugu/commands/prune.md' 'taken-over|redundant prepare' "prune command notes taken-over"
+need_in 'plugins/tsugu/commands/prepare.md' 'local-first|local by default' "prepare command notes local-first"
+
 echo "All tsugu SKILL.md content checks passed."

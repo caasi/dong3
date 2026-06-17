@@ -141,6 +141,20 @@ approval`, and `## Suggested accepted branch` (the Accepted-Prefix name the hand
 riding along in both modes; in `exclude` the human strips `.tsugu/` when they open
 the public PR. Converge no longer *cuts* a branch).
 
+**Taken-over (redundant prepare) — surfaced, never auto-deleted.** A
+`prepare/<slug>` whose tip a **non-work, non-default** branch contains (a human
+carried the work onto their own branch — `isaac/fix-thing`) is **taken over**:
+suppressed from auto-work and **surfaced** at `prune`/`converge` (the packet's
+`## Need human decisions` / `## Public actions requiring approval`) for the human to
+**confirm or reject**. `prune` carries it as a **`taken-over` (redundant prepare)**
+category — **surface-and-confirm** (like *possibly-landed*), **never auto-delete**:
+the containment signal can false-positive on a branch built *on top of* the prepare
+tip (a sibling item, a scratch experiment). On confirmation the redundant ref is
+deleted **local *and* remote, both human-confirmed**. **Precedence with *settled*:**
+if `<remote>/<default>` contains the tip it is **settled** (the existing category) —
+list it there; *taken-over* covers only the case where the containing ref is a
+**non-default** branch. (Mechanics → `git-recipes.md` § Prune sweep.)
+
 ## Context placement rule (omni-repo framing)
 
 A single repo and an omni-repo are the **same abstraction** — Tsugu traverses a
