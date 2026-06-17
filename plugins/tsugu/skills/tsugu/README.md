@@ -11,8 +11,8 @@ Using git's DAG as the coordination substrate, an agent prepares engineering wor
 **privately on git branches** (often while you are away), records the evolving
 narrative in a committed `context.md`, and promotes durable findings into a shared
 `knowledge/` wiki. When you return, you **converge** — read the prepared branches
-live, decide together what becomes public, and complete that decision into clean
-public form, all in one human-present session. A branch is a unit of work one agent
+live, decide together what becomes public, and **hand off** the explored branch to
+you (the human owns the design and the landing), all in one human-present session. A branch is a unit of work one agent
 hands to the next; the committed `.tsugu/` knowledge is the memory that outlives the
 session that produced it.
 
@@ -21,9 +21,9 @@ play the game with you; Tsugu converges the result. It is **not** an implementat
 methodology — it prepares the input and carries the output forward, and triggers
 none of those skills itself.
 
-## The three routines
+## The four routines
 
-One lifecycle, three routines:
+One lifecycle, four routines:
 
 1. **init** — set up the repo's committed `.tsugu/` workspace + `policy.md` (the
    shared coordination policy). Asks the minimum; idempotent (re-running repairs the
@@ -35,24 +35,40 @@ One lifecycle, three routines:
    `knowledge/`. **External silence** — interrupt only if the task is unsafe,
    destructive, or blocked.
 3. **converge** (human present) — read the prepared branches live, present the
-   status view, decide **with you** what becomes public, and complete that
-   disposition in the same session. The named dispositions are **accept** (verify,
-   push, and land the work — merge directly, or hand off to a repo-native branch,
-   open a PR — all **human-gated**), **park** (note in `context.md` what's needed to
-   resume), and **drop** (record *why*, then clean up). A branch you don't act on
-   just **continues** — that's the implicit default. Promoting a durable finding
-   into `knowledge/` rides alongside any of these. Tsugu presents and yields; it
-   invokes no skill (you trigger any workflow skill by keyword). Running it just to
-   look is a first-class use — the read-only pass is your **morning status view**:
-   how many prepared branches are workable today, what awaits merge, what's stale.
-   Looking and leaving is a valid outcome.
+   status view, decide **with you** what becomes public, and **hand off** that
+   disposition in the same session. The default **accept** is a **handoff**: it
+   **renames** the prepared `prepare/<slug>` branch to a repo-native
+   `<accepted-prefix>/<slug>` and **stops** — the agent does not finish the work,
+   rewrite history, push, or open a PR; **you** re-decide the design and own the
+   landing. (The one exception: a task **you** explicitly marked maintenance-type — a
+   security upgrade, a dependency bump — may be carried to ready-to-merge; the agent
+   **never self-classifies** work as mechanical, and **never auto-merges**.) The
+   other dispositions are **park** (note in `context.md` what's needed to resume) and
+   **drop** (record *why*, then clean up). A branch you don't act on just
+   **continues** — the implicit default. **Findings curation** rides alongside any of
+   these: the agent surfaces durable findings + existing `knowledge/` entries and
+   asks which to organise into the agent md (`CLAUDE.md` / `AGENTS.md`) — agent
+   drafts, you approve. Tsugu presents and yields; it invokes no skill (you trigger
+   any workflow skill by keyword). Running it just to look is a first-class use — the
+   read-only pass is your **morning status view**: how many prepared branches are
+   workable today, what awaits merge, what's stale. Looking and leaving is a valid
+   outcome.
+4. **prune** (human present) — a recurring, queue-wide cleanup sweep of unused
+   branches (**local + remote**), the home for the destructive cleanup that
+   handoff-only `converge` and a never-cleaning scheduled `prepare` leave to pile up.
+   **Read-only until you confirm each item:** it deletes **settled** branches (tip
+   landed in default) and **leftover worktrees** on confirmation, **surfaces +
+   confirms** dropped / possibly-landed / orphaned-accepted before any delete, and
+   **never** touches stale in-progress work (it points you to `converge` instead).
+   No remote delete without your explicit per-item approval.
 
 ## How to invoke
 
 ```text
 /tsugu:init         # set up .tsugu/ + policy.md
 /tsugu:prepare      # private preparation while you are away
-/tsugu:converge [branch]   # read the branches together, decide + complete in-session
+/tsugu:converge [branch]   # read the branches together, decide + hand off in-session
+/tsugu:prune        # human-approved sweep of unused local + remote branches
 ```
 
 `prepare` is meant to run on a cadence — wire it to an external driver (a local
@@ -137,9 +153,11 @@ public/default branch:
 
 - **`include`** (default) — the work branch merges as-is, so its **prep commit DAG
   plus its `context.md` narrative** land on the mainline as durable shared memory.
-- **`exclude`** — a clean public branch is cut from the default and accepted changes
-  are applied **by path**, keeping `.tsugu/` out of the PR diff (for collaborative
-  repos that want coordination metadata off the public branch).
+- **`exclude`** — keeps `.tsugu/` **off the default branch**, for collaborative repos
+  that want coordination metadata out of public history. Accept is the same handoff
+  rename in both modes (the renamed branch carries `.tsugu/`); in `exclude` the
+  **human strips `.tsugu/` when they open the public PR** — converge no longer cuts a
+  separate by-path public branch.
 
 Either way, **`knowledge/` lands on the coordination ref** — it is the team's shared
 brain in both modes.
@@ -155,7 +173,7 @@ brain in both modes.
 See the design specs for the full model:
 [004 — the original skill design](../../../../docs/superpowers/specs/004-tsugu-skill-design.md)
 and [005 — the agent-first revision](../../../../docs/superpowers/specs/005-tsugu-agent-first-design.md)
-(lineage: three routines, derived state), refined by
+(lineage: the init/prepare/converge routines, derived state), refined by
 [006 — the workspace holds only what transfers (schema 3)](../../../../docs/superpowers/specs/006-tsugu-workspace-transfer-design.md)
 (committed WIP-knowledge layer + personal folder) and
 [007 — the thin core (schema 4)](../../../../docs/superpowers/specs/007-tsugu-thin-core-design.md)
