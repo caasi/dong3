@@ -19,7 +19,7 @@ decisions by reading `policy.md`'s `tsugu-schema:` stamp:
   curated `policy.md`.
 - **migrate** — `.tsugu/` present and the stamp is older → apply the documented
   migration steps below **in order** (N→N+1 until current — the full chain is
-  `1→2→3→4`), then update the stamp and commit. The commit message names the
+  `1→2→3→4→5`), then update the stamp and commit. The commit message names the
   migration range (e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`).
 
 The steps obey these rules, which hold for every migration (not just 1→2):
@@ -429,3 +429,39 @@ a half-applied migration.
 This migration changes policy fields and branch *refs* (E1–E3); it does **not**
 rewrite the *content* committed on live work branches (their own `context.md`),
 which is unchanged between schema 3 and 4.
+
+## Migration 4→5
+
+Schema 5 is the spec 012 layout: a **single behavior-changing default flips** —
+`prepare` becomes **local-first**, so the `push-prepare-branches` default changes
+from the old `yes` (push preparation branches) to the new `no` (keep work local;
+push is a cross-machine opt-in). Nothing structural changes — **no committed
+`.tsugu/` files or directories are added or removed**; the only changes are one
+explicit policy field and the stamp. Apply these two steps in order on the `init/*`
+branch. A schema-1 repo runs **1→2→3→4→5** under the N→N+1 contract — each prior
+migration stamps its own schema last before the next runs.
+
+**1. Pin the old default — write explicit `push-prepare-branches: yes` when the
+field is absent.** Condition: `policy.md`'s `## Push` section has **no explicit
+`push-prepare-branches` value**. Because schema 4 read an absent field as the old
+`yes` default, simply bumping the stamp to 5 (whose absent default is the new `no`)
+would **silently flip an existing repo's behavior**. So the migration **writes the
+explicit `push-prepare-branches: yes`** into `## Push`, pinning the old behavior so
+the upgrade changes nothing. **Never overwrite an explicit value** — a repo that
+already set `push-prepare-branches` (to `yes` or `no`) keeps it verbatim (the
+contract forbids overwriting curated content). This is the only action of the
+migration; it is idempotent by its condition (a present value no-ops).
+
+**2. Stamp `tsugu-schema: 5` — last.** Only after step 1 has succeeded (the
+explicit value is present, written or already curated), update the `tsugu-schema:`
+stamp to `5` as the first line of `policy.md`. This is the **final action** and is
+what marks 4→5 complete; until it is written the stamp still reads `4`, so the
+schema-aware default-read (absent → `yes` if schema 4, else `no`; SKILL.md step 8)
+keeps the old behavior through the upgrade window, and an interrupted re-run
+re-enters migration 4→5. **Push-protected exception:** where the default branch is
+push-protected, the whole migration rides an `init/*` branch + human-approved PR,
+and the stamp rides as the **last** write to land — never a "complete" stamp over a
+half-applied migration (exactly as 004–011 specify).
+
+This migration changes one policy field and the stamp; it touches no branch refs
+and rewrites no `context.md`.

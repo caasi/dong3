@@ -13,12 +13,12 @@ the personal-config pointer.
 
 ### `tsugu-schema:`
 
-The schema-version stamp (current: `4`). It is the first line of the file, and a
+The schema-version stamp (current: `5`). It is the first line of the file, and a
 migration **writes it last** — only after every N→N+1 rename and semantic change
 has been applied does `init` stamp the new number, so a half-applied migration is
 never mistaken for a completed one. Readers use it to decide whether a re-run of
 `init` must migrate (older stamp → apply `references/migrations.md` in order,
-1→2→3→4 for a schema-1 repo) or is a plain idempotent repair (stamp already
+1→2→3→4→5 for a schema-1 repo) or is a plain idempotent repair (stamp already
 current).
 
 ### Private / Public boundary

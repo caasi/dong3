@@ -206,4 +206,15 @@ grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
 need_in "$GR" 'per-ref|each ref by its own tip'      "git-recipes notes per-ref/per-tip classification"
 need_in "$GR" 'tsugu-schema. 5'                       "git-recipes init-skeleton stamps schema 5 (was 4 at :536)"
 
+# --- Task 5: schema 5 template + 4->5 migration ---
+TP='plugins/tsugu/skills/tsugu/templates/policy.md'
+MG='plugins/tsugu/skills/tsugu/references/migrations.md'
+grep -Eq '^tsugu-schema: 5' "$ROOT/$TP" && pass "template stamped schema 5" || fail "templates/policy.md not stamped tsugu-schema: 5"
+grep -Eq '^push-prepare-branches: no' "$ROOT/$TP" && pass "template push default no" || fail "templates/policy.md push default not 'no'"
+need_in "$MG" '## Migration 4.5|Migration 4→5'        "migrations has a 4->5 section"
+need_in "$MG" 'push-prepare-branches: yes'            "4->5 pins explicit old default yes"
+need_in "$MG" 'tsugu-schema: 5|tsugu-schema. 5'       "4->5 stamps schema 5"
+need_in 'plugins/tsugu/commands/init.md' '1.2.3.4.5|tsugu-schema. 5' "init.md updated to schema 5 / 1->...->5"
+need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' '1.2.3.4.5|schema . 5' "policy-and-intake updated to 1->...->5 / schema 5"
+
 echo "All tsugu SKILL.md content checks passed."
