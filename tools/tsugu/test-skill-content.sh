@@ -190,4 +190,20 @@ need 'redundant prepare|taken-over.*prune|prune.*taken-over' "prune taken-over c
 # NB: must NOT trip the legit forge 'auto-delete-head-branch' (hyphen) or 011's 'never auto-deletes on a guess'.
 refute 'auto-delete[sd]?( the| a| its)?( local| redundant| stale)? (prepare|work branch)|auto-delete[sd]?( the| a)?( local| redundant) ref\b' "no auto-delete of the prepare/redundant ref"
 
+# --- Task 4: git-recipes local-default read + takeover recipe ---
+GR='plugins/tsugu/skills/tsugu/references/git-recipes.md'
+need_in "$GR" 'local-first .default.'                 "no-push mode relabeled local-first default ('local.*default' fallback dropped — it matches the pre-existing 'stale local default' Freshness line)"
+need_in "$GR" 'cross-machine opt-in'                  "pushed mode relabeled cross-machine opt-in"
+need_in "$GR" 'for-each-ref --contains'               "takeover containment recipe present (absent in git-recipes today)"
+need_in "$GR" 'taken over|takeover'                   "git-recipes has the takeover recipe (replaces the 'fetch --prune' no-op, which already exists at git-recipes.md:41)"
+need_in "$GR" 'refs/heads refs/remotes|refs/heads .refs/remotes' "takeover scoped to branch namespaces"
+# the work queue must no longer be framed as remote-tracking-only (012 unions local+remote).
+# git-recipes.md:98 currently reads "...unlike the work queue, which is remote-tracking" — that must go
+# (the naive 'work queue.*local' need is a no-op: it matches that very line 98):
+grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
+  && fail "git-recipes still frames the work queue as remote-tracking-only (012 unions local+remote)" \
+  || pass "work queue reframed off remote-tracking-only"
+need_in "$GR" 'per-ref|each ref by its own tip'      "git-recipes notes per-ref/per-tip classification"
+need_in "$GR" 'tsugu-schema. 5'                       "git-recipes init-skeleton stamps schema 5 (was 4 at :536)"
+
 echo "All tsugu SKILL.md content checks passed."

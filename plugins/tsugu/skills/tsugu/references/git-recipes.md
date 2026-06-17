@@ -30,9 +30,11 @@ read the same way the agent runs it.
 
 A cold-start agent — no conversation transcript, only a clone — must reconstruct
 "what branches exist, why, and what's next" from git + `.tsugu/` alone. There is
-**no committed note layer**: the queue *is* the set of work branches. That only
-works if reads come from **fresh remote-tracking refs**, not whatever the local
-checkout happens to be sitting on.
+**no committed note layer**: the queue *is* the set of work branches. The queue is
+the **union of local *and* remote** work-prefix refs (a slug present in either is
+one item, unioned by slug). Reads must come from **fresh refs** — `git fetch
+--prune` first for the remote side, and the local refs as they stand — not from
+whatever single branch the checkout happens to be sitting on.
 
 **1. Fetch first.** Before reading anything, refresh the remote-tracking refs —
 **with `--prune`**, so branches deleted upstream stop appearing in the queue:
@@ -95,8 +97,9 @@ customized them. **Also enumerate the configured `## Accepted Prefixes`**
 (defaults: `feature`, `bugfix`, `chore`, plus legacy `public`) into a
 **separate accepted list** — these are not queue items but are needed in step 6 to
 pair a work branch's slug against a decided accepted branch. **The accepted list
-spans LOCAL *and* remote refs** (unlike the work queue, which is remote-tracking
-only): at `converge`, the just-renamed `<accepted-prefix>/<slug>` exists **locally**
+spans LOCAL *and* remote refs** — as does the work queue itself (012 unions
+local + remote work prefixes; local is the default): at `converge`, the just-renamed
+`<accepted-prefix>/<slug>` exists **locally**
 before the human pushes it (B3), and it must pair immediately so a same-machine
 scheduled `prepare` does not re-pick the still-present remote `prepare/<slug>` in
 the handoff-pending window (SKILL.md B1a). (The cross-*machine* pre-push window —
@@ -106,9 +109,14 @@ configures extra work prefixes also surfaces a `## Legacy Work Prefixes` note;
 see [Prune sweep](#prune-sweep) for how the settled cleanup sweep consults it.)
 
 ```bash
-# work queue — configured remote + work prefixes (default shown); never raw --remotes
+# work queue — LOCAL + remote, configured work prefixes (default shown); union by slug.
+# Discovery reads remote work refs REGARDLESS of the push default — only PUSHING is gated
+# (a leftover or opt-in-pushed remote prepare/* must still be seen; it is what takeover/prune target).
+git branch --format='%(refname:short)' \
+  | grep --extended-regexp "^(prepare)/"            # local-first (default)
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(prepare)/"   # pushed mode
+  | grep --extended-regexp "^<remote>/(prepare)/"   # cross-machine opt-in mode (pushed)
+# union the two by slug; a slug present in either is one queue item (classify each ref by its own tip — see step 6)
 
 # accepted list — LOCAL + remote, configured accepted prefixes (for slug pairing).
 # Local is required so a just-renamed (not-yet-pushed) accepted branch pairs at converge (B1a).
@@ -124,18 +132,64 @@ now arrive through the **Accepted Prefixes** list (where a migration appends the
 — see `references/migrations.md`), so they read as decided/landed outputs, never
 work candidates.
 
-**No-push mode is local.** When `policy.md` forbids auto-pushing preparation
-branches, work stays on **local** branches, so remote-only enumeration would miss
-it. In that mode also enumerate local branches — `git branch
---format='%(refname:short)'` — and read their `context.md` from the local ref
+**Local-first (default).** Under the default `push-prepare-branches: no`, work
+stays on **local** branches — so the local enumeration above is the queue's primary
+source. Read each local item's `context.md` from the local ref
 (`git show <branch>:.tsugu/context.md`, with the same schema-1 `branch.md`
-fallback as step 5). No-push mode is single-machine by nature:
-the human and the next run share the same clone, so local discovery carries the
-work forward; cross-machine/agent handoff requires the pushed mode.
+fallback as step 5). Local-first is single-machine by nature: the human and the
+next run share the same clone, so local discovery carries the work forward.
+
+**Cross-machine opt-in mode (pushed).** When `policy.md` sets
+`push-prepare-branches: yes`, the work branch is also **pushed** so a *second
+machine's* agent can inherit it (the branch *is* the message, cross-machine). The
+remote refs then carry the queue across clones. **Discovery enumerates remote work
+refs either way** — only *pushing* is gated by the opt-in; reading always includes
+remote work refs, because a leftover or opt-in-pushed remote `prepare/*` must still
+be seen (it is exactly what the takeover / `prune` cleanup targets).
 
 Each kept line is **already a full remote-qualified ref** (e.g.
 `origin/prepare/foo`). Use it **verbatim** in every command below — never
 re-prefix `<remote>/`, which would double-prefix into `origin/origin/prepare/foo`.
+
+**4b. Detect a human takeover by containment.** A `prepare/<slug>` is **taken
+over** when its tip is **contained** by a **branch** that is neither the default
+(nor its aliases) nor a work-prefix ref — a human carried the work onto their own
+branch (`isaac/fix-thing`), which 011's slug-name pairing alone could not see (#52).
+This **generalizes** slug-pairing (a tsugu accepted branch contains the tip too, so
+containment catches it); slug-name pairing **stays** as the complementary catch for
+the squashed/rewritten take. The check must be **precise** — a loose filter
+false-positives, and the cleanup (Change C) is destructive on a wrong hit, so the
+fetch-first + branch-scope + alias/work-ref exclusion below are **load-bearing**:
+
+```bash
+# `git fetch --prune <remote>` already ran in step 1 — so remote-tracking refs are FRESH
+git for-each-ref --contains "<prepare/slug-tip>" refs/heads refs/remotes/<remote> \
+     --format='%(refname:short)'    # scope to BRANCHES only — never tags / other namespaces
+# Normalize the <remote>/ prefix off remote-tracking names (so origin/isaac/fix == isaac/fix),
+# then EXCLUDE:
+#   • the default and its aliases:  <default>, <remote>/<default>, <remote>/HEAD
+#       (containment there is the SETTLED row of step 6, not a takeover)
+#   • work-prefix refs, LOCAL *and* remote:  <work-prefix>/*  and  <remote>/<work-prefix>/*
+#       (a pushed work branch's OWN remote ref must NOT count as a foreign takeover ref)
+# Anything LEFT ⇒ a NON-WORK, NON-DEFAULT branch carries this work ⇒ taken over (→ Change C).
+```
+
+Normalize **before** matching — drop the `<remote>/` prefix off remote-tracking
+names exactly as step 3/4 do (never re-prefix; an unnormalized `<remote>/prepare/foo`
+or `origin/origin/...` would slip past the work-ref exclusion). The signal is **not
+proof of intent** — a branch built *on top of* the prepare tip (a sibling item, a
+scratch experiment) also satisfies containment — so a non-empty result is **surfaced
+for human confirmation, never auto-deleted** (see [Prune sweep](#prune-sweep) and
+Change C). **Git-native, script-free:** this is one native `git for-each-ref
+--contains` plus inline `sed`/`grep` filtering — a documented recipe, **not a shipped
+script** (tsugu ships no scripts).
+
+**Classification is per-ref (per-tip), not per-slug.** The local + remote
+union-by-slug is a **display** merge only; classify **each ref by its own tip**. When
+the local `prepare/<slug>` and a stale `<remote>/prepare/<slug>` **diverge**, a stale
+remote tip contained by a human branch is *taken over*, but a **newer local**
+in-progress tip that nothing contains stays workable — never mark the local
+in-progress ref taken-over from the remote tip's containment.
 
 **5. Read branch context without a checkout.** No `git switch`, no dirty tree —
 read the committed note straight from the verbatim ref:
@@ -533,7 +587,7 @@ touch .tsugu/knowledge/.gitkeep
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 4`) + the mainline `context.md` only
+**2. Write `policy.md` (with `tsugu-schema: 5`) + the mainline `context.md` only
 if absent**, rendered from the skill's templates. This makes re-running `init` an
 **idempotent repair**: it fills in any missing skeleton path and is otherwise a
 no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules
