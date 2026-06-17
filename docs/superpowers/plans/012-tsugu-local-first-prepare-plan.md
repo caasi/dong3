@@ -25,7 +25,8 @@
 | `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | `prune` doc gains the **taken-over (redundant prepare)** category (surface-and-confirm) | 6 |
 | `plugins/tsugu/commands/prune.md`, `commands/prepare.md` | prune desc notes the taken-over category; prepare desc notes local-first | 6 |
 | `plugins/tsugu/skills/tsugu/README.md` | Local-first prepare + the cross-machine opt-in, user-facing | 7 |
-| `.claude-plugin/marketplace.json`, `plugins/tsugu/.claude-plugin/plugin.json` | bump tsugu `0.6.0 → 0.7.0`; descriptions note local-first + schema 5 | 8 |
+| `.claude-plugin/marketplace.json` | bump tsugu `0.6.0 → 0.7.0` (versions live **only** here); description notes local-first | 8 |
+| `plugins/tsugu/.claude-plugin/plugin.json` | **description only** (this file has **no `version` field** — do not add one) | 8 |
 
 Each task edits a focused file set and is committed independently. SKILL.md changes (Tasks 1–3) are sequenced by spec change so each commit is one coherent shift. The anchors grow monotonically — each run re-checks all prior anchors (built-in regression sweep).
 
@@ -65,7 +66,7 @@ need 'push-prepare-branches'                          "push policy field referen
 need 'local-first|stays on local|keep work .*local'   "prepare is local-first by default"
 need 'schema 4 else|tsugu-schema: 4.*yes|absent.*schema' "schema-aware push default read"
 need 'tsugu-schema: 5|tsugu-schema. 5|schema . 5'     "init stamps schema 5"
-need 'cross-machine|opt-in'                           "remote push is a cross-machine opt-in"
+need 'cross-machine opt-in'                           "remote push is a cross-machine opt-in (bigram — bare 'opt-in' appears 5x in SKILL already)"
 # the OLD unconditional framing must be gone:
 refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
 refute 'enumerates only remote-tracking refs'         "old 'only remote-tracking refs' framing removed"
@@ -107,7 +108,7 @@ git commit -m "feat(tsugu): local-first prepare — push default no, schema-awar
 ```bash
 # --- Task 2: human-takeover detection by containment (Change B) ---
 need 'taken over|taken-over'                          "takeover state named"
-need 'for-each-ref --contains'                        "containment detection mechanic"
+need 'human.?s own branch|own-named|human-named'      "recognizes a human's own-named branch (the #52 gap; 'for-each-ref --contains' alone is a no-op — it already exists at SKILL.md:124)"
 need 'non-default.*non-work|non-work.*non-default'    "filter: non-default, non-work ref"
 need 'generaliz'                                      "containment generalizes slug-pairing"
 need 'script-free|ships no script|not a shipped'      "git-native, no shipped script note"
@@ -191,13 +192,17 @@ git commit -m "feat(tsugu): taken-over = suppress-and-surface + human-confirmed 
 ```bash
 # --- Task 4: git-recipes local-default read + takeover recipe ---
 GR='plugins/tsugu/skills/tsugu/references/git-recipes.md'
-need_in "$GR" 'local-first .default.|local.*default'  "no-push mode relabeled local-first default"
+need_in "$GR" 'local-first .default.'                 "no-push mode relabeled local-first default ('local.*default' fallback dropped — it matches the pre-existing 'stale local default' Freshness line)"
 need_in "$GR" 'cross-machine opt-in'                  "pushed mode relabeled cross-machine opt-in"
-need_in "$GR" 'for-each-ref --contains'               "takeover containment recipe present"
-need_in "$GR" 'fetch --prune'                         "takeover recipe fetches first (no stale)"
+need_in "$GR" 'for-each-ref --contains'               "takeover containment recipe present (absent in git-recipes today)"
+need_in "$GR" 'taken over|takeover'                   "git-recipes has the takeover recipe (replaces the 'fetch --prune' no-op, which already exists at git-recipes.md:41)"
 need_in "$GR" 'refs/heads refs/remotes|refs/heads .refs/remotes' "takeover scoped to branch namespaces"
-# the work-queue read must include a LOCAL form (not remote-only):
-need_in "$GR" 'work queue.*local|local.*work (queue|prefix)|git branch --format=.*prepare' "work queue enumerates local too"
+# the work queue must no longer be framed as remote-tracking-only (012 unions local+remote).
+# git-recipes.md:98 currently reads "...unlike the work queue, which is remote-tracking" — that must go
+# (the naive 'work queue.*local' need is a no-op: it matches that very line 98):
+grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
+  && fail "git-recipes still frames the work queue as remote-tracking-only (012 unions local+remote)" \
+  || pass "work queue reframed off remote-tracking-only"
 ```
 
 - [ ] **Step 2: Run — verify red**
@@ -207,7 +212,7 @@ Expected: `FAIL: plugins/.../git-recipes.md missing: takeover containment recipe
 
 - [ ] **Step 3: Edit git-recipes.md** (match spec 012 §"Change A2" + §"Change B")
 
-- **Do NOT add a duplicate local recipe** — git-recipes already ships the remote ("pushed mode") and local ("No-push mode is local") reads. **Rename the labels** — `pushed mode` → "cross-machine opt-in mode"; "No-push mode is local" → "local-first (default)" — and make the work-queue read the **union of local + remote** work prefixes (mirroring the accepted local+remote block already there). State discovery reads remote work refs **regardless** of push default; only pushing is gated.
+- **Do NOT add a duplicate local recipe** — git-recipes already ships the remote ("pushed mode") and local ("No-push mode is local") reads. **Rename the labels** — `pushed mode` → "cross-machine opt-in mode"; "No-push mode is local" → "local-first (default)" — and make the work-queue read the **union of local + remote** work prefixes (mirroring the accepted local+remote block already there). State discovery reads remote work refs **regardless** of push default; only pushing is gated. **Also fix the now-stale note at `git-recipes.md:98`** — "…unlike the work queue, which is remote-tracking" — since the work queue now spans local + remote too.
 - **Add the takeover recipe** (a new sub-block under "Read the queue"): the spec 012 §"Change B" `git fetch --prune` + `git for-each-ref --contains "<tip>" refs/heads refs/remotes/<remote>` pipeline, with the documented exclusions (default + aliases `<remote>/<default>`/`<remote>/HEAD`; local **and** remote work-prefix refs; normalize the `<remote>/` prefix before matching — heeding the existing "use the ref verbatim, never re-prefix" note). Non-empty → *taken over* → surface (Change C). No shipped script.
 - Push recipe → opt-in (push only when `push-prepare-branches: yes`).
 
@@ -323,7 +328,7 @@ git commit -m "docs(tsugu): prune taken-over category + command descriptions for
 # --- Task 7: README local-first ---
 RM='plugins/tsugu/skills/tsugu/README.md'
 need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
-need_in "$RM" 'cross-machine|opt-in'                  "README notes the cross-machine push opt-in"
+need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
 ```
 
 - [ ] **Step 2: Run — verify red**
@@ -374,8 +379,8 @@ Expected: `FAIL: marketplace.json: tsugu not at 0.7.0`. (Verify current is `0.6.
 
 - [ ] **Step 3: Edit the manifests**
 
-- `marketplace.json`: tsugu entry `"version": "0.6.0"` → `"0.7.0"`; description notes **local-first** prepare + schema 5.
-- `plugin.json`: description likewise (must match `local-first`).
+- `marketplace.json`: tsugu entry `"version": "0.6.0"` → `"0.7.0"`; description notes **local-first** prepare.
+- `plugin.json`: **description only** — it has **no `version` field** (versions live solely in `marketplace.json`, per CLAUDE.md); add `local-first` to the description, do **not** add a version key.
 
 - [ ] **Step 4: Run — verify green; validate JSON**
 
