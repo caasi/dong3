@@ -134,10 +134,10 @@ grep -rEn '^## Completion tail|swept .{0,30}completion tail|completion tail[^.]{
   && fail "a live 'completion tail' sweep reference survives (should be prune)" \
   || pass "no live completion-tail sweep reference"
 
-# --- Task 11: version + descriptions ---
+# --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0) ---
 # jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.6.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu version 0.6.0" || fail "marketplace.json: tsugu not at 0.6.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.7.0 (bumped by spec 012)" || fail "marketplace.json: tsugu not at 0.7.0"
 # guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
@@ -227,5 +227,13 @@ need_in 'plugins/tsugu/commands/prepare.md' 'local-first|local by default' "prep
 RM='plugins/tsugu/skills/tsugu/README.md'
 need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
 need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
+
+# --- Task 8: version 0.7.0 + descriptions ---
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu 0.7.0" || fail "marketplace.json: tsugu not at 0.7.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by default")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace desc notes local-first" || fail "marketplace.json: tsugu description missing local-first"
+jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
+  && pass "plugin.json desc notes local-first" || fail "plugin.json: description missing local-first"
 
 echo "All tsugu SKILL.md content checks passed."
