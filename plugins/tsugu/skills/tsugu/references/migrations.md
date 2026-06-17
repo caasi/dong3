@@ -295,8 +295,8 @@ change. Three things move: the policy section `## Handoff Prefixes` is renamed
 `prepare/* investigate/* review/*` to **`prepare/*` alone** — but only on human
 confirmation, never auto (E2); and existing branches under the removed prefixes
 are handled per-branch, never renamed (E3). Apply these steps in order on the
-`init/*` branch. A schema-1 repo runs **1→2→3→4** under the N→N+1 contract — 1→2,
-then 2→3, then 3→4, each stamping its own schema last before the next runs.
+`init/*` branch. A schema-1 repo runs **1→2→3→4→5** under the N→N+1 contract — 1→2,
+then 2→3, then 3→4, then 4→5, each stamping its own schema last before the next runs.
 
 ### E1 — Rename (always-applied, mechanical)
 
