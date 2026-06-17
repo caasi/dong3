@@ -223,4 +223,9 @@ need_in "$NP" 'taken-over|redundant prepare'          "notes-and-packet document
 need_in 'plugins/tsugu/commands/prune.md' 'taken-over|redundant prepare' "prune command notes taken-over"
 need_in 'plugins/tsugu/commands/prepare.md' 'local-first|local by default' "prepare command notes local-first"
 
+# --- Task 7: README local-first ---
+RM='plugins/tsugu/skills/tsugu/README.md'
+need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
+need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
+
 echo "All tsugu SKILL.md content checks passed."

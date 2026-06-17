@@ -33,7 +33,12 @@ One lifecycle, four routines:
    private git work on the configured work-prefix branches (default `prepare/*`),
    run tests, record evidence in `context.md`, and promote shareable findings into
    `knowledge/`. **External silence** — interrupt only if the task is unsafe,
-   destructive, or blocked.
+   destructive, or blocked. Work stays on **local** `prepare/*` by default
+   (**local-first**); pushing to the remote is a **cross-machine opt-in**
+   (`push-prepare-branches: yes` in `policy.md`), which also restores the remote
+   backup of in-flight work. When you take over a prepared branch onto your own
+   branch, Tsugu recognizes the takeover by containment and surfaces the now-redundant
+   `prepare/<slug>` for cleanup at `prune`/`converge` — it is **never auto-deleted**.
 3. **converge** (human present) — read the prepared branches live, present the
    status view, decide **with you** what becomes public, and **hand off** that
    disposition in the same session. The default **accept** is a **handoff**: it
@@ -88,7 +93,7 @@ it from `git fetch` alone. It holds exactly three things:
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 4`)
+                 merge method, … — `tsugu-schema: 5`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)
