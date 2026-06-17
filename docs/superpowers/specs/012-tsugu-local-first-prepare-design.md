@@ -178,6 +178,15 @@ git for-each-ref --contains "<prepare/slug-tip>" refs/heads refs/remotes/<remote
   (leave the unfamiliar stale branch for `converge`; reversible; never auto-merges). 012
   does not re-solve it.
 
+- **Git-native, no shipped script.** Per tsugu's **script-free** principle, this is one
+  native `git for-each-ref --contains` plus inline `sed`/`grep` filtering — documented as a
+  **precise recipe** in `git-recipes.md`, **not** a shipped helper (unlike review-loop,
+  tsugu ships no scripts). Reliability comes from the recipe's precision (the exact
+  fetch-first + `refs/heads`/`refs/remotes` scope + remote normalization + alias/work-ref
+  exclusion above), not from packaging a script. The only repo-level script,
+  `tools/tsugu/test-skill-content.sh`, is a content-regression guard (not shipped, doesn't
+  execute the detection).
+
 The partition's "decided / not-in-progress" derivation becomes: **a slug-paired accepted
 branch (by name) OR any non-default/non-work ref contains the tip.**
 
