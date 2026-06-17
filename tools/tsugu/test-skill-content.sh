@@ -181,4 +181,13 @@ need 'generaliz'                                      "containment generalizes s
 need 'script-free|ships no script|not a shipped'      "git-native, no shipped script note"
 need 'classification is per-ref|each ref by its own tip|union.{0,12}display' "per-ref/per-tip classification — a divergent local in-progress tip is not suppressed by a stale remote tip's containment (spec A2)"
 
+# --- Task 3: taken-over disposition (C) + auto-push invariant (D) ---
+need 'suppress|suppressed from auto-work'             "taken-over suppresses auto-work"
+need 'both human-confirmed|local and remote, both'    "cleanup is local AND remote, both human-confirmed (bare 'human-confirmed' is pre-satisfied by 011 prose)"
+need 'never auto-push|auto-push .*work-prefix|only .*work-prefix' "auto-push invariant: only work-prefix"
+need 'redundant prepare|taken-over.*prune|prune.*taken-over' "prune taken-over category"
+# the disposition must NEVER auto-delete the prepare/redundant ref (the load-bearing safety fix).
+# NB: must NOT trip the legit forge 'auto-delete-head-branch' (hyphen) or 011's 'never auto-deletes on a guess'.
+refute 'auto-delete[sd]?( the| a| its)?( local| redundant| stale)? (prepare|work branch)|auto-delete[sd]?( the| a)?( local| redundant) ref\b' "no auto-delete of the prepare/redundant ref"
+
 echo "All tsugu SKILL.md content checks passed."
