@@ -33,7 +33,7 @@ default into existing repos (preserves their behavior). New `init` stamps 5 → 
 | Line | Change | What it supersedes | Issue |
 | --- | --- | --- | --- |
 | A | **Local-first `prepare`.** `push-prepare-branches` defaults **`no`**; `prepare` keeps work on **local** `prepare/*`; discovery enumerates work-prefix branches **local + remote**; remote push of `prepare/*` is an **opt-in** for cross-machine agent collaboration | 008's `push-prepare-branches: yes` default + SKILL.md step 8 "cold-start discovery enumerates *only* remote-tracking refs, so pushing is what lets the next agent inherit" | #52 |
-| B | **Human-takeover detection (containment-primary).** A `prepare/<slug>` whose tip is **contained** by any **non-default, non-work-prefix** ref (local or remote) is **taken over** — a human carried the work onto their own branch. `git for-each-ref --contains <prepare-tip>` minus default + work prefixes | 011's partition recognized a takeover **only** by accepted-prefix slug name (B1a fact 2) — missing a human's own-named branch (`isaac/fix-thing`) | #52 |
+| B | **Human-takeover detection (containment-primary).** A `prepare/<slug>` whose tip is **contained** by a **branch** that is neither the default (nor its aliases) nor a work-prefix ref (local or remote) is **taken over** — a human carried the work onto their own branch. Fresh `git for-each-ref --contains` scoped to `refs/heads`/`refs/remotes` | 011 saw a takeover **only** by the accepted-prefix slug name (B1a fact 2), missing a human's own-named branch (`isaac/fix-thing`). 012 **generalizes** to containment by any branch and **keeps** slug-pairing as the complementary squash-catch — not a replacement | #52 |
 | C | **Takeover disposition (cleanup).** A taken-over `prepare/<slug>` **leaves the queue** (never worked/pushed); the **local** ref is **auto-deleted** (fully contained → nothing lost); a **remote** ref (from a prior opt-in push) is **prompted** for deletion via `prune`, human-confirmed | n/a (new) | #52 |
 | D | **Auto-push invariant.** `prepare` **never auto-pushes a non-work-prefix branch** (accepted / human). The sole exception — cross-machine **agent-to-agent** push with no human present — is deferred (*Multi-agent: reserved*) | implicit before; #52 asks it be explicit so "the agent pushes an already-converged local branch" cannot happen | #52 |
 
@@ -58,9 +58,13 @@ Two consequences follow directly:
   existed *because* `prepare/*` was pushed. Local-first repos never push it, so there is
   nothing to linger. 011's B1a "surviving remote `prepare/<slug>`" residual **vanishes**
   for local-first repos (it was a consequence of the push).
-- **B3 simplifies.** 011's converge handoff (B3) prompted the human to *push the accepted
-  branch* **and** *delete the stale remote `prepare/<slug>`*. Under local-first there is
-  no remote `prepare/<slug>` — so B3 shrinks to just "push the accepted branch."
+- **B3 simplifies — for local-first repos.** 011's converge handoff (B3) prompted the
+  human to *push the accepted branch* **and** *delete the stale remote `prepare/<slug>`*.
+  Under local-first there is no remote `prepare/<slug>` — so B3 shrinks to just "push the
+  accepted branch." A **cross-machine opt-in** repo (`push-prepare-branches: yes`) **still
+  pushes `prepare/*`**, so 011's full B3 (push accepted **+** delete remote prepare)
+  **applies there unchanged** — the remote-prepare-delete line survives only in opt-in
+  repos.
 
 ### The tradeoff, stated openly
 
@@ -87,19 +91,24 @@ branch; push it only when `push-prepare-branches: yes` (cross-machine opt-in, de
 `no`).** The "branch is the message" framing is **scoped to the cross-machine case** —
 on one machine the local branch *is already* the queue.
 
-### A2. Discovery enumerates work prefixes local + remote
+### A2. Discovery reads work prefixes local + remote (a default flip, not a new mechanism)
 
-The queue read changes from "**Read the queue from remote-tracking refs**" to **read
-work-prefix branches across local *and* remote refs**. On a single machine the queue is
-the **local** `prepare/*`; with the cross-machine opt-in it is local **+** remote (a
-slug present in either is one work item, unioned by slug — the same union shape 011's
-B1a established for accepted prefixes). `knowledge/` + policy still come from the fetched
-default / coordination ref as before.
+`git-recipes.md`'s `## Read the queue` **already ships both reads**: a remote-tracking
+"pushed mode" **and** a "No-push mode is local" path (`git branch --format=… | grep
+work-prefixes`) gated on `push-prepare-branches: no`. 012 does **not** invent local
+discovery — it **flips which is the default**, and makes the queue the **union of local
+and remote** work-prefix refs (a slug in either is one item, unioned by slug — the same
+union shape 011's B1a established for accepted prefixes).
 
-git-recipes' "Read the queue" work-branch enumeration (currently `git branch --remotes …
-# pushed mode`) gains the **local** form (`git branch --format=… | grep work-prefixes`)
-and unions the two by slug — mirroring 011's local+remote accepted enumeration. The
-existing "pushed mode" note becomes "cross-machine opt-in mode."
+**Discovery reads remote work refs regardless of the push default.** Only *pushing* is
+gated by the opt-in; *reading* always includes remote work refs, because a leftover or
+opt-in-pushed remote `prepare/*` must still be seen — it is exactly what the
+takeover/`prune` cleanup targets (#52). The one statement that needs softening is
+**SKILL.md's flat "Read the queue from remote-tracking refs"** (the only *unconditional*
+remote-only line); the recipes' enumeration logic mostly stands — just **rename both mode
+labels** ("pushed mode" → "cross-machine opt-in mode"; "no-push mode is local" →
+"local-first (default)"). `knowledge/` + policy still come from the fetched default /
+coordination ref as before.
 
 ### A3. Cross-machine push is the opt-in (deferred *Multi-agent*)
 
@@ -120,23 +129,39 @@ of their own. 011's slug-pairing can't see it, so the `prepare/<slug>` reads in-
 and a scheduled `prepare` may re-work it.
 
 **012 adds a containment signal.** A `prepare/<slug>` is **taken over** when its tip is
-**contained** by **any non-default, non-work-prefix ref** (local or remote):
+**contained** by a **branch** that is neither the default nor a work-prefix branch. The
+check must be precise — a loose filter false-positives, and Change C's cleanup is
+destructive on a wrong hit:
 
 ```bash
-git for-each-ref --contains "<prepare/slug-tip>" --format='%(refname:short)'
-# remove: <default>           (containment there is the existing SETTLED row)
-#         <work-prefix>/*      (queue siblings built on the same base)
-# anything left ⇒ a human/accepted branch carries this work ⇒ taken over
+git fetch --prune <remote>          # FIRST — so remote-tracking refs are fresh (no stale hits)
+git for-each-ref --contains "<prepare/slug-tip>" refs/heads refs/remotes/<remote> \
+     --format='%(refname:short)'    # scope to BRANCHES only — never tags / other namespaces
+# then, after normalizing the <remote>/ prefix off remote-tracking names, EXCLUDE:
+#   • the default and its aliases:  <default>, <remote>/<default>, <remote>/HEAD
+#       (containment there is the existing SETTLED row, not a takeover)
+#   • work-prefix refs, LOCAL *and* remote:  <work-prefix>/*  and  <remote>/<work-prefix>/*
+#       (a pushed work branch's OWN remote ref must NOT count as a foreign takeover ref)
+# anything left ⇒ a NON-WORK, NON-DEFAULT branch carries this work ⇒ taken over (→ Change C)
 ```
 
-- **Containment is primary, mode/name-agnostic.** Any ref carrying the prepared commits
-  means the work is **already taken** — whether the human named it `feature/<slug>`,
-  `isaac/fix-thing`, or anything else.
-- **It generalizes slug-pairing.** A tsugu accepted branch (`feature/<slug>`, renamed
-  from `prepare/<slug>` per 011) **contains** the tip, so containment catches it too.
-  **Slug-name pairing stays** as the **complementary** catch for the **squashed / rewritten**
-  take — where the human's branch no longer contains the tip verbatim but the name still
-  pairs.
+- **Containment is primary, name-agnostic.** A branch carrying the prepared commits means
+  the work is **already taken** — whether the human named it `feature/<slug>`,
+  `isaac/fix-thing`, or anything else. That is the gap over 011, which saw a takeover only
+  by the accepted-prefix slug name.
+- **It generalizes — and does not replace — slug-pairing.** A tsugu accepted branch
+  (`feature/<slug>`, renamed from `prepare/<slug>` per 011) **contains** the tip, so
+  containment catches it too. **Slug-name pairing stays** as the **complementary** catch
+  for the **squashed / rewritten** take, where the human's branch no longer contains the
+  tip verbatim but the name still pairs.
+- **Fresh + correctly-scoped, or it's dangerous.** The two filters above (fetch-first; and
+  excluding the default aliases + both local and remote work refs) are **load-bearing**: a
+  stale remote-tracking ref, an unnormalized `<remote>/prepare/<slug>`, a tag, or
+  `<remote>/main` slipping through would each falsely mark ordinary work as taken over. The
+  signal is also **not proof of intent** — a branch built *on top of* the prepare tip that
+  is **not** a takeover (a sibling item, a scratch experiment) also satisfies containment.
+  That residual false-positive is exactly why Change C **surfaces for human confirmation
+  and never auto-deletes**.
 - **The squash/rebase residual is unchanged.** If the human **squashed or rebased** their
   take onto a **differently-named** branch, *neither* containment *nor* slug-name fires.
   That is 011's existing non-derivable residual: `prepare`'s judgment leans conservative
@@ -148,29 +173,33 @@ branch (by name) OR any non-default/non-work ref contains the tip.**
 
 ---
 
-## Change C — Takeover disposition: queue-leave + cleanup (issue #52)
+## Change C — Takeover disposition: queue-leave + human-confirmed cleanup (issue #52)
 
-A taken-over `prepare/<slug>` is **redundant** — a human branch already carries its
-commits. Disposition:
+A taken-over `prepare/<slug>` is **probably redundant** — a non-work, non-default branch
+already carries its commits. But "a branch contains the tip" is **not proof of a takeover**:
+a scratch/experiment branch, or a second item a human based **on top of** the prepare tip,
+also contains it (Change B). Because the containment signal can false-positive, the
+disposition **never auto-deletes** — it surfaces for the human to confirm:
 
-1. **Leaves the queue.** Discovery classifies it *taken over*, not *in-progress* — the
-   agent **never works or pushes it**. (Automatic; it is simply no longer a candidate.)
-2. **Local ref auto-deleted.** Because the human branch **fully contains** the tip
-   (nothing is lost), `prepare` / `converge` **deletes the local `prepare/<slug>`**
-   directly — it is the agent's own scratch ref and its content lives on the human's
-   branch. (This is the one place 012 lets the agent delete a local ref without a prompt;
-   it is safe precisely because of containment.)
-3. **Remote ref prompted, human-confirmed.** If a prior **opt-in push** left a remote
-   `prepare/<slug>`, its deletion is **surfaced by `prune`** (and may be surfaced at
-   `converge`) — *"`prepare/<slug>` is fully carried by `<branch>` — remove the redundant
-   remote ref?"* — **human-confirmed, remote always explicit** (the never-auto-remote
-   rule). Local-first repos never pushed it, so this case only arises for cross-machine
-   opt-in repos.
+1. **Leaves the queue (automatic, safe).** Discovery classifies it *taken over*, not
+   *in-progress* — the agent **never works or pushes it**. This is safe **regardless** of
+   whether the containing branch is a real takeover: not working a branch loses nothing.
+2. **Cleanup is surfaced, human-confirmed — never auto, never silent.** `prune` (and
+   optionally `converge`) surfaces it: *"`prepare/<slug>` is fully carried by `<branch>` —
+   remove the redundant `prepare/<slug>`?"* The human confirms it is a real takeover; only
+   then is the ref deleted — **local and remote, both human-confirmed** (remote always
+   explicit; **local too**, because the signal alone can't distinguish a takeover from a
+   build-on-top branch, and a wrong guess would destroy the queue identity — slug +
+   `context.md`-as-claim — of still-in-progress work).
 
-`prune` gains a **`taken-over` (redundant prepare)** category alongside settled /
-possibly-landed / dropped / orphaned-accepted: a `prepare/<slug>` whose commits a
-non-work, non-default ref contains. Local side is already cleaned (step 2); the remote
-side is its surface-and-confirm job.
+`prune` gains a **`taken-over` (redundant prepare)** category — a `prepare/<slug>` (local
+or remote) whose tip a **non-work, non-default branch** contains. It is
+**surface-and-confirm** (like *possibly-landed*), never auto-delete. **Precedence with the
+existing rows:** a remote `prepare/<slug>` whose tip is contained in `<remote>/<default>`
+is already **settled** (the existing row) — list it there; *taken-over* covers only the
+case where the containing ref is a **non-default** branch. The two predicates can coincide
+on one ref, but the disposition (delete on confirm) is identical, so the overlap is
+harmless — classify as *settled* when default contains it, else *taken-over*.
 
 ---
 
@@ -206,7 +235,10 @@ and 012 bumps the stamp:
   explicit value is treated as the **old `yes`** default until the migration runs; a
   schema-5 repo with no explicit value is the **new `no`**. This prevents a behavior flip
   before the migration pins the value. (After migration, old repos always carry an explicit
-  value, so the schema-aware default only matters during the upgrade window.)
+  value, so the schema-aware default only matters during the upgrade window.) **This
+  schema-aware read lives at SKILL.md step 8** (the `push-prepare-branches` read): *absent
+  → `yes` if `tsugu-schema: 4`, else `no`* — replacing the current flat "default `yes` when
+  the section is absent."
 
 The migration rides `references/migrations.md` (a `4→5` step) and the `init` re-run path
 (stamp written **last**, per the established migration discipline; on a push-protected
@@ -224,13 +256,16 @@ human-confirmed. State stays derived from refs / DAG / containment / recency.
 *Narrative informs judgment, never classification.* The discovery model is now:
 
 ```
-prepare: read work prefixes LOCAL (+ remote when push opted in) → partition:
-  • tip contained in default                         → settled
-  • slug-paired accepted branch, OR tip contained by
-    any non-default/non-work ref                     → decided / TAKEN OVER (cleanup)
-  • neither                                          → in-progress (work it)
+prepare: read work prefixes LOCAL + remote (remote may hold leftovers / opt-in pushes)
+  → partition, in order:
+  • tip contained in <default> (or its remote aliases)      → settled
+  • a slug-paired ACCEPTED-prefix branch exists             → decided, awaiting merge
+        (011: skip, NO delete; the prepare ref is usually already gone via the rename)
+  • tip contained by any OTHER non-default/non-work branch  → TAKEN OVER
+        (leaves the queue; surface at prune/converge; delete ONLY on human confirm)
+  • none of the above                                       → in-progress (work it)
 work stays LOCAL by default; push only on the cross-machine opt-in;
-never auto-push accepted/human branches.
+never auto-push accepted/human branches; never auto-delete on a containment guess.
 ```
 
 ---
@@ -239,8 +274,8 @@ never auto-push accepted/human branches.
 
 | File | Change |
 | --- | --- |
-| `plugins/tsugu/skills/tsugu/SKILL.md` | step 8 → local-first (push default `no`, opt-in framing); "Read the queue from remote-tracking refs" → **local + remote** work prefixes; partition gains the **containment takeover** derivation; new **taken-over** disposition (queue-leave + local auto-delete + remote prompt); the **auto-push invariant** (D); schema `4 → 5`; *Multi-agent* gains the cross-machine push opt-in/exception; B3 note that there is no remote `prepare/<slug>` under local-first |
-| `plugins/tsugu/skills/tsugu/references/git-recipes.md` | "Read the queue" work enumeration gains the **local** form + union-by-slug (mirroring 011's accepted local+remote); the `git for-each-ref --contains` **takeover** check; the push recipe → opt-in; the settlement/landed_ref note unaffected |
+| `plugins/tsugu/skills/tsugu/SKILL.md` | step 8 → local-first (push default `no`, opt-in framing) **+ the schema-aware read** (absent → `yes` if schema 4 else `no`); soften the flat "Read the queue from remote-tracking refs" → **local + remote** work prefixes; partition gains the **containment takeover** derivation (a distinct row from 011's *decided*); new **taken-over** disposition (queue-leave + **surface-and-confirm cleanup, never auto-delete**); the **auto-push invariant** (D); schema `4 → 5`; *Multi-agent* gains the cross-machine push opt-in/exception; B3 note (no remote `prepare/<slug>` under local-first; full B3 survives for opt-in repos) |
+| `plugins/tsugu/skills/tsugu/references/git-recipes.md` | "Read the queue" **already has** both a remote ("pushed mode") and a local ("No-push mode is local") enumeration — 012 **makes local the default + unions local & remote by slug** (do **not** add a duplicate recipe); **rename both mode labels**; add the **fresh, ref-scoped, alias/work-excluding** `git for-each-ref --contains` takeover check; the push recipe → opt-in; the settlement/landed_ref note unaffected |
 | `plugins/tsugu/skills/tsugu/references/migrations.md` | **new `4 → 5` step** — write explicit `push-prepare-branches: yes` when absent (preserve old behavior); stamp written last; `init/*`-branch + PR path on push-protected default |
 | `plugins/tsugu/skills/tsugu/templates/policy.md` | `tsugu-schema: 5`; `## Push` default `push-prepare-branches: no`; comment notes local-first + the cross-machine opt-in (`yes`) + the in-flight-backup tradeoff |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (`init`) + `references/notes-and-packet.md` | `init` asks/sets the push default (surfacing the tradeoff); `prune` doc gains the **taken-over (redundant prepare)** category |
