@@ -279,7 +279,8 @@ prepare: read work prefixes LOCAL + remote (remote may hold leftovers / opt-in p
   • a slug-paired ACCEPTED-prefix branch exists             → decided, awaiting merge
         (011: skip, NO delete; the prepare ref is usually already gone via the rename)
   • tip contained by any OTHER non-default/non-work branch  → TAKEN OVER
-        (leaves the queue; surface at prune/converge; delete ONLY on human confirm)
+        (suppressed from auto-work; surfaced at prune/converge; NOT silently dropped;
+         delete ONLY on human confirm — a scheduled prepare leaves it for converge)
   • none of the above                                       → in-progress (work it)
 work stays LOCAL by default; push only on the cross-machine opt-in;
 never auto-push accepted/human branches; never auto-delete on a containment guess.
