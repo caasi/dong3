@@ -1,5 +1,5 @@
 ---
-description: Human-present convergence — morning status view (read-only until you decide), then decide and complete dispositions in-session. Never auto-merges
+description: Human-present convergence — morning status view (read-only until you decide), then decide dispositions in-session. Accept is handoff-only (renames prepare/<slug> to an accepted prefix and stops); completes only on a human-marked maintenance task. Never auto-merges; cleanup is pointed at /tsugu:prune
 argument-hint: "[branch]"
 ---
 
@@ -12,5 +12,10 @@ Load-bearing invariants the skill enforces: reads branches live (from
 remote-tracking refs after fetch) — the packet is a personal/derived view,
 never committed; steps before the disposition are read-only — running this just
 to look (how many branches are workable, what awaits merge, what is stale) is a
-first-class use; merging/opening the PR is the human's act — Tsugu never
-auto-merges; housekeeping (stale branches) is human-decided per item.
+first-class use; **accept hands off** — it renames `prepare/<slug>` to
+`<accepted-prefix>/<slug>` (a move, slug preserved) and stops, leaving the
+freshness-rebase / verify / completion to the human; the **complete** path runs
+only when the human has explicitly **marked the task as maintenance** (the agent
+never self-classifies); merging/opening the PR is the human's act — Tsugu never
+auto-merges; staleness is shown as a flag on the candidate list, and the
+queue-wide cleanup of settled / leftover branches is pointed at `/tsugu:prune`.
