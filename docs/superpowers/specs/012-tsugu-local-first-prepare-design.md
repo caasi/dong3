@@ -183,7 +183,7 @@ branch (by name) OR any non-default/non-work ref contains the tip.**
 
 ---
 
-## Change C — Takeover disposition: queue-leave + human-confirmed cleanup (issue #52)
+## Change C — Takeover disposition: suppress-and-surface + human-confirmed cleanup (issue #52)
 
 A taken-over `prepare/<slug>` is **probably redundant** — a non-work, non-default branch
 already carries its commits. But "a branch contains the tip" is **not proof of a takeover**:
