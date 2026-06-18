@@ -272,6 +272,8 @@ grep -rIn 'decided, awaiting merge' "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&
 grep -Eiq '^- \*\*pending\*\*' "$ROOT/$RM" \
   && fail "README still lists 'pending' as a partition state" \
   || pass "README partition uses taken-over, not pending"
+# the canonical state name is "taken over"; the hybrid "decided / taken over" label is retired.
+refute 'decided / taken over'  "SKILL.md partition row uses 'taken over', not the hybrid 'decided / taken over'"
 
 # --- Review round 4 (PR #53): prune taken-over bucket scoped git-derivable, squash→possibly-landed ---
 # The prune "taken-over (redundant prepare)" bucket is the git-containment-derivable take only;
