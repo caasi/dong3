@@ -13,12 +13,12 @@ the personal-config pointer.
 
 ### `tsugu-schema:`
 
-The schema-version stamp (current: `4`). It is the first line of the file, and a
+The schema-version stamp (current: `5`). It is the first line of the file, and a
 migration **writes it last** — only after every N→N+1 rename and semantic change
 has been applied does `init` stamp the new number, so a half-applied migration is
 never mistaken for a completed one. Readers use it to decide whether a re-run of
 `init` must migrate (older stamp → apply `references/migrations.md` in order,
-1→2→3→4 for a schema-1 repo) or is a plain idempotent repair (stamp already
+1→2→3→4→5 for a schema-1 repo) or is a plain idempotent repair (stamp already
 current).
 
 ### Private / Public boundary
@@ -52,12 +52,13 @@ branch.
 
 ### `## Accepted Prefixes`
 
-The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into for
-the human's PR (converge renames, never cuts).
+The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into —
+`<accepted-prefix>/<slug>` — for the human's PR (converge renames, never cuts).
 Default `feature/* bugfix/* chore/*`. An accepted branch is **not** a queue item;
 it exists so the partition can read one ref-level fact: an accepted branch whose
-**slug pairs** a work branch's slug means **that work is decided, awaiting
-merge** — skip it as a candidate, surface it in converge's awaiting-merge section.
+**slug pairs** a work branch's slug means **that work is taken over** — a handoff
+the human now owns; skip it as a candidate, surface it in converge's awaiting-merge
+section.
 The pairing is by **name, not commits**, so it survives whatever the forge does to
 commits (PR-branch rebases, squashes, force-pushes). Must be disjoint from
 `## Branch Prefixes`.
@@ -66,17 +67,21 @@ commits (PR-branch rebases, squashes, force-pushes). Must be disjoint from
 
 ```md
 ## Push
-push-prepare-branches: yes
+push-prepare-branches: no
 ```
 
 `push-prepare-branches:` records the answer `init` captured to "may agents
-create/commit/push preparation branches automatically?" Pushing is what makes a
-branch a **message**: the human's `converge` and the next scheduled agent both
-read remote-tracking refs, so a pushed branch is a cross-machine handoff. The
-default is **`yes`**. Answer `no` to keep work local — `prepare` then commits
-locally and stops for approval (single-machine by nature: the human and the next
-run share one clone). When the `## Push` section is **absent** (a repo
-initialized before this field existed), readers default to `yes`.
+create/commit/push preparation branches automatically?" `prepare` is
+**local-first**: by default (`no`) it commits the work branch **locally and keeps
+it local** — on one machine the local branch already *is* the queue (the human's
+`converge` and the next scheduled `prepare` share the clone and read it directly).
+Answer **`yes`** only for genuine **cross-machine** collaboration — pushing is what
+lets a *second machine's* agent inherit the work via `git fetch` (there the branch
+*is* the message across clones). The default for a fresh (schema-5) install is
+**`no`**. When the `## Push` section is **absent**, readers resolve it
+**schema-aware**: `yes` if the repo is still `tsugu-schema: 4`, else `no` — a
+schema-5 repo defaults `no`, and the 4→5 migration pins the explicit `yes` into
+existing repos so behavior never flips silently.
 
 ### `## Public branch`
 

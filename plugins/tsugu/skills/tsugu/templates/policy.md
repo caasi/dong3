@@ -1,4 +1,4 @@
-tsugu-schema: 4
+tsugu-schema: 5
 ## Private Git Space (agent may do freely)
 create/commit (push per `## Push`) `prepare/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
@@ -10,16 +10,21 @@ prepare/*
 <!-- work prefixes (the queue). Must be DISJOINT from Accepted Prefixes — init
      and migration validate this. -->
 ## Push
-push-prepare-branches: yes
-<!-- init's default answer to "may agents create/commit/push preparation
-     branches automatically?". Pushing makes the branch a message (cross-
-     machine handoff reads remote refs). Set no to keep work local —
-     prepare then commits locally and stops for approval. -->
+push-prepare-branches: no
+<!-- prepare is LOCAL-FIRST by default (no): work stays on local prepare/*
+     branches — prepare commits locally and does not push. Set yes for the
+     CROSS-MACHINE OPT-IN: pushing makes the branch a message that a second
+     machine's agent can inherit (cross-machine handoff reads remote refs), and restores
+     the remote backup of in-flight work. Tradeoff: local-first means no remote
+     backup until the human pushes (an accepted trade on a single provisioned
+     machine; the opt-in restores the backup for anyone who wants it). -->
 ## Accepted Prefixes
 feature/*  bugfix/*  chore/*
-<!-- human-workflow branches the handoff RENAMES prepare/<slug> into for PRs
+<!-- human-workflow branches the handoff RENAMES prepare/<slug> into —
+     <accepted-prefix>/<slug> — for PRs
      (converge renames, never cuts). A branch here with the same slug as a work
-     branch = that work is decided, awaiting merge. -->
+     branch = that work is taken over (a handoff the human owns; converge
+     surfaces it as awaiting-merge). -->
 ## Public branch
 public-branch-tsugu: include
 <!-- include (default): the work branch's prep commit DAG plus its context.md

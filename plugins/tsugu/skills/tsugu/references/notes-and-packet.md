@@ -5,7 +5,7 @@ The shape and lifecycle of the committed `.tsugu/` notes Tsugu maintains —
 packet. Placement on the durability gradient (which branch each lives on) is
 summarized in `SKILL.md`; this document covers structure and load/lifecycle
 semantics. There is **no written branch state** — live coordination facts (in
-progress / decided / settled / who's on it / what grew out of what) are derived
+progress / taken over / settled / who's on it / what grew out of what) are derived
 from ref names, ancestry, containment, and commit recency, never written into a
 note (see `SKILL.md`'s partition and `references/git-recipes.md`). The committed
 notes hold **narrative only** (maintained freely; it informs judgment, never
@@ -140,6 +140,22 @@ approval`, and `## Suggested accepted branch` (the Accepted-Prefix name the hand
 **renames** `prepare/<slug>` to — mode-agnostic: the same commits, with `.tsugu/`
 riding along in both modes; in `exclude` the human strips `.tsugu/` when they open
 the public PR. Converge no longer *cuts* a branch).
+
+**Taken-over (redundant prepare) — surfaced, never auto-deleted.** A
+`prepare/<slug>` whose tip a **non-work, non-default** branch contains (a human
+carried the work onto their own branch — `isaac/fix-thing`) is **taken over**:
+suppressed from auto-work and **surfaced** at `prune`/`converge` (the packet's
+`## Need human decisions` / `## Public actions requiring approval`) for the human to
+**confirm or reject**. `prune` carries it as a **`taken-over` (redundant prepare)**
+category — **surface-and-confirm** (like *possibly-landed*), **never auto-delete**:
+the containment signal can false-positive on a branch built *on top of* the prepare
+tip (a sibling item, a scratch experiment). On confirmation the redundant ref is
+deleted **local *and* remote, both human-confirmed**. This category is the
+**git-containment-derivable** take only — the slug-paired **squash/rewrite** handoff
+is **not** derivable from containment and surfaces as *possibly-landed*, not here. **Precedence with *settled*:**
+if `<remote>/<default>` contains the tip it is **settled** (the existing category) —
+list it there; *taken-over* covers only the case where the containing ref is a
+**non-default** branch. (Mechanics → `git-recipes.md` § Prune sweep.)
 
 ## Context placement rule (omni-repo framing)
 

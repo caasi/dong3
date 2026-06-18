@@ -8,8 +8,9 @@ argument-hint: "[branch]"
 Invoke the `tsugu` skill and run the **converge** routine. `$ARGUMENTS` may name
 a branch to converge directly, skipping the selection question.
 
-Load-bearing invariants the skill enforces: reads branches live (from
-remote-tracking refs after fetch) — the packet is a personal/derived view,
+Load-bearing invariants the skill enforces: reads branches live (the local +
+remote work refs after fetch — local-first, the same union as `prepare`) — the
+packet is a personal/derived view,
 never committed; steps before the disposition are read-only — running this just
 to look (how many branches are workable, what awaits merge, what is stale) is a
 first-class use; **accept hands off** — it renames `prepare/<slug>` to

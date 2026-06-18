@@ -30,9 +30,11 @@ read the same way the agent runs it.
 
 A cold-start agent — no conversation transcript, only a clone — must reconstruct
 "what branches exist, why, and what's next" from git + `.tsugu/` alone. There is
-**no committed note layer**: the queue *is* the set of work branches. That only
-works if reads come from **fresh remote-tracking refs**, not whatever the local
-checkout happens to be sitting on.
+**no committed note layer**: the queue *is* the set of work branches. The queue is
+the **union of local *and* remote** work-prefix refs (a slug present in either is
+one item, unioned by slug). Reads must come from **fresh refs** — `git fetch
+--prune` first for the remote side, and the local refs as they stand — not from
+whatever single branch the checkout happens to be sitting on.
 
 **1. Fetch first.** Before reading anything, refresh the remote-tracking refs —
 **with `--prune`**, so branches deleted upstream stop appearing in the queue:
@@ -94,9 +96,10 @@ the filter from the fetched policy, don't hardcode, since `init` may have
 customized them. **Also enumerate the configured `## Accepted Prefixes`**
 (defaults: `feature`, `bugfix`, `chore`, plus legacy `public`) into a
 **separate accepted list** — these are not queue items but are needed in step 6 to
-pair a work branch's slug against a decided accepted branch. **The accepted list
-spans LOCAL *and* remote refs** (unlike the work queue, which is remote-tracking
-only): at `converge`, the just-renamed `<accepted-prefix>/<slug>` exists **locally**
+pair a work branch's slug against its accepted branch (a taken-over handoff). **The accepted list
+spans LOCAL *and* remote refs** — as does the work queue itself (012 unions
+local + remote work prefixes; local is the default): at `converge`, the just-renamed
+`<accepted-prefix>/<slug>` exists **locally**
 before the human pushes it (B3), and it must pair immediately so a same-machine
 scheduled `prepare` does not re-pick the still-present remote `prepare/<slug>` in
 the handoff-pending window (SKILL.md B1a). (The cross-*machine* pre-push window —
@@ -106,36 +109,93 @@ configures extra work prefixes also surfaces a `## Legacy Work Prefixes` note;
 see [Prune sweep](#prune-sweep) for how the settled cleanup sweep consults it.)
 
 ```bash
-# work queue — configured remote + work prefixes (default shown); never raw --remotes
+# work queue — LOCAL + remote, configured work prefixes (default shown); union by slug.
+# Discovery reads remote work refs REGARDLESS of the push default — only PUSHING is gated
+# (a leftover or opt-in-pushed remote prepare/* must still be seen; it is what takeover/prune targets).
+# (|| true on each grep: an empty queue is a valid outcome — grep exits 1 on no match,
+#  which would abort the recipe under the documented set -euo pipefail; keep it non-fatal)
+git branch --format='%(refname:short)' \
+  | grep --extended-regexp "^(prepare)/" || true            # local-first (default)
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(prepare)/"   # pushed mode
+  | grep --extended-regexp "^<remote>/(prepare)/" || true   # cross-machine opt-in mode (pushed)
+# union the two by slug; a slug present in either is one queue item (classify each ref by its own tip — see step 6)
 
 # accepted list — LOCAL + remote, configured accepted prefixes (for slug pairing).
 # Local is required so a just-renamed (not-yet-pushed) accepted branch pairs at converge (B1a).
 git branch --format='%(refname:short)' \
-  | grep --extended-regexp "^(feature|bugfix|chore|public)/"            # local accepted
+  | grep --extended-regexp "^(feature|bugfix|chore|public)/" || true            # local accepted
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/"   # remote accepted
-# union the two by slug; a slug present in either marks the work branch "decided"
+  | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/" || true   # remote accepted
+# union the two by slug; a slug present in either marks the work branch "taken-over" (a handoff)
 ```
 
 The `public/*` prefix is **retired as a work prefix**; legacy `public/*` branches
 now arrive through the **Accepted Prefixes** list (where a migration appends them
-— see `references/migrations.md`), so they read as decided/landed outputs, never
+— see `references/migrations.md`), so they read as taken-over/landed outputs, never
 work candidates.
 
-**No-push mode is local.** When `policy.md` forbids auto-pushing preparation
-branches, work stays on **local** branches, so remote-only enumeration would miss
-it. In that mode also enumerate local branches — `git branch
---format='%(refname:short)'` — and read their `context.md` from the local ref
+**Local-first (default).** Under the default `push-prepare-branches: no`, work
+stays on **local** branches — so the local enumeration above is the queue's primary
+source. Read each local item's `context.md` from the local ref
 (`git show <branch>:.tsugu/context.md`, with the same schema-1 `branch.md`
-fallback as step 5). No-push mode is single-machine by nature:
-the human and the next run share the same clone, so local discovery carries the
-work forward; cross-machine/agent handoff requires the pushed mode.
+fallback as step 5). Local-first is single-machine by nature: the human and the
+next run share the same clone, so local discovery carries the work forward.
 
-Each kept line is **already a full remote-qualified ref** (e.g.
-`origin/prepare/foo`). Use it **verbatim** in every command below — never
-re-prefix `<remote>/`, which would double-prefix into `origin/origin/prepare/foo`.
+**Cross-machine opt-in mode (pushed).** When `policy.md` sets
+`push-prepare-branches: yes`, the work branch is also **pushed** so a *second
+machine's* agent can inherit it (the branch *is* the message, cross-machine). The
+remote refs then carry the queue across clones. **Discovery enumerates remote work
+refs either way** — only *pushing* is gated by the opt-in; reading always includes
+remote work refs, because a leftover or opt-in-pushed remote `prepare/*` must still
+be seen (it is exactly what the takeover / `prune` cleanup targets).
+
+Each kept line is **either a local ref** (`prepare/foo`) **or a full remote-qualified
+ref** (`origin/prepare/foo`) — the queue is the union of both (local-first by default;
+remote read too). Use each **verbatim** in every command below — never re-prefix
+`<remote>/` onto a remote-qualified line, which would double-prefix into
+`origin/origin/prepare/foo`.
+
+**4b. Detect a human takeover by containment.** A `prepare/<slug>` is **taken
+over** when its tip is **contained** by a **branch** that is neither the default
+(nor its aliases) nor a work-prefix ref — a human carried the work onto their own
+branch (`isaac/fix-thing`), which 011's slug-name pairing alone could not see (#52).
+This **generalizes** slug-pairing (a tsugu accepted branch contains the tip too, so
+containment catches it); slug-name pairing **stays** as the complementary catch for
+the squashed/rewritten take. The check must be **precise** — a loose filter
+false-positives, and the cleanup (Change C) is destructive on a wrong hit, so the
+fetch-first + branch-scope + alias/work-ref exclusion below are **load-bearing**:
+
+```bash
+# `git fetch --prune <remote>` already ran in step 1 — so remote-tracking refs are FRESH
+git for-each-ref --contains "<prepare/slug-tip>" refs/heads refs/remotes/<remote> \
+     --format='%(refname:short)'    # scope to BRANCHES only — never tags / other namespaces
+# Normalize the <remote>/ prefix off remote-tracking names (so origin/isaac/fix == isaac/fix),
+# then EXCLUDE — match the NORMALIZED forms (origin/<default> → <default>, origin/HEAD → HEAD):
+#   • the default and its aliases:  <default>  AND  HEAD
+#       (origin/<default> and origin/HEAD both normalize to these; containment there is
+#        the SETTLED row of step 6, not a takeover — excluding only <remote>/HEAD would
+#        leave the normalized bare HEAD to slip through and false-positive)
+#   • work-prefix refs:  <work-prefix>/*   (local <work-prefix>/* AND normalized origin/<work-prefix>/*
+#       both reduce to this; a pushed work branch's OWN ref must NOT count as a foreign takeover ref)
+# Anything LEFT ⇒ a NON-WORK, NON-DEFAULT branch carries this work ⇒ taken over (→ Change C).
+```
+
+Normalize **before** matching — drop the `<remote>/` prefix off remote-tracking
+names exactly as step 3/4 do (never re-prefix; an unnormalized `<remote>/prepare/foo`
+or `origin/origin/...` would slip past the work-ref exclusion). The signal is **not
+proof of intent** — a branch built *on top of* the prepare tip (a sibling item, a
+scratch experiment) also satisfies containment — so a non-empty result is **surfaced
+for human confirmation, never auto-deleted** (see [Prune sweep](#prune-sweep) and
+Change C). **Git-native, script-free:** this is one native `git for-each-ref
+--contains` plus inline `sed`/`grep` filtering — a documented recipe, **not a shipped
+script** (tsugu ships no scripts).
+
+**Classification is per-ref (per-tip), not per-slug.** The local + remote
+union-by-slug is a **display** merge only; classify **each ref by its own tip**. When
+the local `prepare/<slug>` and a stale `<remote>/prepare/<slug>` **diverge**, a stale
+remote tip contained by a human branch is *taken over*, but a **newer local**
+in-progress tip that nothing contains stays workable — never mark the local
+in-progress ref taken-over from the remote tip's containment.
 
 **5. Read branch context without a checkout.** No `git switch`, no dirty tree —
 read the committed note straight from the verbatim ref:
@@ -158,14 +218,14 @@ branch state of any kind** — classify each work branch `<work-prefix>/<slug>` 
 | Fact | State | Disposition |
 | --- | --- | --- |
 | tip contained in `<remote>/<default>` | **settled** — the work landed | skip; `prune` cleanup candidate |
-| a branch with the **same slug** exists under a configured Accepted Prefix | **decided, awaiting merge** | skip as a candidate; shown in converge's awaiting-merge section |
+| tip contained by a **non-default, non-work** branch (§4b) — an Accepted-Prefix handoff **or** a human's own branch — **or** a same-slug Accepted-Prefix branch pairs it | **taken over** — a human owns the work now; tsugu stops managing it | skip as a candidate; surfaced at `prune`/`converge` (accepted-prefix handoffs also in converge's awaiting-merge section); **never auto-delete** |
 | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
 
 The exact checks:
 
 ```bash
-branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
-slug="${branch##*/}"                   # basename: drop the remote and work prefix
+branch=<work-ref>     # each enumerated work-branch ref VERBATIM from step 4 — LOCAL (prepare/foo) OR remote (origin/prepare/foo)
+slug="${branch##*/}"  # basename: drop any <remote>/ + work prefix
 
 # Resolve this item's slug-paired accepted ref (if any) from $accepted_refs — the
 # configured `## Accepted Prefix` branches enumerated in "Read the queue" step 4
@@ -177,28 +237,39 @@ while IFS= read -r ref; do
   [ "${ref##*/}" = "$slug" ] && { accepted="$ref"; break; }
 done <<<"$accepted_refs"
 
+# §4b takeover-by-containment: any NON-default, NON-work branch that contains this
+# tip — a human's own branch (isaac/fix-thing) OR an accepted-prefix handoff. Reuse
+# step 4b's filter (normalize <remote>/ off, exclude default aliases + work refs);
+# WITHOUT this the partition would mis-read a human's own-branch take as in-progress
+# and keep working it:
+foreign_contains=$(git for-each-ref --contains "$(git rev-parse "$branch")" \
+                     refs/heads "refs/remotes/<remote>" --format='%(refname:short)' \
+                   | sed -E 's#^<remote>/##' \
+                   | grep -vE '^(<default>|HEAD)$' \
+                   | grep -vE '^<work-prefix>/' || true )   # || true: the final grep exits 1 when nothing is foreign (the common in-progress case) — keep it non-fatal under set -euo pipefail
+
 # settled? Pure containment, MODE-AGNOSTIC (011 accept is a rename, not a by-path cut):
 # a work branch is settled when its own tip is contained in default (a direct/solo merge);
 # once handed off it is RENAMED to its accepted branch, which the accepted list tracks
 # separately — same in include and exclude (no by-path exclude landing any more).
 landed_ref="$branch"
 
-# Classify by the FIRST matching table row, in order. Settlement is pure
-# containment — no persisted SHA, no note. The finer rules below — zero-commit
-# exemption and claim recency — are prose, applied on top of this snippet.
+# Classify by the FIRST matching table row, in order (settled wins over taken-over).
+# Settlement is pure containment — no persisted SHA, no note. The finer rules below
+# — zero-commit exemption and claim recency — are prose, applied on top of this snippet.
 if   [ "$(git rev-parse "$branch")" = "$(git rev-parse <remote>/<default>)" ]
 then echo exempt         # zero-commit: tip == default tip — interrupted / request-by-branch, not classified by the table
 elif [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null
 then echo settled
-elif [ -n "$accepted" ]
-then echo pending        # a slug-paired accepted branch exists — decided, awaiting merge
+elif [ -n "$accepted" ] || [ -n "$foreign_contains" ]
+then echo taken-over     # slug-paired handoff OR §4b foreign containment — a human owns it now (both → taken-over)
 else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
 fi
 ```
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
-pending state survives anything the forge does to commits (PR-branch rebases,
-squashes, force-pushes). Then, as prose rules:
+taken-over (handoff) pairing survives anything the forge does to commits (PR-branch
+rebases, squashes, force-pushes). Then, as prose rules:
 
 - **Zero-commit branches are exempt from the whole table** — never classified by
   containment, never by a stale same-slug record. A branch whose tip still equals
@@ -217,8 +288,8 @@ squashes, force-pushes). Then, as prose rules:
   **degrades to pure recency** (acceptable for a courtesy yield, no lock).
 
 A landing that **rewrites history** (forced squash, rebase-before-merge,
-force-push) is the one case not derivable from containment — it stays **pending**
-on the slug-paired accepted branch and re-surfaces until the human confirms; the
+force-push) is the one case not derivable from containment — it stays **taken-over**
+via the slug-paired accepted branch and re-surfaces until the human confirms; the
 full procedure (narrative backstop, retain-the-ref, human-confirmed prune via the
 *possibly-landed* bucket) lives in `references/advanced.md`.
 
@@ -452,7 +523,21 @@ auto-deletes on a guess):
   so containment stays silent **whether or not** the remote counterpart was deleted —
   including the *retained* accepted ref the rewrite/exclude-strip recommendation tells
   the human to keep (disable auto-delete) precisely so it survives to be confirmed
-  here. Surface + confirm each; never auto-delete on a guess.
+  here. This bucket is **also the home of the squash/rewrite *taken-over* source**
+  (no containment signal — slug-pairing is the only hint). Surface + confirm each;
+  never auto-delete on a guess. On confirm, also delete any **paired stale
+  `prepare/<slug>`** work ref (local + remote, human-confirmed) — since containment
+  cannot derive the take, the slug pairing carries its cleanup.
+- **taken-over (redundant prepare)** — a `prepare/<slug>` whose tip a **non-default,
+  non-work branch** contains (a human carried the work onto their own branch — see the
+  containment-takeover read above). Surface + confirm each, like *possibly-landed*; on
+  confirmation delete the redundant `prepare/<slug>` **local and remote, both
+  human-confirmed**; never auto-delete. Precedence: classify as *settled* when default
+  contains the tip, else *taken-over*. The broad partition state *taken-over* has
+  **two sources** (foreign containment + slug-pairing); **only the foreign-containment
+  source enters this bucket**. The slug-pairing **squash/rewrite** source is **not**
+  derivable from containment — it surfaces as *possibly-landed (no containment)* above
+  (which also cleans up its paired stale `prepare/<slug>`), never here.
 - **dropped** — the `context.md` narrative says "do not resume" (a hint the present
   human confirms); the backstop for branches `drop` recorded but couldn't delete.
 - **orphaned accepted** — a pushed accepted branch with no open PR and no recent
@@ -533,7 +618,7 @@ touch .tsugu/knowledge/.gitkeep
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 4`) + the mainline `context.md` only
+**2. Write `policy.md` (with `tsugu-schema: 5`) + the mainline `context.md` only
 if absent**, rendered from the skill's templates. This makes re-running `init` an
 **idempotent repair**: it fills in any missing skeleton path and is otherwise a
 no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules

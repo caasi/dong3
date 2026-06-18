@@ -134,10 +134,10 @@ grep -rEn '^## Completion tail|swept .{0,30}completion tail|completion tail[^.]{
   && fail "a live 'completion tail' sweep reference survives (should be prune)" \
   || pass "no live completion-tail sweep reference"
 
-# --- Task 11: version + descriptions ---
+# --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0) ---
 # jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.6.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu version 0.6.0" || fail "marketplace.json: tsugu not at 0.6.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.7.0 (bumped by spec 012)" || fail "marketplace.json: tsugu not at 0.7.0"
 # guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
@@ -162,5 +162,150 @@ grep -rIF "cut fresh from default"   "$ROOT/plugins/tsugu/skills/" >/dev/null 2>
 grep -rIF "applied by path"          "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&1 && fail "stale old-model: 'applied by path'"                        || pass "no stale old-model: applied by path"
 # converge RENAMES, never cuts an accepted branch:
 grep -rIE "converge cuts?|converge cut hands|a converge cut" "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&1 && fail "stale old-model: 'converge cut(s)' (handoff renames, never cuts)" || pass "no stale old-model: converge cuts"
+
+# --- Task 1: local-first prepare + schema-aware push read + schema 5 ---
+# (dropped bare `need 'push-prepare-branches'` — pre-satisfied by the old default-yes prose)
+need 'local-first|stays on local|keep work .*local'   "prepare is local-first by default"
+need 'schema 4 else|tsugu-schema: 4.*yes|absent.*schema' "schema-aware push default read"
+need 'tsugu-schema: 5|tsugu-schema. 5|schema . 5'     "init stamps schema 5"
+need 'cross-machine opt-in'                           "remote push is a cross-machine opt-in (bigram — bare 'opt-in' appears 5x in SKILL already)"
+# the OLD unconditional framing must be gone:
+refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
+refute 'enumerates only remote-tracking refs'         "old 'only remote-tracking refs' framing removed"
+
+# --- Task 2: human-takeover detection by containment (Change B) ---
+need 'taken over|taken-over'                          "takeover state named"
+need 'human.?s own branch|own-named|human-named'      "recognizes a human's own-named branch (the #52 gap; 'for-each-ref --contains' alone is a no-op — it already exists at SKILL.md:124)"
+need 'non-default.*non-work|non-work.*non-default'    "filter: non-default, non-work ref"
+need 'generaliz'                                      "containment generalizes slug-pairing"
+need 'script-free|ships no script|not a shipped'      "git-native, no shipped script note"
+need 'classification is per-ref|each ref by its own tip|union.{0,12}display' "per-ref/per-tip classification — a divergent local in-progress tip is not suppressed by a stale remote tip's containment (spec A2)"
+
+# --- Task 3: taken-over disposition (C) + auto-push invariant (D) ---
+need 'suppress|suppressed from auto-work'             "taken-over suppresses auto-work"
+need 'both human-confirmed|local and remote, both'    "cleanup is local AND remote, both human-confirmed (bare 'human-confirmed' is pre-satisfied by 011 prose)"
+need 'never auto-push|auto-push .*work-prefix|only .*work-prefix' "auto-push invariant: only work-prefix"
+need 'redundant prepare|taken-over.*prune|prune.*taken-over' "prune taken-over category"
+# the disposition must NEVER auto-delete the prepare/redundant ref (the load-bearing safety fix).
+# NB: must NOT trip the legit forge 'auto-delete-head-branch' (hyphen) or 011's 'never auto-deletes on a guess'.
+refute 'auto-delete[sd]?( the| a| its)?( local| redundant| stale)? (prepare|work branch)|auto-delete[sd]?( the| a)?( local| redundant) ref\b' "no auto-delete of the prepare/redundant ref"
+
+# --- Task 4: git-recipes local-default read + takeover recipe ---
+GR='plugins/tsugu/skills/tsugu/references/git-recipes.md'
+need_in "$GR" 'local-first .default.'                 "no-push mode relabeled local-first default ('local.*default' fallback dropped — it matches the pre-existing 'stale local default' Freshness line)"
+need_in "$GR" 'cross-machine opt-in'                  "pushed mode relabeled cross-machine opt-in"
+need_in "$GR" 'for-each-ref --contains'               "takeover containment recipe present (absent in git-recipes today)"
+need_in "$GR" 'taken over|takeover'                   "git-recipes has the takeover recipe (replaces the 'fetch --prune' no-op, which already exists at git-recipes.md:41)"
+need_in "$GR" 'refs/heads refs/remotes|refs/heads .refs/remotes' "takeover scoped to branch namespaces"
+# the work queue must no longer be framed as remote-tracking-only (012 unions local+remote).
+# git-recipes.md:98 currently reads "...unlike the work queue, which is remote-tracking" — that must go
+# (the naive 'work queue.*local' need is a no-op: it matches that very line 98):
+grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
+  && fail "git-recipes still frames the work queue as remote-tracking-only (012 unions local+remote)" \
+  || pass "work queue reframed off remote-tracking-only"
+need_in "$GR" 'per-ref|each ref by its own tip'      "git-recipes notes per-ref/per-tip classification"
+need_in "$GR" 'tsugu-schema. 5'                       "git-recipes init-skeleton stamps schema 5 (was 4 at :536)"
+
+# --- Task 5: schema 5 template + 4->5 migration ---
+TP='plugins/tsugu/skills/tsugu/templates/policy.md'
+MG='plugins/tsugu/skills/tsugu/references/migrations.md'
+grep -Eq '^tsugu-schema: 5' "$ROOT/$TP" && pass "template stamped schema 5" || fail "templates/policy.md not stamped tsugu-schema: 5"
+grep -Eq '^push-prepare-branches: no' "$ROOT/$TP" && pass "template push default no" || fail "templates/policy.md push default not 'no'"
+need_in "$MG" '## Migration 4.5|Migration 4→5'        "migrations has a 4->5 section"
+need_in "$MG" 'push-prepare-branches: yes'            "4->5 pins explicit old default yes"
+need_in "$MG" 'tsugu-schema: 5|tsugu-schema. 5'       "4->5 stamps schema 5"
+need_in 'plugins/tsugu/commands/init.md' '1.2.3.4.5|tsugu-schema. 5' "init.md updated to schema 5 / 1->...->5"
+need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' '1.2.3.4.5|schema . 5' "policy-and-intake updated to 1->...->5 / schema 5"
+
+# --- Task 6: prune taken-over category + command descriptions ---
+NP='plugins/tsugu/skills/tsugu/references/notes-and-packet.md'
+need_in "$NP" 'taken-over|redundant prepare'          "notes-and-packet documents the taken-over prune category"
+need_in 'plugins/tsugu/commands/prune.md' 'taken-over|redundant prepare' "prune command notes taken-over"
+need_in 'plugins/tsugu/commands/prepare.md' 'local-first|local by default' "prepare command notes local-first"
+
+# --- Task 7: README local-first ---
+RM='plugins/tsugu/skills/tsugu/README.md'
+need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
+need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
+
+# --- Task 8: version 0.7.0 + descriptions ---
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu 0.7.0" || fail "marketplace.json: tsugu not at 0.7.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by default")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace desc notes local-first" || fail "marketplace.json: tsugu description missing local-first"
+jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
+  && pass "plugin.json desc notes local-first" || fail "plugin.json: description missing local-first"
+
+# --- Review fixes (spec 012 PR #53): takeover-model reconciliation + local-first labels ---
+# These guard spots the earlier `need`/`refute` set (SKILL.md-only) and the per-file
+# checks did not reach, so a green run no longer hides them (F1-F4/F6).
+PI='plugins/tsugu/skills/tsugu/references/policy-and-intake.md'
+CV='plugins/tsugu/commands/converge.md'
+# F2: the old "takeover = containment OUTSIDE accepted prefixes" carve-out must be gone from SKILL.md.
+refute 'outside\* the configured accepted prefixes is the'  "old pending-vs-takeover carve-out removed (F2)"
+# F1: git-recipes §6 partition echoes taken-over, never the pre-reconcile `pending`.
+grep -Eq 'echo +pending\b' "$ROOT/$GR" && fail "git-recipes §6 still echoes 'pending' (pre-reconcile model)" || pass "git-recipes §6 partition echoes taken-over (F1)"
+# F3: policy-and-intake §Push documents schema-5 local-first, not the schema-4 default-yes.
+need_in "$PI" 'local-first'   "policy-and-intake §Push is local-first (F3)"
+need_in "$PI" 'schema-aware'  "policy-and-intake §Push: schema-aware absent read (F3)"
+grep -Eiq 'default is \*\*.yes' "$ROOT/$PI" && fail "policy-and-intake §Push still says 'default is yes' (schema-4 stale, F3)" || pass "policy-and-intake §Push no longer defaults yes (F3)"
+# F4: converge reads local + remote, not remote-tracking-only.
+need_in "$CV" 'local . remote|local-first'  "converge reads local + remote work refs (F4)"
+grep -Eiq 'remote-tracking refs after fetch' "$ROOT/$CV" && fail "converge.md still frames discovery as remote-tracking-only (F4)" || pass "converge.md reframed local+remote (F4)"
+
+# --- Review round 2 (PR #53): executable §6 takeover + init default + pending propagation ---
+# R2-1: §6 partition must actually CONSUME §4b containment (a human's own branch ⇒ taken-over,
+# not in-progress) — guarding the table/code mismatch, not just the absent `echo pending`.
+need_in "$GR" 'foreign_contains'  "§6 partition consumes §4b containment (human's own branch ⇒ taken-over)"
+# the foreign_contains pipeline ends in grep -v, which exits 1 on the common no-foreign-ref
+# path — must be set-e-safe (|| true) or it aborts the documented recipe under pipefail.
+grep -A6 'foreign_contains=' "$ROOT/$GR" | grep -Eq '\|\| true' \
+  && pass "§6 foreign_contains pipeline is set-e-safe (|| true)" \
+  || fail "§6 foreign_contains grep -v not guarded — aborts under set -euo pipefail on the in-progress path"
+# Read-the-queue enumeration greps must also be set-e-safe — an empty queue is valid, but grep
+# exits 1 on no match and would abort the copy/pasted recipe under the documented set -euo pipefail.
+if grep -nE 'grep --extended-regexp' "$ROOT/$GR" | grep -qv '|| true'; then
+  fail "a 'grep --extended-regexp' enumeration line lacks '|| true' (aborts under set -euo pipefail on an empty queue)"
+else
+  pass "Read-the-queue enumeration greps are set-e-safe (|| true)"
+fi
+# R2-2: init prep-branch push question defaults no (schema-5 local-first), not yes.
+need 'prep branches automatically \(\*\*default: no'    "init push question defaults no (schema 5)"
+refute 'prep branches automatically \(\*\*default: yes' "old init 'default: yes' push question removed"
+# R2-3: the retired partition label must be gone everywhere in the skill (not just SKILL.md/git-recipes).
+grep -rIn 'decided, awaiting merge' "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&1 \
+  && fail "stale partition label 'decided, awaiting merge' survives (use taken-over)" \
+  || pass "no stale 'decided, awaiting merge' partition label"
+grep -Eiq '^- \*\*pending\*\*' "$ROOT/$RM" \
+  && fail "README still lists 'pending' as a partition state" \
+  || pass "README partition uses taken-over, not pending"
+# the canonical state name is "taken over"; the hybrid "decided / taken over" label is retired.
+refute 'decided / taken over'  "SKILL.md partition row uses 'taken over', not the hybrid 'decided / taken over'"
+
+# --- Review round 4 (PR #53): prune taken-over bucket scoped git-derivable, squash→possibly-landed ---
+# The prune "taken-over (redundant prepare)" bucket is the git-containment-derivable take only;
+# the non-git-derivable squash/rewrite handoff must be pointed at possibly-landed, not this bucket.
+# prune taken-over bucket = the foreign-containment source of the broad partition state only.
+need    'source enters this'        "SKILL.md scopes prune taken-over to the foreign-containment source"
+need_in "$GR" 'source enters this'  "git-recipes scopes prune taken-over to the foreign-containment source"
+need_in "$NP" 'git-containment-derivable'               "notes-and-packet taken-over scoped to git-derivable"
+need_in 'plugins/tsugu/commands/prune.md' 'squash/rewrite handoff is .possibly-landed' "prune.md points squash/rewrite at possibly-landed"
+# possibly-landed owns cleanup of the paired stale prepare/<slug> for the non-derivable squash/rewrite take.
+need    'paired stale'        "SKILL.md possibly-landed cleans the paired stale prepare ref"
+need_in "$GR" 'paired stale'  "git-recipes possibly-landed cleans the paired stale prepare ref"
+
+# --- Review round 7 (PR #53): retire residual "decided" partition leftovers + grammar ---
+# No partition-state "decided" leftover (state-list "/ decided / settled", "→ decided", "decided/landed").
+grep -rInE '/ decided / settled|→ decided|decided/landed' "$ROOT/plugins/tsugu/" >/dev/null 2>&1 \
+  && fail "residual 'decided' partition-state label survives (use taken-over)" \
+  || pass "no residual 'decided' partition-state label"
+# Handoff-rename grammar: "renames prepare/<slug> into for ..." (missing target) must be gone.
+grep -rIn 'into for ' "$ROOT/plugins/tsugu/" >/dev/null 2>&1 \
+  && fail "handoff-rename grammar 'into for ...' (missing target) survives" \
+  || pass "handoff-rename names its target (no 'into for')"
+# CLAUDE.md prune list must include the taken-over bucket.
+grep -q 'orphaned-accepted / taken-over (redundant prepare)' "$ROOT/CLAUDE.md" \
+  && pass "CLAUDE.md prune list includes taken-over (redundant prepare)" \
+  || fail "CLAUDE.md prune list omits the taken-over bucket"
 
 echo "All tsugu SKILL.md content checks passed."

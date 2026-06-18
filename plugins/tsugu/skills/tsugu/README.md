@@ -33,7 +33,12 @@ One lifecycle, four routines:
    private git work on the configured work-prefix branches (default `prepare/*`),
    run tests, record evidence in `context.md`, and promote shareable findings into
    `knowledge/`. **External silence** — interrupt only if the task is unsafe,
-   destructive, or blocked.
+   destructive, or blocked. Work stays on **local** `prepare/*` by default
+   (**local-first**); pushing to the remote is a **cross-machine opt-in**
+   (`push-prepare-branches: yes` in `policy.md`), which also restores the remote
+   backup of in-flight work. When you take over a prepared branch onto your own
+   branch, Tsugu recognizes the takeover by containment and surfaces the now-redundant
+   `prepare/<slug>` for cleanup at `prune`/`converge` — it is **never auto-deleted**.
 3. **converge** (human present) — read the prepared branches live, present the
    status view, decide **with you** what becomes public, and **hand off** that
    disposition in the same session. The default **accept** is a **handoff**: it
@@ -88,7 +93,7 @@ it from `git fetch` alone. It holds exactly three things:
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 4`)
+                 merge method, … — `tsugu-schema: 5`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)
@@ -110,8 +115,10 @@ does not transfer across machines — the only cross-machine contract is the pus
 git branches, so each machine seeds its own config (Tsugu asks once, on the first
 interactive `prepare`/`converge`).
 
-After `git fetch`, the queue is read from remote-tracking refs — branch names plus
-each branch's `context.md` must be legible enough that a cold-start agent can
+After `git fetch`, the queue is read from **local + remote** work-prefix refs
+(local-first by default; remote work refs are read too, for opt-in pushes and
+leftovers) — branch names plus each branch's `context.md` must be legible enough
+that a cold-start agent can
 reconstruct what branches exist, why, and what's next, with **zero conversation
 transcript**.
 
@@ -124,9 +131,12 @@ is single-layer, classifying each work branch by two ref-level facts:
 
 - **settled** = the work landed, derived from **containment** (the branch's tip is
   contained in the default branch).
-- **pending** (decided, awaiting merge) = a **slug-paired accepted branch** exists —
-  a branch under a configured accepted prefix sharing the work branch's slug. The
-  pairing is by name, so it survives anything the forge does to commits.
+- **taken over** = a human now owns the work — either any **non-default, non-work
+  branch contains** the tip (a human carried it onto their own branch) **or** a
+  **slug-paired accepted branch** exists (a `converge` handoff). tsugu stops
+  managing it; converge surfaces accepted handoffs in its awaiting-merge section.
+  Slug-pairing is by name, so it survives anything the forge does to commits — the
+  complementary catch when a history rewrite severs containment.
 
 Because settlement is derived from history, **prefer merge commits**. A landing that
 rewrites history (squash, rebase-before-merge, force-push) leaves the work tip
