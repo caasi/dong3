@@ -112,18 +112,20 @@ see [Prune sweep](#prune-sweep) for how the settled cleanup sweep consults it.)
 # work queue — LOCAL + remote, configured work prefixes (default shown); union by slug.
 # Discovery reads remote work refs REGARDLESS of the push default — only PUSHING is gated
 # (a leftover or opt-in-pushed remote prepare/* must still be seen; it is what takeover/prune targets).
+# (|| true on each grep: an empty queue is a valid outcome — grep exits 1 on no match,
+#  which would abort the recipe under the documented set -euo pipefail; keep it non-fatal)
 git branch --format='%(refname:short)' \
-  | grep --extended-regexp "^(prepare)/"            # local-first (default)
+  | grep --extended-regexp "^(prepare)/" || true            # local-first (default)
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(prepare)/"   # cross-machine opt-in mode (pushed)
+  | grep --extended-regexp "^<remote>/(prepare)/" || true   # cross-machine opt-in mode (pushed)
 # union the two by slug; a slug present in either is one queue item (classify each ref by its own tip — see step 6)
 
 # accepted list — LOCAL + remote, configured accepted prefixes (for slug pairing).
 # Local is required so a just-renamed (not-yet-pushed) accepted branch pairs at converge (B1a).
 git branch --format='%(refname:short)' \
-  | grep --extended-regexp "^(feature|bugfix|chore|public)/"            # local accepted
+  | grep --extended-regexp "^(feature|bugfix|chore|public)/" || true            # local accepted
 git branch --remotes --format='%(refname:short)' \
-  | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/"   # remote accepted
+  | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/" || true   # remote accepted
 # union the two by slug; a slug present in either marks the work branch "taken-over" (a handoff)
 ```
 

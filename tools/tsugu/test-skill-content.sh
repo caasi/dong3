@@ -262,6 +262,13 @@ need_in "$GR" 'foreign_contains'  "§6 partition consumes §4b containment (huma
 grep -A6 'foreign_contains=' "$ROOT/$GR" | grep -Eq '\|\| true' \
   && pass "§6 foreign_contains pipeline is set-e-safe (|| true)" \
   || fail "§6 foreign_contains grep -v not guarded — aborts under set -euo pipefail on the in-progress path"
+# Read-the-queue enumeration greps must also be set-e-safe — an empty queue is valid, but grep
+# exits 1 on no match and would abort the copy/pasted recipe under the documented set -euo pipefail.
+if grep -nE 'grep --extended-regexp' "$ROOT/$GR" | grep -qv '|| true'; then
+  fail "a 'grep --extended-regexp' enumeration line lacks '|| true' (aborts under set -euo pipefail on an empty queue)"
+else
+  pass "Read-the-queue enumeration greps are set-e-safe (|| true)"
+fi
 # R2-2: init prep-branch push question defaults no (schema-5 local-first), not yes.
 need 'prep branches automatically \(\*\*default: no'    "init push question defaults no (schema 5)"
 refute 'prep branches automatically \(\*\*default: yes' "old init 'default: yes' push question removed"
