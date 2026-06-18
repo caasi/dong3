@@ -253,4 +253,19 @@ grep -Eiq 'default is \*\*.yes' "$ROOT/$PI" && fail "policy-and-intake §Push st
 need_in "$CV" 'local . remote|local-first'  "converge reads local + remote work refs (F4)"
 grep -Eiq 'remote-tracking refs after fetch' "$ROOT/$CV" && fail "converge.md still frames discovery as remote-tracking-only (F4)" || pass "converge.md reframed local+remote (F4)"
 
+# --- Review round 2 (PR #53): executable §6 takeover + init default + pending propagation ---
+# R2-1: §6 partition must actually CONSUME §4b containment (a human's own branch ⇒ taken-over,
+# not in-progress) — guarding the table/code mismatch, not just the absent `echo pending`.
+need_in "$GR" 'foreign_contains'  "§6 partition consumes §4b containment (human's own branch ⇒ taken-over)"
+# R2-2: init prep-branch push question defaults no (schema-5 local-first), not yes.
+need 'prep branches automatically \(\*\*default: no'    "init push question defaults no (schema 5)"
+refute 'prep branches automatically \(\*\*default: yes' "old init 'default: yes' push question removed"
+# R2-3: the retired partition label must be gone everywhere in the skill (not just SKILL.md/git-recipes).
+grep -rIn 'decided, awaiting merge' "$ROOT/plugins/tsugu/skills/" >/dev/null 2>&1 \
+  && fail "stale partition label 'decided, awaiting merge' survives (use taken-over)" \
+  || pass "no stale 'decided, awaiting merge' partition label"
+grep -Eiq '^- \*\*pending\*\*' "$ROOT/$RM" \
+  && fail "README still lists 'pending' as a partition state" \
+  || pass "README partition uses taken-over, not pending"
+
 echo "All tsugu SKILL.md content checks passed."
