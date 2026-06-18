@@ -53,14 +53,14 @@ relies on:
    writes no marker, and a note on the *accepted* branch can't reach a surviving
    remote `prepare/<slug>` anyway (it was pushed earlier, without the note). What
    actually guards a surviving stale `prepare/<slug>` is the **partition** — it is
-   slug-paired to the accepted branch → **decided** → skipped — or, in the
+   slug-paired to the accepted branch → **taken-over** → skipped — or, in the
    signal-less residual (accepted ref deleted *and* B3 not yet run), `prepare`'s
    **conservative judgment** (leave the unfamiliar stale branch for `converge`;
    reversible, never auto-merges; B3 closes the window). *Judgment, not a written
    status, governs.*
 2. **Re-surface until confirmed.** Because the work tip is **never** contained, the
-   item cannot settle by containment; it stays **decided, awaiting merge** (paired
-   by its slug-paired accepted branch) and **re-surfaces at each `converge`** until
+   item cannot settle by containment; it stays **taken-over** (paired by its
+   slug-paired accepted branch) and **re-surfaces at each `converge`** until
    the human confirms the landing — after which `prune` sweeps the branches (its
    *possibly-landed (no containment) — confirm* bucket) and curation promotes any
    findings. No settlement SHA is persisted — state stays single-layer; the slug
@@ -107,8 +107,8 @@ Tsugu **recommends merge commits — do not squash-merge tsugu-managed branches.
 Preserved history is what makes settlement, lineage, and evidence derivable from
 the DAG by containment. The consequence of a **forced squash:** the squash commit's
 parents contain none of the work commits, so the landing is **not** containment-
-derivable — the work stays "decided, awaiting merge" *because its slug-paired
-accepted branch still pairs*. So when a forge nonetheless forces a squash, the repo
+derivable — the work stays **taken-over** *because its slug-paired accepted branch
+still pairs*. So when a forge nonetheless forces a squash, the repo
 **should disable the forge's auto-delete-head-branch for tsugu accepted branches**,
 so the slug pairing survives the merge and carries the "awaiting merge" state until
 the human confirms and `prune` deletes the accepted branch (plus the stale remote

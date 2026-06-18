@@ -22,7 +22,8 @@ push-prepare-branches: no
 feature/*  bugfix/*  chore/*
 <!-- human-workflow branches the handoff RENAMES prepare/<slug> into for PRs
      (converge renames, never cuts). A branch here with the same slug as a work
-     branch = that work is decided, awaiting merge. -->
+     branch = that work is taken over (a handoff the human owns; converge
+     surfaces it as awaiting-merge). -->
 ## Public branch
 public-branch-tsugu: include
 <!-- include (default): the work branch's prep commit DAG plus its context.md

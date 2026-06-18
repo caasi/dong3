@@ -56,8 +56,9 @@ The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into 
 the human's PR (converge renames, never cuts).
 Default `feature/* bugfix/* chore/*`. An accepted branch is **not** a queue item;
 it exists so the partition can read one ref-level fact: an accepted branch whose
-**slug pairs** a work branch's slug means **that work is decided, awaiting
-merge** — skip it as a candidate, surface it in converge's awaiting-merge section.
+**slug pairs** a work branch's slug means **that work is taken over** — a handoff
+the human now owns; skip it as a candidate, surface it in converge's awaiting-merge
+section.
 The pairing is by **name, not commits**, so it survives whatever the forge does to
 commits (PR-branch rebases, squashes, force-pushes). Must be disjoint from
 `## Branch Prefixes`.

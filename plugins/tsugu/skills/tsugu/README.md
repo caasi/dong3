@@ -131,9 +131,12 @@ is single-layer, classifying each work branch by two ref-level facts:
 
 - **settled** = the work landed, derived from **containment** (the branch's tip is
   contained in the default branch).
-- **pending** (decided, awaiting merge) = a **slug-paired accepted branch** exists —
-  a branch under a configured accepted prefix sharing the work branch's slug. The
-  pairing is by name, so it survives anything the forge does to commits.
+- **taken over** = a human now owns the work — either any **non-default, non-work
+  branch contains** the tip (a human carried it onto their own branch) **or** a
+  **slug-paired accepted branch** exists (a `converge` handoff). tsugu stops
+  managing it; converge surfaces accepted handoffs in its awaiting-merge section.
+  Slug-pairing is by name, so it survives anything the forge does to commits — the
+  complementary catch when a history rewrite severs containment.
 
 Because settlement is derived from history, **prefer merge commits**. A landing that
 rewrites history (squash, rebase-before-merge, force-push) leaves the work tip
