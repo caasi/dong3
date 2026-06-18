@@ -244,7 +244,7 @@ foreign_contains=$(git for-each-ref --contains "$(git rev-parse "$branch")" \
                      refs/heads "refs/remotes/<remote>" --format='%(refname:short)' \
                    | sed -E 's#^<remote>/##' \
                    | grep -vE '^(<default>|HEAD)$' \
-                   | grep -vE '^<work-prefix>/' )
+                   | grep -vE '^<work-prefix>/' || true )   # || true: the final grep exits 1 when nothing is foreign (the common in-progress case) — keep it non-fatal under set -euo pipefail
 
 # settled? Pure containment, MODE-AGNOSTIC (011 accept is a rename, not a by-path cut):
 # a work branch is settled when its own tip is contained in default (a direct/solo merge);

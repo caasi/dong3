@@ -257,6 +257,11 @@ grep -Eiq 'remote-tracking refs after fetch' "$ROOT/$CV" && fail "converge.md st
 # R2-1: §6 partition must actually CONSUME §4b containment (a human's own branch ⇒ taken-over,
 # not in-progress) — guarding the table/code mismatch, not just the absent `echo pending`.
 need_in "$GR" 'foreign_contains'  "§6 partition consumes §4b containment (human's own branch ⇒ taken-over)"
+# the foreign_contains pipeline ends in grep -v, which exits 1 on the common no-foreign-ref
+# path — must be set-e-safe (|| true) or it aborts the documented recipe under pipefail.
+grep -A6 'foreign_contains=' "$ROOT/$GR" | grep -Eq '\|\| true' \
+  && pass "§6 foreign_contains pipeline is set-e-safe (|| true)" \
+  || fail "§6 foreign_contains grep -v not guarded — aborts under set -euo pipefail on the in-progress path"
 # R2-2: init prep-branch push question defaults no (schema-5 local-first), not yes.
 need 'prep branches automatically \(\*\*default: no'    "init push question defaults no (schema 5)"
 refute 'prep branches automatically \(\*\*default: yes' "old init 'default: yes' push question removed"
