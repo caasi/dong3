@@ -236,4 +236,21 @@ jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by
 jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
   && pass "plugin.json desc notes local-first" || fail "plugin.json: description missing local-first"
 
+# --- Review fixes (spec 012 PR #53): takeover-model reconciliation + local-first labels ---
+# These guard spots the earlier `need`/`refute` set (SKILL.md-only) and the per-file
+# checks did not reach, so a green run no longer hides them (F1-F4/F6).
+PI='plugins/tsugu/skills/tsugu/references/policy-and-intake.md'
+CV='plugins/tsugu/commands/converge.md'
+# F2: the old "takeover = containment OUTSIDE accepted prefixes" carve-out must be gone from SKILL.md.
+refute 'outside\* the configured accepted prefixes is the'  "old pending-vs-takeover carve-out removed (F2)"
+# F1: git-recipes §6 partition echoes taken-over, never the pre-reconcile `pending`.
+grep -Eq 'echo +pending\b' "$ROOT/$GR" && fail "git-recipes §6 still echoes 'pending' (pre-reconcile model)" || pass "git-recipes §6 partition echoes taken-over (F1)"
+# F3: policy-and-intake §Push documents schema-5 local-first, not the schema-4 default-yes.
+need_in "$PI" 'local-first'   "policy-and-intake §Push is local-first (F3)"
+need_in "$PI" 'schema-aware'  "policy-and-intake §Push: schema-aware absent read (F3)"
+grep -Eiq 'default is \*\*.yes' "$ROOT/$PI" && fail "policy-and-intake §Push still says 'default is yes' (schema-4 stale, F3)" || pass "policy-and-intake §Push no longer defaults yes (F3)"
+# F4: converge reads local + remote, not remote-tracking-only.
+need_in "$CV" 'local . remote|local-first'  "converge reads local + remote work refs (F4)"
+grep -Eiq 'remote-tracking refs after fetch' "$ROOT/$CV" && fail "converge.md still frames discovery as remote-tracking-only (F4)" || pass "converge.md reframed local+remote (F4)"
+
 echo "All tsugu SKILL.md content checks passed."
