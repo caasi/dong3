@@ -276,9 +276,13 @@ grep -Eiq '^- \*\*pending\*\*' "$ROOT/$RM" \
 # --- Review round 4 (PR #53): prune taken-over bucket scoped git-derivable, squash→possibly-landed ---
 # The prune "taken-over (redundant prepare)" bucket is the git-containment-derivable take only;
 # the non-git-derivable squash/rewrite handoff must be pointed at possibly-landed, not this bucket.
-need    'git-containment-derivable'  "SKILL.md prune taken-over scoped to git-derivable (squash→possibly-landed)"
-need_in "$GR" 'git-containment-derivable'  "git-recipes prune bullet scopes taken-over to git-derivable"
-need_in "$NP" 'git-containment-derivable'  "notes-and-packet taken-over scoped to git-derivable"
+# prune taken-over bucket = the foreign-containment source of the broad partition state only.
+need    'source enters this'        "SKILL.md scopes prune taken-over to the foreign-containment source"
+need_in "$GR" 'source enters this'  "git-recipes scopes prune taken-over to the foreign-containment source"
+need_in "$NP" 'git-containment-derivable'               "notes-and-packet taken-over scoped to git-derivable"
 need_in 'plugins/tsugu/commands/prune.md' 'squash/rewrite handoff is .possibly-landed' "prune.md points squash/rewrite at possibly-landed"
+# possibly-landed owns cleanup of the paired stale prepare/<slug> for the non-derivable squash/rewrite take.
+need    'paired stale'        "SKILL.md possibly-landed cleans the paired stale prepare ref"
+need_in "$GR" 'paired stale'  "git-recipes possibly-landed cleans the paired stale prepare ref"
 
 echo "All tsugu SKILL.md content checks passed."

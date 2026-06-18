@@ -521,15 +521,21 @@ auto-deletes on a guess):
   so containment stays silent **whether or not** the remote counterpart was deleted —
   including the *retained* accepted ref the rewrite/exclude-strip recommendation tells
   the human to keep (disable auto-delete) precisely so it survives to be confirmed
-  here. Surface + confirm each; never auto-delete on a guess.
+  here. This bucket is **also the home of the squash/rewrite *taken-over* source**
+  (no containment signal — slug-pairing is the only hint). Surface + confirm each;
+  never auto-delete on a guess. On confirm, also delete any **paired stale
+  `prepare/<slug>`** work ref (local + remote, human-confirmed) — since containment
+  cannot derive the take, the slug pairing carries its cleanup.
 - **taken-over (redundant prepare)** — a `prepare/<slug>` whose tip a **non-default,
   non-work branch** contains (a human carried the work onto their own branch — see the
   containment-takeover read above). Surface + confirm each, like *possibly-landed*; on
   confirmation delete the redundant `prepare/<slug>` **local and remote, both
   human-confirmed**; never auto-delete. Precedence: classify as *settled* when default
-  contains the tip, else *taken-over*. This bucket is the **git-containment-derivable**
-  take only; the slug-paired **squash/rewrite** handoff is **not** derivable from
-  containment — it surfaces as *possibly-landed (no containment)* above, never here.
+  contains the tip, else *taken-over*. The broad partition state *taken-over* has
+  **two sources** (foreign containment + slug-pairing); **only the foreign-containment
+  source enters this bucket**. The slug-pairing **squash/rewrite** source is **not**
+  derivable from containment — it surfaces as *possibly-landed (no containment)* above
+  (which also cleans up its paired stale `prepare/<slug>`), never here.
 - **dropped** — the `context.md` narrative says "do not resume" (a hint the present
   human confirms); the backstop for branches `drop` recorded but couldn't delete.
 - **orphaned accepted** — a pushed accepted branch with no open PR and no recent
