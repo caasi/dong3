@@ -20,7 +20,8 @@ push-prepare-branches: no
      machine; the opt-in restores the backup for anyone who wants it). -->
 ## Accepted Prefixes
 feature/*  bugfix/*  chore/*
-<!-- human-workflow branches the handoff RENAMES prepare/<slug> into for PRs
+<!-- human-workflow branches the handoff RENAMES prepare/<slug> into —
+     <accepted-prefix>/<slug> — for PRs
      (converge renames, never cuts). A branch here with the same slug as a work
      branch = that work is taken over (a handoff the human owns; converge
      surfaces it as awaiting-merge). -->

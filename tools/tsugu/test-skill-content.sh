@@ -287,4 +287,18 @@ need_in 'plugins/tsugu/commands/prune.md' 'squash/rewrite handoff is .possibly-l
 need    'paired stale'        "SKILL.md possibly-landed cleans the paired stale prepare ref"
 need_in "$GR" 'paired stale'  "git-recipes possibly-landed cleans the paired stale prepare ref"
 
+# --- Review round 7 (PR #53): retire residual "decided" partition leftovers + grammar ---
+# No partition-state "decided" leftover (state-list "/ decided / settled", "→ decided", "decided/landed").
+grep -rInE '/ decided / settled|→ decided|decided/landed' "$ROOT/plugins/tsugu/" >/dev/null 2>&1 \
+  && fail "residual 'decided' partition-state label survives (use taken-over)" \
+  || pass "no residual 'decided' partition-state label"
+# Handoff-rename grammar: "renames prepare/<slug> into for ..." (missing target) must be gone.
+grep -rIn 'into for ' "$ROOT/plugins/tsugu/" >/dev/null 2>&1 \
+  && fail "handoff-rename grammar 'into for ...' (missing target) survives" \
+  || pass "handoff-rename names its target (no 'into for')"
+# CLAUDE.md prune list must include the taken-over bucket.
+grep -q 'orphaned-accepted / taken-over (redundant prepare)' "$ROOT/CLAUDE.md" \
+  && pass "CLAUDE.md prune list includes taken-over (redundant prepare)" \
+  || fail "CLAUDE.md prune list omits the taken-over bucket"
+
 echo "All tsugu SKILL.md content checks passed."

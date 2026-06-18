@@ -96,7 +96,7 @@ the filter from the fetched policy, don't hardcode, since `init` may have
 customized them. **Also enumerate the configured `## Accepted Prefixes`**
 (defaults: `feature`, `bugfix`, `chore`, plus legacy `public`) into a
 **separate accepted list** — these are not queue items but are needed in step 6 to
-pair a work branch's slug against a decided accepted branch. **The accepted list
+pair a work branch's slug against its accepted branch (a taken-over handoff). **The accepted list
 spans LOCAL *and* remote refs** — as does the work queue itself (012 unions
 local + remote work prefixes; local is the default): at `converge`, the just-renamed
 `<accepted-prefix>/<slug>` exists **locally**
@@ -129,7 +129,7 @@ git branch --remotes --format='%(refname:short)' \
 
 The `public/*` prefix is **retired as a work prefix**; legacy `public/*` branches
 now arrive through the **Accepted Prefixes** list (where a migration appends them
-— see `references/migrations.md`), so they read as decided/landed outputs, never
+— see `references/migrations.md`), so they read as taken-over/landed outputs, never
 work candidates.
 
 **Local-first (default).** Under the default `push-prepare-branches: no`, work

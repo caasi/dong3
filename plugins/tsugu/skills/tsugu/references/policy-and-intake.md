@@ -52,8 +52,8 @@ branch.
 
 ### `## Accepted Prefixes`
 
-The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into for
-the human's PR (converge renames, never cuts).
+The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into —
+`<accepted-prefix>/<slug>` — for the human's PR (converge renames, never cuts).
 Default `feature/* bugfix/* chore/*`. An accepted branch is **not** a queue item;
 it exists so the partition can read one ref-level fact: an accepted branch whose
 **slug pairs** a work branch's slug means **that work is taken over** — a handoff

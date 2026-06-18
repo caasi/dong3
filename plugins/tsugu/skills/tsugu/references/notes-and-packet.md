@@ -5,7 +5,7 @@ The shape and lifecycle of the committed `.tsugu/` notes Tsugu maintains —
 packet. Placement on the durability gradient (which branch each lives on) is
 summarized in `SKILL.md`; this document covers structure and load/lifecycle
 semantics. There is **no written branch state** — live coordination facts (in
-progress / decided / settled / who's on it / what grew out of what) are derived
+progress / taken over / settled / who's on it / what grew out of what) are derived
 from ref names, ancestry, containment, and commit recency, never written into a
 note (see `SKILL.md`'s partition and `references/git-recipes.md`). The committed
 notes hold **narrative only** (maintained freely; it informs judgment, never

@@ -86,8 +86,8 @@ only `public/*` from them — `prepare/* investigate/* review/*` is the default
 *only when the section was never customized*; a repo that added e.g. `explore/*`
 keeps it (the contract forbids overwriting curated prefixes). Crucially, **append
 legacy `public/*` to the Handoff Prefixes list** — never to the work prefixes —
-so existing `public/*` branches keep their meaning as decided/landed outputs
-(pending/landed, never work candidates). The two lists must stay disjoint. Do not
+so existing `public/*` branches keep their meaning as taken-over/landed outputs
+(never work candidates). The two lists must stay disjoint. Do not
 rename or delete any existing branch.
 
 **3. Add the merge-commit recommendation line to `policy.md`.** Record the
