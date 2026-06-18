@@ -273,4 +273,12 @@ grep -Eiq '^- \*\*pending\*\*' "$ROOT/$RM" \
   && fail "README still lists 'pending' as a partition state" \
   || pass "README partition uses taken-over, not pending"
 
+# --- Review round 4 (PR #53): prune taken-over bucket scoped git-derivable, squash→possibly-landed ---
+# The prune "taken-over (redundant prepare)" bucket is the git-containment-derivable take only;
+# the non-git-derivable squash/rewrite handoff must be pointed at possibly-landed, not this bucket.
+need    'git-containment-derivable'  "SKILL.md prune taken-over scoped to git-derivable (squash→possibly-landed)"
+need_in "$GR" 'git-containment-derivable'  "git-recipes prune bullet scopes taken-over to git-derivable"
+need_in "$NP" 'git-containment-derivable'  "notes-and-packet taken-over scoped to git-derivable"
+need_in 'plugins/tsugu/commands/prune.md' 'squash/rewrite handoff is .possibly-landed' "prune.md points squash/rewrite at possibly-landed"
+
 echo "All tsugu SKILL.md content checks passed."

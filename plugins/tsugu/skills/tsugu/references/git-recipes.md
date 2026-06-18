@@ -527,7 +527,9 @@ auto-deletes on a guess):
   containment-takeover read above). Surface + confirm each, like *possibly-landed*; on
   confirmation delete the redundant `prepare/<slug>` **local and remote, both
   human-confirmed**; never auto-delete. Precedence: classify as *settled* when default
-  contains the tip, else *taken-over*.
+  contains the tip, else *taken-over*. This bucket is the **git-containment-derivable**
+  take only; the slug-paired **squash/rewrite** handoff is **not** derivable from
+  containment — it surfaces as *possibly-landed (no containment)* above, never here.
 - **dropped** — the `context.md` narrative says "do not resume" (a hint the present
   human confirms); the backstop for branches `drop` recorded but couldn't delete.
 - **orphaned accepted** — a pushed accepted branch with no open PR and no recent

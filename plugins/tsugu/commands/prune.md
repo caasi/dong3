@@ -12,7 +12,8 @@ Load-bearing invariants the skill enforces: read-only until per-item human
 confirmation (running it just to look is fine); deletes only **settled** (tip
 contained in default) and **leftover worktrees** directly on confirm; surfaces
 **dropped / possibly-landed (no containment) / orphaned-accepted / taken-over
-(redundant prepare — a non-work, non-default branch contains the tip)** for explicit
+(redundant prepare — a non-work, non-default branch contains the tip; the
+non-git-derivable squash/rewrite handoff is *possibly-landed*, not this)** for explicit
 confirmation (never auto-delete on a containment guess); **stale in-progress** is surfaced read-only and pointed at
 `converge`, never deleted here; **remote deletes run only after explicit per-item
 approval** (no remote delete without human approval).

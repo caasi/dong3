@@ -150,7 +150,9 @@ suppressed from auto-work and **surfaced** at `prune`/`converge` (the packet's
 category — **surface-and-confirm** (like *possibly-landed*), **never auto-delete**:
 the containment signal can false-positive on a branch built *on top of* the prepare
 tip (a sibling item, a scratch experiment). On confirmation the redundant ref is
-deleted **local *and* remote, both human-confirmed**. **Precedence with *settled*:**
+deleted **local *and* remote, both human-confirmed**. This category is the
+**git-containment-derivable** take only — the slug-paired **squash/rewrite** handoff
+is **not** derivable from containment and surfaces as *possibly-landed*, not here. **Precedence with *settled*:**
 if `<remote>/<default>` contains the tip it is **settled** (the existing category) —
 list it there; *taken-over* covers only the case where the containing ref is a
 **non-default** branch. (Mechanics → `git-recipes.md` § Prune sweep.)
