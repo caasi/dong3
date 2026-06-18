@@ -66,17 +66,21 @@ commits (PR-branch rebases, squashes, force-pushes). Must be disjoint from
 
 ```md
 ## Push
-push-prepare-branches: yes
+push-prepare-branches: no
 ```
 
 `push-prepare-branches:` records the answer `init` captured to "may agents
-create/commit/push preparation branches automatically?" Pushing is what makes a
-branch a **message**: the human's `converge` and the next scheduled agent both
-read remote-tracking refs, so a pushed branch is a cross-machine handoff. The
-default is **`yes`**. Answer `no` to keep work local — `prepare` then commits
-locally and stops for approval (single-machine by nature: the human and the next
-run share one clone). When the `## Push` section is **absent** (a repo
-initialized before this field existed), readers default to `yes`.
+create/commit/push preparation branches automatically?" `prepare` is
+**local-first**: by default (`no`) it commits the work branch **locally and keeps
+it local** — on one machine the local branch already *is* the queue (the human's
+`converge` and the next scheduled `prepare` share the clone and read it directly).
+Answer **`yes`** only for genuine **cross-machine** collaboration — pushing is what
+lets a *second machine's* agent inherit the work via `git fetch` (there the branch
+*is* the message across clones). The default for a fresh (schema-5) install is
+**`no`**. When the `## Push` section is **absent**, readers resolve it
+**schema-aware**: `yes` if the repo is still `tsugu-schema: 4`, else `no` — a
+schema-5 repo defaults `no`, and the 4→5 migration pins the explicit `yes` into
+existing repos so behavior never flips silently.
 
 ### `## Public branch`
 
