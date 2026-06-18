@@ -69,7 +69,7 @@ Mechanics are deferred — do not re-derive git commands here:
 
 ### `init`
 
-Runs when a repo has no `.tsugu/`, or re-runs to repair or migrate an existing one. Capture the **minimum** preferences for safe unattended prep — ask only a few: may agents create/commit/push prep branches automatically (**default: yes** — pushing makes the branch a message the next machine reads)? which public actions need approval (default: MR/PR, tracker comment/status, reviewer assignment, Slack, public commitments)? branch prefixes (default work-only `prepare/*`)? accepted prefixes for handoff PRs (default `feature/* bugfix/* chore/*`)? should the default branch carry the WIP-knowledge layer (`public-branch-tsugu: include|exclude`, **default `include`**)? recurse into submodules (default: only when relevant)?
+Runs when a repo has no `.tsugu/`, or re-runs to repair or migrate an existing one. Capture the **minimum** preferences for safe unattended prep — ask only a few: may agents create/commit/push prep branches automatically (**default: no** — local-first; `yes` is the cross-machine opt-in that pushes the branch as a message a second machine reads)? which public actions need approval (default: MR/PR, tracker comment/status, reviewer assignment, Slack, public commitments)? branch prefixes (default work-only `prepare/*`)? accepted prefixes for handoff PRs (default `feature/* bugfix/* chore/*`)? should the default branch carry the WIP-knowledge layer (`public-branch-tsugu: include|exclude`, **default `include`**)? recurse into submodules (default: only when relevant)?
 
 **`/tsugu:init [<submodule-path>]` + graduation.** With a `<submodule-path>` argument
 `init` targets that submodule directly (skips the "which repo / confirm target"
