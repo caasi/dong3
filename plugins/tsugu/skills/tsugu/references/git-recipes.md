@@ -222,8 +222,8 @@ branch state of any kind** — classify each work branch `<work-prefix>/<slug>` 
 The exact checks:
 
 ```bash
-branch=<remote>/<work-prefix>/<slug>   # each enumerated work-branch ref, e.g. origin/prepare/foo
-slug="${branch##*/}"                   # basename: drop the remote and work prefix
+branch=<work-ref>     # each enumerated work-branch ref VERBATIM from step 4 — LOCAL (prepare/foo) OR remote (origin/prepare/foo)
+slug="${branch##*/}"  # basename: drop any <remote>/ + work prefix
 
 # Resolve this item's slug-paired accepted ref (if any) from $accepted_refs — the
 # configured `## Accepted Prefix` branches enumerated in "Read the queue" step 4
@@ -235,21 +235,32 @@ while IFS= read -r ref; do
   [ "${ref##*/}" = "$slug" ] && { accepted="$ref"; break; }
 done <<<"$accepted_refs"
 
+# §4b takeover-by-containment: any NON-default, NON-work branch that contains this
+# tip — a human's own branch (isaac/fix-thing) OR an accepted-prefix handoff. Reuse
+# step 4b's filter (normalize <remote>/ off, exclude default aliases + work refs);
+# WITHOUT this the partition would mis-read a human's own-branch take as in-progress
+# and keep working it:
+foreign_contains=$(git for-each-ref --contains "$(git rev-parse "$branch")" \
+                     refs/heads "refs/remotes/<remote>" --format='%(refname:short)' \
+                   | sed -E 's#^<remote>/##' \
+                   | grep -vE '^(<default>|HEAD)$' \
+                   | grep -vE '^<work-prefix>/' )
+
 # settled? Pure containment, MODE-AGNOSTIC (011 accept is a rename, not a by-path cut):
 # a work branch is settled when its own tip is contained in default (a direct/solo merge);
 # once handed off it is RENAMED to its accepted branch, which the accepted list tracks
 # separately — same in include and exclude (no by-path exclude landing any more).
 landed_ref="$branch"
 
-# Classify by the FIRST matching table row, in order. Settlement is pure
-# containment — no persisted SHA, no note. The finer rules below — zero-commit
-# exemption and claim recency — are prose, applied on top of this snippet.
+# Classify by the FIRST matching table row, in order (settled wins over taken-over).
+# Settlement is pure containment — no persisted SHA, no note. The finer rules below
+# — zero-commit exemption and claim recency — are prose, applied on top of this snippet.
 if   [ "$(git rev-parse "$branch")" = "$(git rev-parse <remote>/<default>)" ]
 then echo exempt         # zero-commit: tip == default tip — interrupted / request-by-branch, not classified by the table
 elif [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null
 then echo settled
-elif [ -n "$accepted" ]
-then echo taken-over     # slug-paired accepted branch — a handoff; §4b's containment catches the human-own-branch take too (both → taken-over)
+elif [ -n "$accepted" ] || [ -n "$foreign_contains" ]
+then echo taken-over     # slug-paired handoff OR §4b foreign containment — a human owns it now (both → taken-over)
 else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
 fi
 ```
