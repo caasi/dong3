@@ -124,7 +124,7 @@ git branch --format='%(refname:short)' \
   | grep --extended-regexp "^(feature|bugfix|chore|public)/"            # local accepted
 git branch --remotes --format='%(refname:short)' \
   | grep --extended-regexp "^<remote>/(feature|bugfix|chore|public)/"   # remote accepted
-# union the two by slug; a slug present in either marks the work branch "decided"
+# union the two by slug; a slug present in either marks the work branch "taken-over" (a handoff)
 ```
 
 The `public/*` prefix is **retired as a work prefix**; legacy `public/*` branches
@@ -216,7 +216,7 @@ branch state of any kind** — classify each work branch `<work-prefix>/<slug>` 
 | Fact | State | Disposition |
 | --- | --- | --- |
 | tip contained in `<remote>/<default>` | **settled** — the work landed | skip; `prune` cleanup candidate |
-| a branch with the **same slug** exists under a configured Accepted Prefix | **decided, awaiting merge** | skip as a candidate; shown in converge's awaiting-merge section |
+| tip contained by a **non-default, non-work** branch (§4b) — an Accepted-Prefix handoff **or** a human's own branch — **or** a same-slug Accepted-Prefix branch pairs it | **taken over** — a human owns the work now; tsugu stops managing it | skip as a candidate; surfaced at `prune`/`converge` (accepted-prefix handoffs also in converge's awaiting-merge section); **never auto-delete** |
 | neither | **in progress** | candidate: read `context.md`, judge from the narrative |
 
 The exact checks:
@@ -249,14 +249,14 @@ then echo exempt         # zero-commit: tip == default tip — interrupted / req
 elif [ -n "$landed_ref" ] && git merge-base --is-ancestor "$landed_ref" <remote>/<default> 2>/dev/null
 then echo settled
 elif [ -n "$accepted" ]
-then echo pending        # a slug-paired accepted branch exists — decided, awaiting merge
+then echo taken-over     # slug-paired accepted branch — a handoff; §4b's containment catches the human-own-branch take too (both → taken-over)
 else echo in-progress    # neither — a candidate; read context.md and judge from the narrative
 fi
 ```
 
 Pairing is by **name, not commits** — ref names are write-once identity, so the
-pending state survives anything the forge does to commits (PR-branch rebases,
-squashes, force-pushes). Then, as prose rules:
+taken-over (handoff) pairing survives anything the forge does to commits (PR-branch
+rebases, squashes, force-pushes). Then, as prose rules:
 
 - **Zero-commit branches are exempt from the whole table** — never classified by
   containment, never by a stale same-slug record. A branch whose tip still equals
@@ -275,8 +275,8 @@ squashes, force-pushes). Then, as prose rules:
   **degrades to pure recency** (acceptable for a courtesy yield, no lock).
 
 A landing that **rewrites history** (forced squash, rebase-before-merge,
-force-push) is the one case not derivable from containment — it stays **pending**
-on the slug-paired accepted branch and re-surfaces until the human confirms; the
+force-push) is the one case not derivable from containment — it stays **taken-over**
+via the slug-paired accepted branch and re-surfaces until the human confirms; the
 full procedure (narrative backstop, retain-the-ref, human-confirmed prune via the
 *possibly-landed* bucket) lives in `references/advanced.md`.
 
