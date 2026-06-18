@@ -13,8 +13,8 @@ prepare/*
 push-prepare-branches: no
 <!-- prepare is LOCAL-FIRST by default (no): work stays on local prepare/*
      branches — prepare commits locally and does not push. Set yes for the
-     CROSS-MACHINE OPT-IN: pushing makes the branch a message a second machine's
-     agent can inherit (cross-machine handoff reads remote refs), and restores
+     CROSS-MACHINE OPT-IN: pushing makes the branch a message that a second
+     machine's agent can inherit (cross-machine handoff reads remote refs), and restores
      the remote backup of in-flight work. Tradeoff: local-first means no remote
      backup until the human pushes (an accepted trade on a single provisioned
      machine; the opt-in restores the backup for anyone who wants it). -->
