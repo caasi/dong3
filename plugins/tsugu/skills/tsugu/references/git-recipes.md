@@ -111,7 +111,7 @@ see [Prune sweep](#prune-sweep) for how the settled cleanup sweep consults it.)
 ```bash
 # work queue — LOCAL + remote, configured work prefixes (default shown); union by slug.
 # Discovery reads remote work refs REGARDLESS of the push default — only PUSHING is gated
-# (a leftover or opt-in-pushed remote prepare/* must still be seen; it is what takeover/prune target).
+# (a leftover or opt-in-pushed remote prepare/* must still be seen; it is what takeover/prune targets).
 git branch --format='%(refname:short)' \
   | grep --extended-regexp "^(prepare)/"            # local-first (default)
 git branch --remotes --format='%(refname:short)' \
