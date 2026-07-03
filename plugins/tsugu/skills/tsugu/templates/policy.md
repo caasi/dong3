@@ -1,4 +1,4 @@
-tsugu-schema: 5
+tsugu-schema: 6
 ## Private Git Space (agent may do freely)
 create/commit (push per `## Push`) `prepare/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
@@ -18,6 +18,14 @@ push-prepare-branches: no
      the remote backup of in-flight work. Tradeoff: local-first means no remote
      backup until the human pushes (an accepted trade on a single provisioned
      machine; the opt-in restores the backup for anyone who wants it). -->
+## Freshness
+rebase-prepare-onto-default: yes
+<!-- Should an UNATTENDED `prepare` rebase in-progress work branches onto the current
+     default, to keep the whole queue mergeable while you're away? `yes` = rebase every
+     run (history rewrite; force-with-lease on pushed branches); `no` = pre-013 behavior,
+     no rebase. Absent reads as `no` (fail-safe). Converge's human-present refresh offer is
+     independent of this flag. Costs of `yes`: churn + union-interleave on long-idle
+     branches (see spec 013). -->
 ## Accepted Prefixes
 feature/*  bugfix/*  chore/*
 <!-- human-workflow branches the handoff RENAMES prepare/<slug> into —

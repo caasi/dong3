@@ -13,12 +13,12 @@ the personal-config pointer.
 
 ### `tsugu-schema:`
 
-The schema-version stamp (current: `5`). It is the first line of the file, and a
+The schema-version stamp (current: `6`). It is the first line of the file, and a
 migration **writes it last** — only after every N→N+1 rename and semantic change
 has been applied does `init` stamp the new number, so a half-applied migration is
 never mistaken for a completed one. Readers use it to decide whether a re-run of
 `init` must migrate (older stamp → apply `references/migrations.md` in order,
-1→2→3→4→5 for a schema-1 repo) or is a plain idempotent repair (stamp already
+1→2→3→4→5→6 for a schema-1 repo) or is a plain idempotent repair (stamp already
 current).
 
 ### Private / Public boundary
@@ -50,6 +50,43 @@ partition pairs a work branch against an accepted branch by **shared slug**, and
 an overlapping prefix would make a branch both a queue item and its own accepted
 branch.
 
+### `## Freshness`
+
+```md
+## Freshness
+rebase-prepare-onto-default: yes
+```
+
+`rebase-prepare-onto-default:` gates one thing only — **prepare's** unattended,
+history-rewriting, force-pushing rebase of in-progress work branches onto the
+fetched default tip. It exists because that rebase runs with no human present:
+**`yes`** (fresh-init default) has `prepare` rebase every in-progress
+`<work-prefix>/*` branch (settled / taken-over / zero-commit excluded) after each
+fetch, on the required **merge backend** (`git rebase --merge <remote>/<default>`,
+forced at the call site so `.tsugu/.gitattributes`'s `context.md merge=union`
+driver always applies regardless of the repo's `rebase.backend` config or git
+version) — a real conflict aborts and skips the branch this run, surfacing it at
+`converge`. **`no`** skips the rebase step entirely (pre-013 behavior). It is an
+**independent** knob from `## Push` — rebase rewrites history and earns its own
+off-switch, even though the delivery half of it (`--force-with-lease`) only fires
+where `push-prepare-branches: yes` already opted into cross-machine pushing.
+
+**`converge`'s human-present refresh offer is independent of this flag.** Converge
+surfaces "behind default by N" and offers the same refresh as its first per-branch
+decision (Y/n, default Y) **regardless** of `rebase-prepare-onto-default` — it
+carries none of the unattended risks the flag guards against (a human is present
+to see the diff, answer the prompt, and resolve any real conflict live), so it is
+not gated by this field. This is the insurance for a `no`-flag repo: even with the
+routine refresh off, the human can still refresh live at `converge`.
+
+**Absent reads as `no` — the fail-safe.** `yes` only ever comes from an *explicit*
+field: fresh `init` always writes one (`yes`), and the schema `5→6` migration
+always writes an explicit value (`no`, pinning pre-013 behavior) into existing
+repos — so an absent `## Freshness` can only be a pre-migration schema-5 repo or a
+hand-edited/interrupted schema-6 repo, and defaulting either read to `no` is the
+safe choice: a stray absence must never silently enable the rewrite-and-force-push
+path the migration deliberately pinned off.
+
 ### `## Accepted Prefixes`
 
 The **human-workflow** namespaces the handoff **renames** `prepare/<slug>` into —
@@ -77,7 +114,7 @@ it local** — on one machine the local branch already *is* the queue (the human
 `converge` and the next scheduled `prepare` share the clone and read it directly).
 Answer **`yes`** only for genuine **cross-machine** collaboration — pushing is what
 lets a *second machine's* agent inherit the work via `git fetch` (there the branch
-*is* the message across clones). The default for a fresh (schema-5) install is
+*is* the message across clones). The default for a fresh (schema 5+) install is
 **`no`**. When the `## Push` section is **absent**, readers resolve it
 **schema-aware**: `yes` if the repo is still `tsugu-schema: 4`, else `no` — a
 schema-5 repo defaults `no`, and the 4→5 migration pins the explicit `yes` into

@@ -88,15 +88,18 @@ driver you start.
 
 The committed `.tsugu/` is a **work-in-progress knowledge layer** — a richer,
 agent-maintained sibling of `AGENTS.md` / `CLAUDE.md`, pushed so any inheritor reads
-it from `git fetch` alone. It holds exactly three things:
+it from `git fetch` alone. It holds three knowledge parts, plus a one-line
+infrastructure file so the narrative never blocks a merge or rebase:
 
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 5`)
+                 merge method, … — `tsugu-schema: 6`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)
+  .gitattributes context.md merge=union — union-merges narrative conflicts
+                 instead of stopping a merge/rebase on them
 ```
 
 Everything *about how Tsugu operates for one human* lives in a **personal folder**,
@@ -143,6 +146,28 @@ rewrites history (squash, rebase-before-merge, force-push) leaves the work tip
 uncontained and breaks containment-derived settlement — that path is handled in
 [`references/advanced.md`](references/advanced.md).
 
+## Freshness
+
+An unattended `prepare` run keeps in-progress `prepare/*` branches from drifting behind
+the default branch: after fetch, it rebases each in-progress branch onto the current
+default before working it. This is governed by a `## Freshness` policy flag,
+`rebase-prepare-onto-default` — a fresh `init` writes it **on**; a repo upgraded from an
+older schema keeps its pre-upgrade behavior (**off**, pinned by the migration) until you
+explicitly flip it. Three guarantees make the refresh safe to run unattended: a
+`.tsugu/context.md` conflict during the rebase auto-unions both sides (concatenates
+rather than blocking the run); the claim/recency signal a branch's freshness relies on
+survives the rebase, because recency reads the commit's **author-date**, which rebase
+preserves (only committer-date changes); and where a branch is pushed cross-machine, the
+refreshed branch is delivered with a **pinned** `--force-with-lease` tied to the exact
+remote tip it rebased from, so a concurrent push from another machine is respected, not
+clobbered. `converge` surfaces any branch that's fallen behind as "behind default by N
+commits" and — regardless of the `prepare`-side flag — **offers** the same refresh as the
+first question on that branch, before accept/park/drop, so you decide it live instead of
+discovering the drift mid-handoff. Be clear about what this buys: rebasing keeps a branch
+**mergeable**; it does **not** keep `context.md`'s `file:line` anchors valid against
+source that the default branch changed underneath them — an anchor heals only the next
+time that branch actively rewrites `context.md`.
+
 ## Private vs public boundary
 
 The load-bearing invariant, recorded per-repo in `policy.md`:
@@ -187,4 +212,12 @@ and [005 — the agent-first revision](../../../../docs/superpowers/specs/005-ts
 [006 — the workspace holds only what transfers (schema 3)](../../../../docs/superpowers/specs/006-tsugu-workspace-transfer-design.md)
 (committed WIP-knowledge layer + personal folder) and
 [007 — the thin core (schema 4)](../../../../docs/superpowers/specs/007-tsugu-thin-core-design.md)
-(single `prepare/*` work prefix, accepted-prefixes, non-containment landings → advanced).
+(single `prepare/*` work prefix, accepted-prefixes, non-containment landings → advanced),
+[008 — submodule recursion](../../../../docs/superpowers/specs/008-tsugu-submodule-recursion-design.md)
+(prepare/converge recurse into `.tsugu/`-bearing submodules),
+[011 — handoff converge](../../../../docs/superpowers/specs/011-tsugu-handoff-converge-design.md)
+(accept becomes a handoff-only rename, with a human-marked maintenance exception),
+[012 — local-first prepare (schema 5)](../../../../docs/superpowers/specs/012-tsugu-local-first-prepare-design.md)
+(`prepare/*` stays local by default; remote push is a cross-machine opt-in), and
+[013 — rebase-prepare-onto-default (schema 6)](../../../../docs/superpowers/specs/013-tsugu-rebase-prepare-onto-default-design.md)
+(prepare freshness-rebases in-progress branches onto default; converge offers the refresh first).

@@ -281,11 +281,17 @@ rebases, squashes, force-pushes). Then, as prose rules:
 - **Slugs are never reused for new work.** A fresh ask whose slug collides with a
   lingering accepted branch is surfaced at **converge** as a naming conflict, not
   classified.
-- **Claims are derived from commits** — the `context.md` rewrite commit's author
-  and timestamp *are* the claim. A work branch with recent commits is taken; one
-  whose last commit is stale is free to pick up. Under one shared git identity
-  (one human, two machines) authorship cannot distinguish agents and the rule
-  **degrades to pure recency** (acceptable for a courtesy yield, no lock).
+- **Claims are derived from commits, read by author-date — never committer-date.**
+  The `context.md` rewrite commit's author and timestamp *are* the claim: read it
+  with `git log -1 --format=%aI <ref>` or `git for-each-ref --sort=-authordate`
+  (`%ai`/`%aI`/`%at`) — never the committer-date equivalents (`%ci`/`%cI`/`%ct`,
+  `--sort=-committerdate`). A work branch with recent commits is taken; one whose
+  last commit is stale is free to pick up. Author-date is what keeps a
+  [Freshness](#freshness) refresh **claim-neutral**: `git rebase` rewrites
+  committer-date to now on every replayed commit but leaves author-date untouched,
+  so a freshly-rebased branch never masquerades as just-claimed. Under one shared
+  git identity (one human, two machines) authorship cannot distinguish agents and
+  the rule **degrades to pure recency** (acceptable for a courtesy yield, no lock).
 
 A landing that **rewrites history** (forced squash, rebase-before-merge,
 force-push) is the one case not derivable from containment — it stays **taken-over**
@@ -404,9 +410,13 @@ executes the pointer string (the no-force principle). A source signal becomes a
 ## Handoff rename (default converge accept — cold-start safe)
 
 The default accept is a **minimal handoff**: rename `prepare/<slug>` →
-`<accepted-prefix>/<slug>` and **stop**. The agent does **not** freshness-rebase,
-build/test, rewrite `context.md` to a mainline narrative, push, or open a PR — the
-human owns everything after the rename. The rename changes only the **prefix**; the
+`<accepted-prefix>/<slug>` and **stop**. Freshness is **not** part of the "does not"
+list any more — [Freshness](#freshness)'s `converge` mode offers the refresh as its
+own, separate **first** decision on a behind-default branch, before any disposition,
+so by the time accept runs the branch may already be current. The rename itself still
+does **no** build/test, no rewrite of `context.md` to a mainline narrative, no push,
+and opens no PR — the human owns everything after the rename. The rename changes only
+the **prefix**; the
 **slug is preserved** (so the slug-join identity survives). It is **mode-agnostic**:
 identical under `public-branch-tsugu: include` and `exclude` (the `.tsugu/`
 exploration commits ride along on the renamed branch; the human decides whether to
@@ -422,8 +432,15 @@ surface it rather than clobber.
 git branch -m prepare/<slug> <accepted-prefix>/<slug>
 
 # Cold start — only <remote>/prepare/<slug> exists (a second machine that never had
-# the local work branch): create the accepted branch from the remote-tracking ref.
-git branch <accepted-prefix>/<slug> <remote>/prepare/<slug>
+# the local work branch): materialize the WORK branch FIRST — never mint the accepted
+# name directly from the remote-tracking ref. This lets Freshness's offered refresh
+# (see #freshness) run on prepare/<slug> before any disposition, so accept/park/drop
+# all act on the same, possibly-refreshed work branch:
+git switch --create prepare/<slug> <remote>/prepare/<slug>   # local WORK name, NOT the accepted name
+# ... optionally refresh here: git rebase --merge <remote>/<default> (see #freshness) ...
+# accept only: mint the accepted name now that the branch is materialized (and
+# possibly refreshed) — the accepted name is minted ONLY at accept, never earlier:
+git branch -m prepare/<slug> <accepted-prefix>/<slug>
 # the *move* completes when the human deletes the remote prepare/<slug> (B3 below)
 ```
 
@@ -560,9 +577,92 @@ human approval**. Cleanup order is the established one: `git worktree remove`
 
 ## Freshness
 
-Persistent branches drift when default moves under them. Refresh on resume (and
-optionally periodically) by rebasing onto the **fetched** default ref — never a
-stale **local** default:
+Persistent branches drift when default moves under them. **Who's present decides the
+posture** — four modes share one mechanic (`git fetch` then a forced-merge-backend
+`git rebase --merge <remote>/<default>`, so `.gitattributes` union drivers are always
+consulted) but differ in who resolves a conflict, and what happens when the refresh
+can't proceed:
+
+| Who's present | Posture | Conflict handling |
+|---|---|---|
+| **Manual resume** — human at the terminal, resuming a branch | stop-and-ask | non-trivial conflict → stop and ask the human |
+| **Unattended `prepare`** — flag-gated automatic step | abort + skip | any real conflict → `git rebase --abort`, skip the branch this run, surface at `converge` |
+| **`converge`** — human present, reading branches live | resolve or park, live | real conflict → the human resolves it live, or `git rebase --abort` and parks the branch |
+| **Maintenance** — human-marked task only | rebase → verify | same rebase, then build/test so the accepted branch is merge-ready ([Maintenance complete path](#maintenance-complete-path-human-marked-only--re-scoped-from-the-old-default)) |
+
+### Automatic — `prepare`'s flag-gated rebase step
+
+`policy.md`'s `## Freshness` field, `rebase-prepare-onto-default` — `yes` (fresh-init
+default) promotes this from optional resume-time hygiene to a step `prepare` runs
+automatically over the **in-progress** work-prefix set, after the queue fetch/partition
+and before working each branch (`no`, or the field absent, skips it — fail-safe):
+
+```bash
+git fetch --prune <remote>                 # already the queue-read step
+git rebase --merge <remote>/<default>      # per in-progress LOCAL <work-prefix>/<slug>, on its own checkout; --merge forces the union-capable backend — never the two-arg `git rebase <upstream> <branch>` form, which would switch the shared checkout
+```
+
+- **`.tsugu/context.md` auto-unions.** `init` writes `.tsugu/.gitattributes` with
+  `context.md merge=union`, so a *content* conflict in the narrative file concatenates
+  both sides losslessly and never stops the rebase — no `-X theirs`, which would also
+  swallow real *code* conflicts.
+- **Any real conflict → abort, skip the branch, surface for converge.** A source-file
+  conflict, or a *structural* `context.md` conflict union can't cover (modify/delete,
+  etc.), means union could not resolve it: `git rebase --abort` restores the pre-rebase
+  tip exactly, and `prepare` **skips working that branch this run** rather than piling
+  fresh commits onto a stale base. No status write — the fact is derived at the next
+  `converge` ("behind default, did not fast-forward"), never recorded in `context.md`
+  (a write there would rewrite the claim's author-date, see below).
+- **Bare-submodule paired work branches are excluded.** Rebasing the submodule side
+  alone dangles the paired meta branch's gitlink and the SHA recorded in its
+  `context.md`; only `converge`'s human-present pair handling can repair both halves
+  together (see [Submodule recursion](#submodule-recursion)). `prepare` leaves the pair
+  at its pre-rebase tip and surfaces it as "behind default" at the next `converge`.
+- **A remote-only in-progress ref** (possible only under `push-prepare-branches: yes`,
+  when this machine never had the local branch) is materialized to a local branch
+  first, then rebased the same way.
+
+**Delivery — local-first pushes nothing; cross-machine is pinned and
+divergence-guarded.** Under the local-first default the rebase touches only the local
+branch — zero external effect. Under `push-prepare-branches: yes`, deliver the
+refreshed branch with a **pinned**, ancestor-guarded `--force-with-lease` — never a
+plain `--force`, and never the **bare** `--force-with-lease` (its expected value
+re-pins to whatever the remote-tracking ref advances to on an intervening fetch, so it
+stops guarding the tip actually reasoned about):
+
+```bash
+pre=$(git rev-parse <branch>)            # LOCAL tip, captured BEFORE any rebase
+sha=$(git rev-parse <remote>/<branch> 2>/dev/null || echo "")   # remote baseline AT the step-1 fetch ("" if the branch is new)
+
+# DIVERGENCE GATE — evaluated BEFORE the rebase, for pushed repos only:
+if [ "$push_prepare" = yes ] && [ -n "$sha" ] && ! git merge-base --is-ancestor "$sha" "$pre"; then
+  : # local & remote DIVERGED before fetch → SKIP this branch entirely (no rebase, no work); surface for converge
+else
+  git rebase --merge <remote>/<default>  # refresh, then do the run's work (conflict handling above)
+  # ... work ...
+  if [ "$push_prepare" = yes ]; then      # cross-machine delivery, only after a clean refresh
+    if [ -z "$sha" ]; then git push --set-upstream <remote> <branch>                      # FIRST push (create): no remote ref, no lease
+    else                   git push --force-with-lease=<branch>:"$sha" <remote> <branch>  # divergence already excluded above — lease covers only after-fetch pushes
+    fi
+  fi
+fi
+```
+
+The lease protects an **after-fetch** concurrent claim (another machine pushed between
+this run's fetch and its push — the pinned `$sha` mismatches and the push is refused);
+the ancestor gate protects a **pre-fetch** one (local and remote same-slug refs had
+already diverged before the fetch, so the rebased local still lacks the remote's
+commits and a lease alone would pass while the force-push discards remote work known
+at fetch). Gating *before* the rebase, not at push time, is the conservative posture:
+a human-absent run never rebases and works a branch it already knows it cannot safely
+deliver. **No branch-as-message is disturbed** — the rebase set is in-progress only, so
+no accepted-prefix or human branch contains these tips; rewriting them breaks no
+handoff.
+
+### Manual resume (human at the terminal)
+
+A human resuming a branch by hand may still rebase-and-ask — the original, pre-013
+recipe, retained for the human-present case:
 
 ```bash
 git fetch <remote>
@@ -571,11 +671,11 @@ git rebase <remote>/<default>        # scratch prepare/* (and any configured wor
 
 - **Scratch branches** (`prepare/*`, and any extra work prefixes configured): rebase freely. If the
   branch was already pushed, the rebase rewrites it, so update the remote with
-  lease protection — **never** a plain `--force`:
-
-  ```bash
-  git push --force-with-lease
-  ```
+  the **pinned** `git push --force-with-lease=<branch>:<sha>` (`<sha>` = the branch's
+  remote tip captured at the fetch above) — **never** bare `--force-with-lease` and
+  **never** a plain `--force`; for the full pre-rebase ancestor-guard + first-push
+  carve-out see the [`## Freshness`](#freshness) unattended/converge push recipe
+  above (the same guard applies even human-present).
 
 - **History-bearing / long-lived branches**: **prefer merge** to preserve history
   (`git merge <remote>/<default>`), honoring the repo's history-protection
@@ -583,6 +683,64 @@ git rebase <remote>/<default>        # scratch prepare/* (and any configured wor
 
 - **Non-trivial conflict → stop and ask the human.** Do not auto-resolve a
   conflict that needs a judgment call about intent.
+
+### `converge` — resolve or park, live
+
+`converge`'s status view surfaces **behind default by N** (`git rev-list --count
+<branch>..<remote>/<default>`) and, for pushed repos, local/remote work-ref
+divergence, per candidate. Refresh is the **first** decision on a behind branch,
+before accept/park/drop:
+
+> *"`<slug>` is N commits behind default. Refresh onto current default first? **[Y/n]**"* — default **Y**.
+
+This offer is **not gated by `rebase-prepare-onto-default`** — the flag governs only
+the human-absent, routine, force-pushing rebase; here a human is present, sees the
+fact, and answers explicitly, so it runs regardless of the flag (the insurance for a
+flag-`no` repo, or a request-by-branch `prepare` never touched). A busy repo MAY
+**batch** the offer once at the top of the session, falling back to per-branch only
+where a conflict stops it.
+
+**The refresh always operates on the local WORK branch `prepare/<slug>` — never on an
+accepted name.** Minting `<accepted-prefix>/<slug>` before the human has chosen
+*accept* would leave an accepted-named branch nobody accepted:
+
+```bash
+# same-machine: the local prepare/<slug> already exists → just refresh it
+git rebase --merge <remote>/<default>                       # refresh (conflict handling below)
+# cold-start converge (machine B, no local prepare/<slug>): materialize the WORK branch, then refresh
+git switch --create prepare/<slug> <remote>/prepare/<slug>  # local WORK name, NOT the accepted name
+git rebase --merge <remote>/<default>
+```
+
+The disposition then acts on the refreshed `prepare/<slug>`: **accept** mints the
+accepted name only now (the [Handoff rename](#handoff-rename-default-converge-accept--cold-start-safe)
+`git branch -m prepare/<slug> <accepted-prefix>/<slug>`); **park** leaves the refreshed
+branch as-is (no accepted name exists); **drop** deletes it (the refresh was wasted but
+harmless — nothing was published).
+
+- **Conflict handling is human-present** — different from `prepare`'s deterministic
+  abort+skip. A `.tsugu/context.md` *content* conflict still auto-unions, identical to
+  `prepare`. A **real** conflict is never blind-aborted: surface it live and let the
+  human **resolve it**, or `git rebase --abort` and **park** the item as a normal
+  disposition.
+- **Pushed-repo reconcile, gated by divergence origin — never a clobber.** The refresh
+  rewrites only the local branch, so it now diverges from the remote's pre-rebase tip.
+  Check the same ancestor test the delivery gate above uses (did the **pre-refresh**
+  local tip contain the fetched remote tip?): **refresh-created divergence** (it did —
+  this refresh is what moved it) means converge **prints** (never runs) the pinned
+  `git push --force-with-lease=<branch>:<sha> <remote> <branch>` for the human to run;
+  **pre-existing divergence** (it did not — remote holds commits the local never had)
+  means a force-push would discard remote work, so converge **never** prints a
+  reconcile command for this case — it surfaces the divergence and leaves integration
+  to the human.
+- **Bare-submodule pairs**, excluded from `prepare`'s automatic rebase above, are
+  refreshed here instead — coherently, human-present, moving the submodule branch and
+  its paired meta gitlink/SHA together.
+
+### Maintenance (human-marked only)
+
+Same rebase mechanic, then build/test so the accepted branch is ready to merge — see
+[Maintenance complete path](#maintenance-complete-path-human-marked-only--re-scoped-from-the-old-default).
 
 ## Cleanup order
 
@@ -603,8 +761,8 @@ checked out.
 
 `init` runs when a repo has no `.tsugu/`. It writes the fixed metadata and the
 durable skeleton, idempotently. Committed `.tsugu/` collapses to **`policy.md` +
-`context.md` + `knowledge/`** — no `intake/`, no `runs/`, no `packets/`, no
-repo-seeded `templates/`.
+`context.md` + `.gitattributes` + `knowledge/`** — no `intake/`, no `runs/`, no
+`packets/`, no repo-seeded `templates/`.
 
 **1. Create the `.tsugu/` skeleton.** Only `knowledge/` is a tracked directory,
 and git can't track an empty one, so seed it with a real file. `knowledge/`'s
@@ -618,8 +776,12 @@ touch .tsugu/knowledge/.gitkeep
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 5`) + the mainline `context.md` only
-if absent**, rendered from the skill's templates. This makes re-running `init` an
+**2. Write `policy.md` (with `tsugu-schema: 6`) + the mainline `context.md` +
+`.tsugu/.gitattributes` only if absent**, rendered from the skill's templates
+(`.gitattributes` from `templates/gitattributes` — content `context.md
+merge=union`, flag-independent: it's written regardless of the repo's
+`rebase-prepare-onto-default` value, since a narrative-file merge conflict should
+never block an ordinary `git merge` either). This makes re-running `init` an
 **idempotent repair**: it fills in any missing skeleton path and is otherwise a
 no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules
 a human already tuned. Observation **sources** and **opt-in skills** are personal
@@ -627,9 +789,10 @@ config (the global folder, not `policy.md`) — `init` does not write them into 
 repo. Re-running on an **older schema** applies `references/migrations.md` in
 order (N→N+1 until current) and stamps the new `tsugu-schema` **last**.
 
-**3. Land the metadata on the default branch.** `policy.md` and the mainline
-`context.md` must reach `<default>` so policy stays resolvable. If the default
-branch is **push-protected**, write them on an `init/*` branch and open a
+**3. Land the metadata on the default branch.** `policy.md`, the mainline
+`context.md`, and `.tsugu/.gitattributes` must reach `<default>` so policy stays
+resolvable and the union driver exists before any rebase relies on it. If the
+default branch is **push-protected**, write them on an `init/*` branch and open a
 **human-approved PR**:
 
 ```bash
