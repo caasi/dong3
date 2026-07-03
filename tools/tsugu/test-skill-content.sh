@@ -8,9 +8,9 @@ SKILL="$ROOT/plugins/tsugu/skills/tsugu/SKILL.md"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
 
-need()   { grep -Eq "$1" "$SKILL" || fail "SKILL.md missing: $2"; pass "$2"; }
-refute() { ! grep -Eq "$1" "$SKILL" || fail "SKILL.md still contains (should be gone): $2"; pass "no longer present: $2"; }
-need_in()   { grep -Eq "$2" "$ROOT/$1" || fail "$1 missing: $3"; pass "$3"; }
+need()   { grep -Eq -- "$1" "$SKILL" || fail "SKILL.md missing: $2"; pass "$2"; }
+refute() { ! grep -Eq -- "$1" "$SKILL" || fail "SKILL.md still contains (should be gone): $2"; pass "no longer present: $2"; }
+need_in()   { grep -Eq -- "$2" "$ROOT/$1" || fail "$1 missing: $3"; pass "$3"; }
 need_file() { [ -f "$ROOT/$1" ] || fail "missing file: $1"; pass "file exists: $1"; }
 
 # --- Task 1: frontmatter routing + rename-invariant supersession ---
@@ -134,10 +134,10 @@ grep -rEn '^## Completion tail|swept .{0,30}completion tail|completion tail[^.]{
   && fail "a live 'completion tail' sweep reference survives (should be prune)" \
   || pass "no live completion-tail sweep reference"
 
-# --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0) ---
+# --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0, then Task 9 spec 013 bump to 0.8.0) ---
 # jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu version 0.7.0 (bumped by spec 012)" || fail "marketplace.json: tsugu not at 0.7.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.8.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.8.0 (bumped by spec 013)" || fail "marketplace.json: tsugu not at 0.8.0"
 # guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
@@ -167,7 +167,7 @@ grep -rIE "converge cuts?|converge cut hands|a converge cut" "$ROOT/plugins/tsug
 # (dropped bare `need 'push-prepare-branches'` — pre-satisfied by the old default-yes prose)
 need 'local-first|stays on local|keep work .*local'   "prepare is local-first by default"
 need 'schema 4 else|tsugu-schema: 4.*yes|absent.*schema' "schema-aware push default read"
-need 'tsugu-schema: 5|tsugu-schema. 5|schema . 5'     "init stamps schema 5"
+need 'tsugu-schema: 6|tsugu-schema. 6|schema . 6'     "init stamps schema 6 (spec 013: 5->6)"
 need 'cross-machine opt-in'                           "remote push is a cross-machine opt-in (bigram — bare 'opt-in' appears 5x in SKILL already)"
 # the OLD unconditional framing must be gone:
 refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
@@ -204,12 +204,11 @@ grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
   && fail "git-recipes still frames the work queue as remote-tracking-only (012 unions local+remote)" \
   || pass "work queue reframed off remote-tracking-only"
 need_in "$GR" 'per-ref|each ref by its own tip'      "git-recipes notes per-ref/per-tip classification"
-need_in "$GR" 'tsugu-schema. 5'                       "git-recipes init-skeleton stamps schema 5 (was 4 at :536)"
+need_in "$GR" 'tsugu-schema. 6'                       "git-recipes init-skeleton stamps schema 6 (spec 013, was 5)"
 
-# --- Task 5: schema 5 template + 4->5 migration ---
+# --- Task 5 (spec 012): 4->5 migration + template push default (the template schema stamp is now 6, asserted in the Spec 013 block below) ---
 TP='plugins/tsugu/skills/tsugu/templates/policy.md'
 MG='plugins/tsugu/skills/tsugu/references/migrations.md'
-grep -Eq '^tsugu-schema: 5' "$ROOT/$TP" && pass "template stamped schema 5" || fail "templates/policy.md not stamped tsugu-schema: 5"
 grep -Eq '^push-prepare-branches: no' "$ROOT/$TP" && pass "template push default no" || fail "templates/policy.md push default not 'no'"
 need_in "$MG" '## Migration 4.5|Migration 4→5'        "migrations has a 4->5 section"
 need_in "$MG" 'push-prepare-branches: yes'            "4->5 pins explicit old default yes"
@@ -228,9 +227,9 @@ RM='plugins/tsugu/skills/tsugu/README.md'
 need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
 need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
 
-# --- Task 8: version 0.7.0 + descriptions ---
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.7.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu 0.7.0" || fail "marketplace.json: tsugu not at 0.7.0"
+# --- Task 8: version 0.7.0 + descriptions (superseded by Task 9 spec 013 bump to 0.8.0) ---
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.8.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu 0.8.0" || fail "marketplace.json: tsugu not at 0.8.0"
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by default")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace desc notes local-first" || fail "marketplace.json: tsugu description missing local-first"
 jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
@@ -307,5 +306,56 @@ grep -rIn 'into for ' "$ROOT/plugins/tsugu/" >/dev/null 2>&1 \
 grep -q 'orphaned-accepted / taken-over (redundant prepare)' "$ROOT/CLAUDE.md" \
   && pass "CLAUDE.md prune list includes taken-over (redundant prepare)" \
   || fail "CLAUDE.md prune list omits the taken-over bucket"
+
+# --- Spec 013 ---
+need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'tsugu-schema: 6'                 "policy template stamps schema 6"
+need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' '## Freshness'                     "policy template has Freshness section"
+need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'rebase-prepare-onto-default: yes' "policy template defaults the flag yes"
+need_file 'plugins/tsugu/skills/tsugu/templates/gitattributes'                              "gitattributes template shipped"
+need_in 'plugins/tsugu/skills/tsugu/templates/gitattributes' 'context\.md merge=union'      "gitattributes unions context.md"
+grep -Eq 'git push --force-with-lease *$' "$ROOT/plugins/tsugu/skills/tsugu/references/git-recipes.md" && fail "git-recipes still has a BARE force-with-lease push" || pass "no bare force-with-lease in git-recipes"
+need_in 'plugins/tsugu/skills/tsugu/references/git-recipes.md' 'gitattributes'  "init skeleton ships .tsugu/.gitattributes"
+need_in 'CLAUDE.md' 'gitattributes'                                     "CLAUDE.md notes .tsugu/.gitattributes"
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'gitattributes'         "README .tsugu/ tree includes .gitattributes"
+need 'gitattributes'                                                    "SKILL.md spine notes .tsugu/.gitattributes"
+
+# --- Spec 013 Task 2: prepare freshness-rebase step (Changes A-D) + author-date recency ---
+need 'rebase-prepare-onto-default'                          "prepare reads the freshness flag"
+need 'git rebase --merge'                                   "forced merge backend"
+need 'absent .*→ .*no|fail-safe'                            "flag absent reads no (fail-safe)"
+need '--force-with-lease=<branch>:'                         "pinned force-with-lease"
+need 'author-date|--sort=-authordate|%aI'                   "recency keys off author-date"
+need 'skip working (the|that) branch this run'              "abort => skip working this run"
+need 'bare-submodule'                                       "bare-submodule pairs excluded"
+refute '--sort=-committerdate|committer-date .*claim'       "no committer-date recency read"
+
+# --- Spec 013 Task 3: converge surfaces behind-default + offers refresh first (Change E) ---
+need 'behind default by N|behind-default'                   "converge surfaces behind-default"
+need 'Refresh onto current default first'                   "refresh is the first per-branch decision (matches the real prompt casing)"
+need 'git switch --create prepare/'                         "cold-start materializes the WORK branch"
+need 'refresh-created|pre-existing divergence'              "reconcile-push gated by divergence origin"
+refute 'git switch --create <accepted-prefix>/'             "cold-start never mints the accepted name"
+
+# --- Spec 013 Task 4: git-recipes Freshness mode-table + divergence/first-push guards + author-date ---
+need_in "$GR" 'merge-base --is-ancestor'   "divergence ancestor-guard in recipe"
+need_in "$GR" '--force-with-lease=<branch>:' "pinned lease in recipe"
+need_in "$GR" 'git rebase --merge'          "recipe forces merge backend"
+need_in "$GR" 'authordate|%aI'              "recipe recency keys off author-date"
+
+# --- Spec 013 Task 5: migrations.md 5->6 step ---
+need_in "$MG" '5 ?(→|->|to) ?6'                 "migrations has a 5->6 step"
+need_in "$MG" 'rebase-prepare-onto-default: no'  "5->6 pins the flag no"
+need_in "$MG" 'gitattributes'                    "5->6 adds the gitattributes"
+
+# --- Spec 013 Task 6: policy-and-intake documents the Freshness field ---
+need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' 'rebase-prepare-onto-default' "policy-and-intake documents the Freshness field"
+# --- Spec 013 Task 10: stale-stamp guard — init.md and README illustration stamp the CURRENT schema (6) ---
+need_in 'plugins/tsugu/commands/init.md' 'tsugu-schema: 6'                    "init.md command states schema 6 (no stale schema-5)"
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'tsugu-schema: 6'              "README policy illustration stamps schema 6"
+need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6'                        "init.md migration chain includes schema 6"
+
+# --- Spec 013 Task 9: version bump 0.7.0 -> 0.8.0 (marketplace only; plugin.json has no version field) ---
+[ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.8.0" ] \
+  || fail "marketplace tsugu entry not at 0.8.0"; pass "marketplace tsugu == 0.8.0"
 
 echo "All tsugu SKILL.md content checks passed."
