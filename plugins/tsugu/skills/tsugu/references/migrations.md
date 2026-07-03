@@ -19,7 +19,7 @@ decisions by reading `policy.md`'s `tsugu-schema:` stamp:
   curated `policy.md`.
 - **migrate** — `.tsugu/` present and the stamp is older → apply the documented
   migration steps below **in order** (N→N+1 until current — the full chain is
-  `1→2→3→4→5`), then update the stamp and commit. The commit message names the
+  `1→2→3→4→5→6`), then update the stamp and commit. The commit message names the
   migration range (e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`).
 
 The steps obey these rules, which hold for every migration (not just 1→2):
@@ -295,8 +295,9 @@ change. Three things move: the policy section `## Handoff Prefixes` is renamed
 `prepare/* investigate/* review/*` to **`prepare/*` alone** — but only on human
 confirmation, never auto (E2); and existing branches under the removed prefixes
 are handled per-branch, never renamed (E3). Apply these steps in order on the
-`init/*` branch. A schema-1 repo runs **1→2→3→4→5** under the N→N+1 contract — 1→2,
-then 2→3, then 3→4, then 4→5, each stamping its own schema last before the next runs.
+`init/*` branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract — 1→2,
+then 2→3, then 3→4, then 4→5, then 5→6, each stamping its own schema last before the
+next runs.
 
 ### E1 — Rename (always-applied, mechanical)
 
@@ -438,7 +439,7 @@ from the old `yes` (push preparation branches) to the new `no` (keep work local;
 push is a cross-machine opt-in). Nothing structural changes — **no committed
 `.tsugu/` files or directories are added or removed**; the only changes are one
 explicit policy field and the stamp. Apply these two steps in order on the `init/*`
-branch. A schema-1 repo runs **1→2→3→4→5** under the N→N+1 contract — each prior
+branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract — each prior
 migration stamps its own schema last before the next runs.
 
 **1. Pin the old default — write explicit `push-prepare-branches: yes` when the
@@ -456,7 +457,7 @@ migration; it is idempotent by its condition (a present value no-ops).
 explicit value is present, written or already curated), update the `tsugu-schema:`
 stamp to `5` as the first line of `policy.md`. This is the **final action** and is
 what marks 4→5 complete; until it is written the stamp still reads `4`, so the
-schema-aware default-read (absent → `yes` if schema 4, else `no`; SKILL.md step 8)
+schema-aware default-read (absent → `yes` if schema 4, else `no`; SKILL.md step 9)
 keeps the old behavior through the upgrade window, and an interrupted re-run
 re-enters migration 4→5. **Push-protected exception:** where the default branch is
 push-protected, the whole migration rides an `init/*` branch + human-approved PR,
@@ -465,3 +466,53 @@ half-applied migration (exactly as 004–011 specify).
 
 This migration changes one policy field and the stamp; it touches no branch refs
 and rewrites no `context.md`.
+
+## Migration 5→6
+
+Schema 6 is the spec 013 layout: `prepare` gains a **freshness-rebase** step that
+keeps in-progress work branches current against the default branch. Like 4→5, this
+is **one behavior-changing default plus one structural addition** — no branch refs
+move and no existing `context.md` is rewritten. Apply these three steps in order on
+the `init/*` branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract —
+each prior migration stamps its own schema last before the next runs.
+
+**1. Pin the old default — write explicit `rebase-prepare-onto-default: no` when the
+field is absent.** Condition: `policy.md` has **no `## Freshness` section**, or a
+`## Freshness` section with **no explicit `rebase-prepare-onto-default` value**.
+Because an absent field reads as `no` regardless of schema (the fail-safe default —
+see SKILL.md's rebase step), a schema-5 repo already behaves as `no` today; but
+schema 6 also ships a **fresh-init** default of `yes`, so leaving the field absent
+after the stamp bumps would put the repo one accidental re-init away from silently
+starting to rewrite and force-push its `prepare/*` branches. So the migration
+**writes the explicit `rebase-prepare-onto-default: no`** into `## Freshness`
+(creating the section if it doesn't exist), pinning the **pre-013** behavior so the
+upgrade changes nothing unattended. **Never overwrite an explicit value** — a repo
+that already set `rebase-prepare-onto-default` (to `yes` or `no`) keeps it verbatim
+(the contract forbids overwriting curated content). To turn the routine refresh on,
+the human flips the pinned `no` to `yes` — a deliberate, one-line opt-in. This step
+is idempotent by its condition (an explicit value already present no-ops).
+
+**2. Add `.tsugu/.gitattributes` — unconditionally.** Condition: `.tsugu/.gitattributes`
+does not already exist. Write it with `context.md merge=union` (the
+`templates/gitattributes` content). Unlike step 1, this action is **not
+flag-gated and not conditioned on any policy value** — it is the one intentional,
+flag-independent non-preservation in this migration: `context.md` is narrative, and
+narrative should never block any merge, on any repo, regardless of whether
+`rebase-prepare-onto-default` ends up `yes` or `no`. If the file already exists
+(e.g. a human added it by hand), leave it untouched — the migration only creates it
+when absent. This step is idempotent by its condition.
+
+**3. Stamp `tsugu-schema: 6` — last.** Only after steps 1 and 2 have both succeeded
+(the explicit `## Freshness` value is present, written or already curated, and
+`.tsugu/.gitattributes` exists), update the `tsugu-schema:` stamp to `6` as the
+first line of `policy.md`. This is the **final action** and is what marks 5→6
+complete; until it is written the stamp still reads `5`, so an interrupted re-run
+re-enters migration 5→6 and each step's condition guard makes the re-entry a no-op
+for whatever already landed. **Push-protected exception:** where the default branch
+is push-protected, the whole migration rides an `init/*` branch + human-approved
+PR, and the stamp rides as the **last** write to land — never a "complete" stamp
+over a half-applied migration (exactly as 004–012 specify).
+
+This migration changes one policy field, adds one committed file
+(`.tsugu/.gitattributes`), and the stamp; it touches no branch refs and rewrites no
+existing `context.md`.
