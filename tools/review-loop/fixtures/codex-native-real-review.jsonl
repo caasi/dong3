@@ -1,0 +1,5 @@
+{"type":"thread.started","thread_id":"00000000-0000-0000-0000-00000000beef"}
+{"type":"item.completed","item":{"id":"item_0","type":"command_execution","command":"git diff main...HEAD","status":"completed"}}
+{"type":"item.completed","item":{"id":"item_1","type":"command_execution","command":"sed -n '1,80p' src/ttl.ts","status":"completed"}}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"src/ttl.ts:41 - expiry comparison uses `<`, so an entry expiring exactly now survives one extra get(). confidence: high. not a bug if expiry is intended to be exclusive."}}
+{"type":"turn.completed"}

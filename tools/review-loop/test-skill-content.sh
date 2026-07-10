@@ -17,6 +17,46 @@ refute() { # $1=regex, $2=description — fails if the regex IS present
   pass "no longer present: $2"
 }
 
+# Novelty-checked anchor. An anchor that already matches the PRE-CHANGE SKILL.md
+# guards nothing: it passes before the work is done. Three such anchors were
+# proposed during spec 014's review and none of their authors had run grep.
+REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SKILL_REL="plugins/review-loop/skills/review-loop/SKILL.md"
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+BASE_REF="${BASE_REF:-$(git -C "$REPO" merge-base HEAD "$DEFAULT_BRANCH" 2>/dev/null || true)}"
+
+# The frontmatter summarises every rule in the body, so grepping the whole file lets the
+# summary stand in for the rule it summarises: gut the body, keep the description, and the
+# anchor is still green. need_new therefore reads the BODY only. (refute keeps the whole
+# file: a phrase must be gone from everywhere, summary included.)
+skill_body() { awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm'; }
+
+need_new() { # $1=regex, $2=description — must match the BODY now, must NOT match it at $BASE_REF
+  skill_body < "$SKILL" | grep -Eq "$1" || fail "SKILL.md body missing (frontmatter does not count): $2"
+  if [ -z "$BASE_REF" ]; then
+    echo "WARN: no BASE_REF (not a git checkout?) — novelty unchecked for: $2" >&2
+    pass "$2"
+    return
+  fi
+  # Once this branch merges, the suite runs on the default branch, where the merge-base
+  # IS HEAD -- the baseline and the working file are the same commit, so every anchor
+  # would report itself vacuous. Novelty is unknowable there; it was checked before merge.
+  if [ "$BASE_REF" = "$(git -C "$REPO" rev-parse HEAD)" ]; then
+    echo "WARN: BASE_REF == HEAD (on the baseline branch) — novelty unchecked for: $2" >&2
+    pass "$2"
+    return
+  fi
+  local base_content
+  base_content="$(git -C "$REPO" show "$BASE_REF:$SKILL_REL" 2>/dev/null)" || \
+    fail "cannot read baseline $BASE_REF:$SKILL_REL for: $2"
+  # Compare BODY to BODY. The baseline frontmatter summarises its own body, so grepping it
+  # would report an anchor vacuous on the strength of a summary the body never contained.
+  if printf '%s\n' "$base_content" | skill_body | grep -Eq "$1"; then
+    fail "vacuous anchor (already in the SKILL.md body at $BASE_REF): $2"
+  fi
+  pass "$2"
+}
+
 need 'sandbox-preflight\.sh'                              "preflight script reference"
 need 'Route by sandbox state'                            "sandbox-state routing rule"
 need 'Embedded-diff form'                                "embedded-diff form"
@@ -36,5 +76,28 @@ need 'After convergence'                                 "after-convergence offe
 need 'feature.branch'                                    "offer is feature-branch only"
 need 'force-with-lease'                                  "pinned-lease push guidance"
 need 'never automatic'                                   "offer is assisted, never automatic"
+
+# spec 014 Part A — roster, init, calibration
+need_new 'never silently follow a stale config'          "roster drift is surfaced, not followed"
+need_new 'review-loop\.local\.md'                        "enrollment config path"
+need_new 'derived from `kind`'                           "tier is derived, not declared"
+
+# spec 014 Part B — the adversarial panel
+need_new 'blind, parallel, on the same unfixed diff'     "round 1 is blind on the UNFIXED diff"
+need_new 'tried hardest to break'                        "R2's non-forcing critique rule, not its heading"
+need_new 'refuted-undefended'                            "the status that had to exist"
+need_new 'status == survived'                            "gate turns on survived, not != refuted"
+need_new 'a concrete, checkable condition'               "the record's falsification FIELD, not the word"
+need_new 'facilitator confirms the quote'                "prose reproduction is a check, not a capability"
+need_new 'retain both verbatim texts'                    "dedup cannot launder attribution"
+need_new 'weak evidence'                                 "same-family convergence is labelled weak"
+need_new 'critique rounds are now exempt'                "R2 detector exemption"
+need_new 'forge reviewer'                                "Phase B is a slot"
+need_new 'clean_when'                                    "declared reviewers pin their stop signal"
+
+# the leading convergence prompt is gone
+refute 'Are your earlier points resolved'                "leading convergence prompt"
+# the old Copilot-only Phase B heading is gone (note: it was an h3, not an h2)
+refute '^### Phase B — GitHub Copilot'                   "Copilot-only Phase B heading"
 
 echo "All SKILL.md content checks passed."
