@@ -23,7 +23,20 @@ refute() { # $1=regex, $2=description — fails if the regex IS present
 REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SKILL_REL="plugins/review-loop/skills/review-loop/SKILL.md"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
-BASE_REF="${BASE_REF:-$(git -C "$REPO" merge-base HEAD "$DEFAULT_BRANCH" 2>/dev/null || true)}"
+# A PR/CI checkout often has origin/main but no local main. Falling back to "no baseline"
+# there would silently disable novelty checking and let every vacuous anchor pass -- the
+# exact fail-open this helper exists to prevent. Try the local branch, then the
+# remote-tracking ref, and only then give up.
+_base_ref() {
+  local b
+  for b in "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH"; do
+    if git -C "$REPO" rev-parse --verify --quiet "$b" >/dev/null; then
+      git -C "$REPO" merge-base HEAD "$b" 2>/dev/null && return 0
+    fi
+  done
+  return 1
+}
+BASE_REF="${BASE_REF:-$(_base_ref || true)}"
 
 # The frontmatter summarises every rule in the body, so grepping the whole file lets the
 # summary stand in for the rule it summarises: gut the body, keep the description, and the
@@ -32,9 +45,20 @@ BASE_REF="${BASE_REF:-$(git -C "$REPO" merge-base HEAD "$DEFAULT_BRANCH" 2>/dev/
 skill_body() { awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm'; }
 
 need_new() { # $1=regex, $2=description — must match the BODY now, must NOT match it at $BASE_REF
-  skill_body < "$SKILL" | grep -Eq "$1" || fail "SKILL.md body missing (frontmatter does not count): $2"
+  # No pipeline into grep: with `set -o pipefail`, a consumer that exits early on a match
+  # can surface the producer's SIGPIPE as a non-zero pipeline status, turning a real match
+  # into a silent miss. Capture once, match with a here-string.
+  local body; body="$(skill_body < "$SKILL")"
+  grep -Eq "$1" <<<"$body" || fail "SKILL.md body missing (frontmatter does not count): $2"
   if [ -z "$BASE_REF" ]; then
-    echo "WARN: no BASE_REF (not a git checkout?) — novelty unchecked for: $2" >&2
+    # Outside a git checkout there is genuinely no baseline: warn and pass, so the harness
+    # stays runnable. INSIDE one, an unresolvable default branch is an error, not an
+    # absence -- passing there would silently disable novelty checking, the exact fail-open
+    # this helper exists to prevent.
+    if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+      fail "in a git checkout but cannot resolve a baseline (tried $DEFAULT_BRANCH, origin/$DEFAULT_BRANCH) for: $2"
+    fi
+    echo "WARN: no BASE_REF (not a git checkout) — novelty unchecked for: $2" >&2
     pass "$2"
     return
   fi
@@ -51,7 +75,8 @@ need_new() { # $1=regex, $2=description — must match the BODY now, must NOT ma
     fail "cannot read baseline $BASE_REF:$SKILL_REL for: $2"
   # Compare BODY to BODY. The baseline frontmatter summarises its own body, so grepping it
   # would report an anchor vacuous on the strength of a summary the body never contained.
-  if printf '%s\n' "$base_content" | skill_body | grep -Eq "$1"; then
+  local base_body; base_body="$(skill_body <<<"$base_content")"
+  if grep -Eq "$1" <<<"$base_body"; then
     fail "vacuous anchor (already in the SKILL.md body at $BASE_REF): $2"
   fi
   pass "$2"

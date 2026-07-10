@@ -1,6 +1,6 @@
 {
   "name": "review-loop",
-  "description": "Assisted multi-reviewer convergence loop — local Claude + Codex gate first, then GitHub Copilot for PRs; tiers comments, auto-fixes mechanical ones, never merges autonomously",
+  "description": "Assisted adversarial review panel — reviewers answer blind, attack each other's findings, then converge; enrolled roster via /review-loop:init; never merges autonomously",
   "author": {
     "name": "caasi"
   },

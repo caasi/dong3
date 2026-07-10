@@ -658,7 +658,8 @@ review` is not a chat interface.
   independence). A freeform Codex infers its target, and an inference is not a
   guarantee. Do not trust it — check it:
 
-  - The R1 prompt names the exact range, `<base>..<head-sha>`, not "this branch".
+  - The R1 prompt names the exact range, `<base>...<head-sha>` — **three dots, the same
+    range the check below runs**; a two-dot range differs the moment the base advances.
   - The prompt requires the review to **state the commit range and the file list it
     actually reviewed**, as its first line.
   - The facilitator compares that against `git diff --name-only <base>...<head>`. A

@@ -50,7 +50,7 @@ use_legacy_landlock = true
 Verify:
 
 ```bash
-codex exec --sandbox read-only review --commit <unpushed-sha>   # produces a real review
+codex exec --json --sandbox read-only review --commit <unpushed-sha>   # produces a real review
 ```
 
 ## 3. Hand-rolled `/etc/apparmor.d/bwrap` (inferior to `bwrap-userns-restrict`)
@@ -107,5 +107,5 @@ Verify (no host change — confirm the fallback itself yields a real review):
 ```bash
 sha=$(git rev-parse HEAD)
 printf '%s\n\n%s\n' "Review this diff for correctness and risk:" "$(git show "$sha")" \
-  | codex exec --sandbox read-only -        # produces a real review with no native sandbox
+  | codex exec --json --sandbox read-only -   # produces a real review with no native sandbox
 ```

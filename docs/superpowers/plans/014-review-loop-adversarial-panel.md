@@ -620,7 +620,7 @@ learn the loop is alive buys nothing.
   printf '%s\n' "$brief" | codex exec --json --sandbox read-only review -
   ```
   **An inferred diff may not be the same diff, and R1 is the blind round.** So the
-  brief names the exact range `<base>..<head-sha>`, requires the review to state the
+  brief names the exact range `<base>...<head-sha>`, requires the review to state the
   commit range and file list it actually reviewed as its first line, and the
   facilitator compares that against `git diff --name-only "$base"..."$head"`. A
   mismatch → re-run once with the diff embedded (which cannot be inferred wrong); a
@@ -1393,7 +1393,7 @@ Expected: `codex present`, `gh present`, the rest `absent` on this host. Confirm
 
 Confirm by reading `SKILL.md`:
 - A1 says panelists review **blind**, on the same **unfixed** diff, and R1 findings are shown to the author as `proposed`.
-- The freeform-native R1 pins `<base>..<head-sha>` and checks the echoed file list against `git diff --name-only`.
+- The freeform-native R1 pins `<base>...<head-sha>` and checks the echoed file list against `git diff --name-only`.
 - R2's prompt asks for the claim you "tried hardest to break" and **does not** mandate a disagreement.
 - The R2 detector exemption's stated reason is the **category error** (an R2's subject is the findings), not "critique rounds read no files".
 - The gate is `survived ∨ reproduced`; a single-panelist run auto-fixes on `reproduced` alone.

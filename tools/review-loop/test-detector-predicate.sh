@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pins the post-round detector's decision, using recorded `codex --json` streams.
+# Pins the post-round detector's decision, using recorded `codex exec --json` streams.
 # No sandbox, no network, no codex binary required.
 set -euo pipefail
 
