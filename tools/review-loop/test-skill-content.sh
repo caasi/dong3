@@ -37,4 +37,42 @@ need 'feature.branch'                                    "offer is feature-branc
 need 'force-with-lease'                                  "pinned-lease push guidance"
 need 'never automatic'                                   "offer is assisted, never automatic"
 
+# spec 014 — the roster
+need "no reviewer sees another's findings"               "A1 is blind"
+need 'Every live reviewer, blind and in parallel, on the same unfixed diff' "A1 rule (not the frontmatter/intro echo of 'same unfixed diff')"
+need 'never silently follow a stale config'              "drift is surfaced"
+need 'review-loop\.local\.md'                            "enrollment config path"
+need 'bonus, not a gate'                                 "heterogeneity gates nothing"
+need 'same-family passes are first-class'               "same-family is not a fallback"
+need 'A recipe never suppresses a detector'             "reconciliation logic present (not just the section opener)"
+
+# spec 014 — findings and the verdict
+need 'absence of a falsification condition gates nothing' "a missing falsification condition gates nothing"
+need 'a citation the facilitator verifies with a command' "prose reproduction is a check, not a capability"
+need 'never imputes'                                     "the facilitator may not fill in another's fields"
+need 'retain both verbatim texts'                        "dedup cannot launder attribution"
+need 'never reported as a downgrade'                     "same-family is disclosed, never downgraded"
+need 'never let a weak check downgrade a same-family pass' "a weak check may not downgrade same-family"
+need 'actually ran, verified'                            "the verdict names the real panel"
+
+# spec 014 — when adversarial review is the point (§B.7)
+need 'does the finding have a runnable ground truth'     "the escalation axis is ground truth"
+need 'never auto-runs it'                                "the direction guard is proposed, not auto-run"
+need 'diversity-illusion danger zone'                    "converged-without-proof is the trigger"
+# NB: the no-sub-command RULE is stated by NAMING /review-loop:direction as forbidden, so it is a
+# need (the phrase is present as the denial), never a refute — Step 4's grep asserts exactly 1 hit.
+need 'never a .?/review-loop:direction.? sub-command'    "no direction sub-command, stated as the rule"
+
+# spec 014 — Codex's first round carries a prompt
+need 'freeform, carries the prompt'                      "A1 uses the prompt-bearing form (comment)"
+need 'carry the finding-record request the blind round needs' "R1 is prompt-bearing (rule, not just the comment): targeted form cannot serve R1"
+need 'git diff --name-only'                              "the inferred diff is checked"
+
+# spec 014 — a review that is not a review
+need 'drop the reviewer, continue, and disclose'          "ghost reviewer gate"
+
+# gone
+refute 'Are your earlier points resolved'                "leading convergence prompt"
+refute '^\*\*A2\. Codex review'                          "the old serial second gate"
+
 echo "All SKILL.md content checks passed."

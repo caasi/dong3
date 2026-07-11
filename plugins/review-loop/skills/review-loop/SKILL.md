@@ -1,23 +1,34 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Prefers local reviewers (Claude subagent + headless Codex via `codex exec review`) as the first gate; for GitHub PR targets, also requests Copilot after the PR is open. Loops each reviewer until clean or its usage limit, classifies comments into tiers, auto-fixes mechanical ones, pauses on architectural ones for user judgment. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
 
 Assisted, not autonomous. Preserves the author's architectural voice and learning across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
-**Local reviewers are preferred and run first.** A Claude subagent and Codex (headless, via `codex exec review`) cost nothing extra and are fast, so they are the first gate. Codex runs wherever the `codex` CLI is on `PATH` — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default). GitHub Copilot is added only when the target is a GitHub PR, and only after the local gate is clean.
+**Local reviewers are preferred and run first.** The enrolled roster (§ Reviewer roster) — a Claude subagent, any other Claude models or CLIs you enrol, and Codex when it is enrolled (or, with no config, whenever it is present) — reviews the local diff **blind and in parallel**, and this is the first gate; it costs little and works on any host. A config that intentionally omits Codex is honoured; a present-but-unenrolled Codex is noted, not auto-run (§ Roster reconciliation). Codex runs headless via the `codex` CLI — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default). A forge reviewer (GitHub Copilot) is added only when the target is a GitHub PR, and only after the local gate is clean.
 
 ## Why this loop exists
 
-Claude and Codex reviewing **together** produces noticeably better output than either model alone — they catch different classes of issues, and Codex's pass tightens the diff before it ever reaches GitHub. The downstream payoff: by the time Copilot sees the PR, there's much less for it to complain about, so review rounds converge faster. Front-loading combined local Claude+Codex review as the first gate is the entire reason this loop exists.
+A second look finds what the first missed. That is certain, and it does not need a second model family: a reviewer that has not seen its own earlier reasoning is a longer chain of thought with a clean context. Whether *different* model families catch *different* holes is plausible and unmeasured — so heterogeneity is a bonus here, never a gate. What matters is that the reviewers look at the **same unfixed diff**, that none of them sees another's findings first, and that the verdict says which ones actually ran. Serial review cannot do this: a reviewer shown the already-fixed tree is anchored on the first reviewer's judgement and can no longer dispute it. (Full rationale, the two hypotheses graded, and credit to the MIT-licensed `makinux/adversarial-panel`: `references/why-adversarial.md`.)
 
 ## Requirements
 
-- **Always usable:** the Claude subagent reviewer needs nothing extra.
-- **Codex reviewer (optional):** the `codex` CLI on `PATH`. Absent it, the Codex step is skipped silently. `jq` is used to capture the resume `thread_id` from `codex`'s `--json` stream — without `jq`, resume just falls back to `--last` (§ Convergence rounds). (tmux is **not** required — it only adds a live-watch pane **when you ask to watch**; see A2.)
-- **GitHub Copilot phase (optional):** the authenticated `gh` CLI and `jq`. Only used for GitHub PR targets.
+- **Always usable:** the Claude subagent reviewer needs nothing extra. `/review-loop:init`
+  can pin it to a *different* Claude model — the cheapest strengthening available, and it
+  needs no second CLI.
+- **The roster is enrolled, not assumed.** Which reviewers this host can field is answered
+  by a `command -v` sweep at loop start, plus `~/.claude/review-loop.local.md` (enrollment,
+  and the invocation recipe `/review-loop:init` learned by actually calling each CLI). With
+  no config the loop fields the same roster it always did; `init` is never a precondition.
+- **Codex reviewer (optional):** the `codex` CLI on `PATH`. If Codex was **never enrolled** and is absent, the step is skipped silently; if it was **enrolled** but is absent, the loop says so and grades the verdict (§ Roster reconciliation) — an enrolled reviewer that did not run is never a silent skip. `jq` is used to capture the resume `thread_id` from `codex`'s `--json` stream — without `jq`, resume just falls back to `--last` (§ Convergence rounds). (tmux is **not** required — it only adds a live-watch pane **when you ask to watch**; see § Codex mechanics.)
+- **Forge reviewer (optional):** the one built-in adapter is GitHub Copilot, which needs the
+  **authenticated** `gh` CLI and `jq`, and runs only for GitHub PR targets. It needs **no
+  enrollment** — zero config reaches it exactly as before. Presence of `gh` is not
+  authentication. Enrollment adds a *declared* reviewer on another forge, or opts out of
+  Copilot. With no forge reviewer available, Phase B is skipped and the local reviewers are
+  the whole loop.
 
 The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`, plus `tmux` only for the live-watch pane (used only when you ask to watch)) from `PATH`, so the skill is self-contained and portable across machines.
 
@@ -29,11 +40,62 @@ The skill and helper scripts resolve their CLI dependencies (`codex`, `gh`, `jq`
   - The diff may contain code, design artifacts (specs, plans, docs), or both — the loop reviews whatever changed.
 - Repo / base branch inferred from the current working directory.
 
-## Reviewer roster & priority
+## Reviewer roster
 
-1. **Local Claude subagent** — always. Dispatch a subagent (Task tool) to do the review.
-2. **Local Codex** (headless `codex exec review`) — when `codex` is on `PATH`. tmux is not required; it adds a live-watch pane **only when you ask to watch** (and you're in tmux). See A2.
-3. **GitHub Copilot** — only for GitHub PR targets, after the PR is open.
+Two things make a second look worth having, and they are not equally certain.
+
+**More passes is more thinking.** A fresh pass over the same artifact finds real defects,
+even by the same weights: a reviewer that has not seen its own earlier reasoning is a longer
+chain of thought with a clean context. This is the load-bearing reason the loop reviews more
+than once, it works on any host, and **same-family passes are first-class here, never a fallback**.
+
+**Different model families may catch different holes.** Plausible, adopted, and **not
+measured**. So heterogeneity is a **bonus, not a gate**: nothing here requires a cross-family
+reviewer or blocks a clean verdict on its absence. What the loop does is *name which reviewers
+ran* — disclosure, not a ranking — so a reader knows whether the cross-family perspective was
+exercised this run, never to discount a same-family pass.
+
+Reviewers carry a **role**, set by `/review-loop:init`, split by cost. Neither role adds a
+sub-command:
+
+1. **Routine panel** — runs on every review, blind and in parallel. Compose it from what the
+   host has: the session's own model (fresh context), one or more *other* Claude models (e.g.
+   Sonnet alongside an Opus session), and `codex` (a different family, actually called). Several
+   at once is normal — Opus + Sonnet + gpt-5.5, not a single pick. A user-declared endpoint may
+   join, but never counts as a cross-family voice.
+2. **Direction guard** — an expensive, heavyweight model (e.g. Fable) held back from every
+   round. It runs under this same `/review-loop`, proposed only when the escalation rule fires
+   (see *When adversarial review is the point*). Never a sub-command, never every round.
+
+**Forge reviewers are a separate phase** (Phase B) — they live on the code-hosting platform,
+appear only once a PR/MR exists, and never review the local diff. GitHub Copilot is the one
+built-in adapter and needs no enrollment.
+
+### Roster reconciliation at loop start
+
+Probe presence inline — no script; a `command -v` loop is not knowledge worth materializing:
+
+```bash
+for cli in codex gemini cursor-agent opencode aider crush amp llm gh; do
+  command -v "$cli" >/dev/null 2>&1 && echo "$cli present" || echo "$cli absent"
+done
+```
+
+(`<cli> --version` is `/review-loop:init`'s business, not a review's.)
+
+Compare against the config and **surface every disagreement — never silently follow a stale config**:
+
+- **Enrolled but absent** → note it, and reflect it in the panel the verdict names. A reviewer
+  the author asked for and did not get is not a silent skip.
+- **Present but unenrolled** (e.g. `codex` installed after `init` ran) → note once: "`codex` is
+  on `PATH` but not enrolled — run `/review-loop:init` to add it." Do **not** auto-enroll.
+- **Recipe drift** — the CLI's version differs from `invocation.verified_with`, or the preflight
+  contradicts `invocation.form`. The stored recipe is a **learned default, not gospel**: the
+  preflight and the post-round detector still run and still win. Follow this run's evidence, then
+  suggest re-running `init`. **A recipe never suppresses a detector.**
+- **A routine Claude reviewer's model equals the session model** → that reviewer is the session's
+  own weights with a fresh context. Genuinely worth having; the verdict names it accurately (a
+  fresh pass, not a distinct model) without treating it as lesser.
 
 ## Helper scripts
 
@@ -52,15 +114,95 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 
 Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed, T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
+### Reviewers are asked what would show a finding wrong; reproduction is the rule
+
+A finding carries its **reviewer**, its **claim**, its **location** and its **tier**, and reviewers
+are **asked** to add a concrete, checkable **falsification condition** — "not a bug if `cfg` is
+non-null at every call site", "not a defect if line 152 does not already contain the word". A generic
+condition — "if evidence emerges to the contrary" — carries no information; treat it as absent.
+
+But **the absence of a falsification condition gates nothing** — it is not a required field, and no
+finding is refused, downgraded, or auto-fixed on the strength of having one. The load-bearing rule is
+one step up and already ours: **reproduce a finding before acting on it.** The falsification condition
+is just the thing reproduction *checks*, and a reviewer who names it up front saves the facilitator
+from reverse-engineering it; where it is left out, the facilitator reproduces anyway. A request, not a
+contract — codifying it as required would be new machinery the roster split does not need.
+
+**Reproduce before you accept.** On executable code, a failing test settles it. On prose there is
+nothing to run, so reproduction is **a citation the facilitator verifies with a command** — the
+quotation, its location, and a `grep`. "A reader can check it" is a capability, not a check. A
+finding nobody could reproduce is still surfaced, and said to be unreproduced.
+
+A reviewer may give a **confidence**. It informs the author and nothing else: it is a self-report by
+the same weights that produced the finding. **The facilitator never imputes a confidence or a
+falsification condition onto another reviewer's finding** — that would be Claude judging whether
+Codex's finding is true and dressing the judgement as Codex's.
+
+Codex's text is quoted **verbatim**, never paraphrased into Claude's voice.
+
 ## Flow
 
 ### Phase A — Local review (always first)
 
 **A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override.
 
-**A1. Claude subagent review** — dispatch a subagent to review the diff. Classify findings into T1/T2/T3, post the grouped list, resolve T2/T3 picks, then apply fixes (per *Tiers*). Commit fixes; push only if a remote/PR branch exists, otherwise commit locally.
+**A1. Every live reviewer, blind and in parallel, on the same unfixed diff.** Nobody reviews a
+tree someone else has already fixed, and **no reviewer sees another's findings**. A reviewer
+shown another's output is not a second opinion, it is an editor.
 
-**A2. Codex review** (only if `codex` is on `PATH`; otherwise skip silently — don't block, don't mention it). Codex runs **headless** via `codex exec review` — no tmux, no pane, runs wherever `codex` is on `PATH`. The `review` subcommand is read-only by construction; Codex *finds* issues, Claude applies fixes (Codex never edits the tree).
+Post the findings as each lands, marked **not yet actionable**. The independence rule binds
+reviewers, not the author; making the author wait through parallel silence buys nothing.
+
+How each is invoked:
+
+- **Claude subagents** — one `Task` dispatch per enrolled routine Claude reviewer, each under its
+  own `model`. The brief stands alone (the subagent sees none of this conversation): the diff, the
+  tier definitions, the falsification-condition instruction, "state your model id on the first
+  line", and "your final message is the review record; no preamble".
+- **Codex, native path — the *freeform* form, because the first round needs a prompt.** A target flag takes
+  none (`review --uncommitted -` errors rc=2), and the prompt is where the finding record is
+  requested. The freeform form does take one:
+  ```bash
+  brief="Review the change for the range ${base}...HEAD (a git three-dot range).
+  FIRST LINE of your reply: state that range and the file list you actually reviewed.
+  Then a findings list, most-severe first; for each finding give: your claim, its file:location,
+  a tier (T1 mechanical / T2 local refactor / T3 architectural), and a concrete falsification
+  condition ('not a defect if X'). No preamble; your final message is the review record."
+  printf '%s\n' "$brief" | codex exec --json --sandbox read-only review -
+  ```
+  `$brief` names the exact range `<base>...HEAD` — three dots, the same range the check
+  below runs — and requests the finding record (the reviewer / claim / location / tier /
+  falsification-condition structure of *Reviewers are asked what would show a finding wrong*).
+  **An inferred diff may not be the same diff, and this is the blind round**, so the brief
+  requires the review to state, as its first line, the range and file list it actually reviewed;
+  the facilitator compares that against `git diff --name-only "$base"...HEAD`. A mismatch →
+  re-run once with the diff embedded, which cannot be inferred wrong; a second mismatch → drop it,
+  continue, disclose (*Ghost reviewer gate*).
+- **Codex, embedded path** — unchanged. It carries a prompt too, so the record is requested the
+  same way.
+- **Any other enrolled CLI or endpoint** — the stored `invocation.command`, with the diff and the
+  record format in the prompt. No resume protocol is assumed for anything but Codex.
+
+**Cross-critique is recommended, and gates nothing** — and it happens **before any fix is
+committed**, which is the whole point: with two or more reviewers, showing each the others'
+findings and asking them to attack is cheap and it kills false positives before they become
+commits. Ask for the claim they *tried hardest to break*, and whether it held — never "you
+disagree with at least one central claim; find it", which manufactures a refutation when the other
+reviewer is right. A round that refutes nothing is a legitimate outcome; a round that **attacks**
+nothing is the failed one. But a finding is actionable when it is **reproduced**, not when it
+survives an argument: disagreement about executable code is settled by a test.
+
+**Then** classify the surviving findings into T1/T2/T3, post the grouped list, resolve T2/T3 with
+the author, and apply fixes per *Tiers*. Commit fixes; push only if a remote/PR branch exists.
+
+#### Codex mechanics — how the Codex reviewer is driven
+
+This section is **not a step**. It is the machinery the Codex reviewer runs on wherever it appears
+above: blind in A1, and again when convergence re-checks the fixed diff. It applies only if
+`codex` is live. **Never enrolled and absent → skip silently. Enrolled and absent → say so** and
+grade the verdict (*Roster reconciliation*): a reviewer the author asked for and did not get is
+not a silent skip. Codex runs **headless** via `codex exec` — no tmux, no pane. The `review`
+subcommand is read-only by construction; Codex *finds* issues, Claude applies fixes.
 
 - **Set up logs (once, at loop start):** pick a `<runid>` (PR number, branch slug, or `mktemp` suffix). `$log` is the **cumulative** feed for the optional watch pane *only*; each round also writes its own `$round` file, which is what Claude actually reads (so old rounds' findings are never replayed):
   ```bash
@@ -88,7 +230,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   If the user asked to watch but `$TMUX` is unset (can't split a pane), note it once — "not in a tmux session, so I can't open a watch pane; Codex findings are still relayed in the tier list" — and continue headless. Never fail on this.
   The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan — guard it so an unset/failed pane doesn't abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
-- **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree); for a `<PR-number>` target, `gh pr checkout <num>` first. Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. Instead use the embedded-diff form (A2): put the diff in the prompt, e.g. `codex exec --json --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
+- **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree); for a `<PR-number>` target, `gh pr checkout <num>` first. Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. Instead use the embedded-diff form (§ Codex mechanics): put the diff in the prompt, e.g. `codex exec --json --sandbox read-only "Review this diff for correctness, design, and risk:\n$(gh pr diff <num>)"` — or tell the author the PR can't be reviewed without checkout.)
 
 - **Route by sandbox state, not by target.** The preflight `$sandbox` decides which Codex form is primary:
   - `usable` → native `review` (below): it reads the local tree directly, correct for pushed *and* unpushed targets (no remote fallback happens).
@@ -96,12 +238,14 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
   The **local-only** check is routing rationale (it explains *why* a broken host is dangerous), not a separate gate — it never overrides a `usable` sandbox. Detect local-only per target mode (heuristic, not proof — remote-tracking refs can be stale, so optionally `git fetch` first; the post-round detector is the real backstop): `--commit <sha>` → `git branch -r --contains <sha>` empty; `--base <base>` → any commit in `<base>..HEAD` unreachable (an unpushed `HEAD` ⇒ treat the whole target as local-only); `--uncommitted` → inherently local-only.
 
-- **Embedded-diff form (the `broken`/`unknown` path).** Put the diff *into the prompt* — no sandboxed subprocess is needed to read the tree, so the failure cannot occur. Keep `--json` (captures `thread_id` for resume):
+- **Embedded-diff form (the `broken`/`unknown` path).** Put the diff *into the prompt* — no sandboxed subprocess is needed to read the tree, so the failure cannot occur. It carries the **same `$brief`** (the finding-record request from A1) as the freeform form, so the structured record is requested the same way; only the diff delivery differs. Keep `--json` (captures `thread_id` for resume):
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  printf '%s\n\n%s\n' "Review this diff for correctness, design, and risk. List concrete defects:" "$(git show "$sha")" \
-    | codex exec --json --sandbox read-only - >"$round" 2>"$err" || rc=$?   # trailing - reads the PROMPT from stdin
+  # $brief: assemble it here exactly as in A1 (the finding-record request) — it is a per-round
+  # variable, not inherited from another code block, so define it on whichever path actually runs.
+  printf '%s\n\n%s\n' "$brief" "$(git show "$sha")" \
+    | codex exec --json --sandbox read-only - >"$round" 2>"$err" || rc=$?   # trailing - reads the PROMPT ($brief + embedded diff) from stdin
   cat "$round" >>"$log"
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true
   ```
@@ -116,12 +260,15 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   ```
   On a `usable` sandbox prefer native `review --uncommitted` instead (it covers all three directly).
 
-- **First round — map the loop's target to a `review` invocation, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (they conflict with `[PROMPT]` — `review --uncommitted -` errors rc=2), so the targeted forms carry no instructions. Use `--base "$base"` as the canonical default-target form:
+- **First round — the freeform prompt-bearing `review -` form, with `--json`.** This is the round whose session id we need, so run it with `--json` and capture `thread_id` for resume (§ Convergence rounds). `--sandbox read-only` goes **before** the subcommand. Target flags take **no** prompt (`review --uncommitted -` errors rc=2), so a targeted form *cannot* carry the finding-record request the blind round needs — the first round therefore pipes `$brief` into freeform `review -`, and names the range in prose (§ A1). The targeted forms stay available where no prompt is needed (B3):
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  codex exec --json --sandbox read-only review --base "$base"  >"$round" 2>"$err" || rc=$?   # branch vs base (default)
-  # other targets: review --uncommitted (working tree) · review --commit "$sha" (one commit)
+  printf '%s\n' "$brief" \
+    | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?   # A1: freeform, carries the prompt
+  # $brief names the range <base>...HEAD (three dots — matches the name-only check) and
+  # requests the finding record. Targeted forms take NO prompt and so cannot serve A1. They remain
+  # available where none is needed — see B3: review --base "$base" · review --uncommitted
   cat "$round" >>"$log"   # feed the watch pane
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
   ```
@@ -135,7 +282,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   cat "$round" >>"$log"
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
   ```
-  Use the targeted form by default; reach for freeform only when custom focus is worth giving up the explicit target flag.
+  The blind first round (A1) **always** uses the prompt-bearing freeform form — it must carry `$brief` to request the finding record. The targeted forms (`review --base`, `review --uncommitted`) carry no prompt and so are for later rounds where none is needed (B3), never for A1.
 
 - **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to the per-round `$round` file and stderr to `$err`, capturing the code set-e-safely (`rc=0; … || rc=$?`, never a bare `; rc=$?`), then `cat "$round" >>"$log"` for the watch and read `$round` for classification.
 
@@ -157,7 +304,7 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  printf '%s\n' "I applied these fixes: <summary>. Are your earlier points resolved? Any new concerns?" \
+  printf '%s\n' "The fixes are applied. For each point you raised, verify it AGAINST THE CODE and state resolved or unresolved, with the evidence you used. Do not treat the author's description of the fix as evidence. Then state any new concerns." \
     | codex exec --json --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
   ```
@@ -169,10 +316,10 @@ Per round: post the grouped findings, **resolve T2/T3 with the author first** (q
 
 - **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
 
-- **Local, unpushed commits on `main` are a first-class case, not an edge case.** Under the docs-to-`main` convention, design-artifact reviews routinely target a freshly-committed, unpushed commit on `main`. On a `broken`/`unknown` host that is exactly where native `review` silently false-cleans (it falls back to the remote, which lacks the commit) — which is why A2 routes these to the embedded-diff form and guards every native round with the post-round detector.
+- **Local, unpushed commits on `main` are a first-class case, not an edge case.** Under the docs-to-`main` convention, design-artifact reviews routinely target a freshly-committed, unpushed commit on `main`. On a `broken`/`unknown` host that is exactly where native `review` silently false-cleans (it falls back to the remote, which lacks the commit) — which is why the Codex mechanics route these to the embedded-diff form and guard every native round with the post-round detector.
 - **Host fixes (optional).** If you want the native `review` path back on a host where the preflight reports `broken`, see `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/references/codex-sandbox-host-fixes.md` — a menu (bwrap-userns-restrict, legacy-landlock, …). The skill never applies these; embedded-diff already works with no host change.
 
-**A3. Converge the local gate** — re-run A1/A2 after fixes until Claude is clean **and** Codex is clean *when available*. "Done" for Codex means any of: clean review, **or** Codex was unavailable this run — the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (§4 "Codex failed": surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on Claude alone; only an *available, not-yet-clean* Codex blocks. Only then proceed.
+**A3. Converge the local gate** — re-run A1 (all live reviewers) after fixes until Claude is clean **and** Codex is clean *when available*. "Done" for Codex means any of: clean review, **or** Codex was unavailable this run — the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (the "Codex failed" path — surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on Claude alone; only an *available, not-yet-clean* Codex blocks. Only then proceed.
 
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
@@ -187,7 +334,7 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 
 **B2. Pre-scan** — `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>` (paginated reviews + inline comments). Group unresolved comments into tiers, then handle them per *Tiers*.
 
-**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If `codex` is on `PATH`, have Codex review the new commits headlessly (`codex exec --sandbox read-only review --base "$base"`, or `resume "$thread_id" -` to continue the session) **before** re-requesting Copilot (local gate first).
+**B3. Re-request Copilot** after fixes push — Copilot won't re-examine otherwise: `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh rerequest <num>`. If `codex` is on `PATH`, have Codex review the new commits headlessly (`codex exec --json --sandbox read-only review --base "$base"`, or `printf '%s\n' "review the latest commits" | codex exec --json --sandbox read-only resume "$thread_id" -` to continue the session — `resume … -` reads its instruction from stdin, so it must be piped one) **before** re-requesting Copilot (local gate first).
 
 **B4. Poll** — `/loop 3m` re-run `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh fetch <num>`. New comments → re-classify → B2.
 - **Copilot clean-pass stop signal:** when `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh clean-pass <num>` exits 0 (newest Copilot review matches `generated no (new )?comments.` — "generated no comments." on a first review, "generated no new comments." on a re-review), **STOP immediately** — cancel the cron/`/loop` job, do not schedule another poll. Post: "Copilot review is clean — no new comments." Then run the **After convergence — offer to group commits** step (Exit conditions) *before waiting* — without it the offer is unreachable on the GitHub path — and wait for the author's call (group commits / review / merge / more work).
@@ -196,7 +343,45 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
 
 ## Exit conditions
 
-- **Local gate clean + (for GitHub) Copilot clean pass** (matches "generated no comments." / "generated no new comments.") → stop and surface to the author. This is the primary, explicit stop signal — prefer it over inferring doneness from "no new comments for N polls".
+- **Local gate clean + (for a forge target) the forge reviewer's clean pass** → stop and surface to the author. This is the primary, explicit stop signal — prefer it over inferring doneness from "no new comments for N polls".
+- **"Clean" is not one verdict — but naming the panel is disclosure, not a ranking.** Same-family review is **never reported as a downgrade**: multiple passes, same family or not, are the strong hypothesis at work, and this project's history shows same-family reviewers finding a false premise, a class of test weakness, and four weak anchors. The verdict adds one honest note about what was and was not exercised this run:
+  - **A cross-family reviewer ran** (a coding CLI alongside Claude) → the decorrelation bonus was exercised: agreement across families is less likely to share a blind spot.
+  - **The panel was all one family** (Claude models only, however many) → say so plainly, as a fact, not a demerit. The multi-pass value is real and delivered; the cross-family bonus simply was not exercised this run — a note for the reader, not a verdict of "weaker".
+  - **Only the session's own model ran** → still a genuine fresh-context pass; note no second reviewer participated, so the author can add one via `/review-loop:init`.
+  - A user-declared endpoint never counts as a cross-family voice, whatever the config says.
+  - Report what **actually ran, verified**: the CLIs that returned findings, and the models that actually *differed*. The subagent echoes its model id on the first line — a self-report, weak, and better than asserting composition from a config field. Where a check is weak, report the verdict it supports and no stronger — but **never let a weak check downgrade a same-family pass**.
+
+### When adversarial review is the point, and when looping is enough
+
+The routine panel runs every review. The **direction guard** — the expensive, cross-family or
+heavyweight reviewer — is spent only when the work needs decorrelation, and one axis decides
+whether escalation is even on the table: **does the finding have a runnable ground truth?**
+
+- **It does** — a test, a `grep`, `fxrank`, a type check settles it. **Keep looping.** Reproduction
+  is the judge and the reviewer's family is irrelevant; same-family multi-pass converges here.
+- **It does not** — the correctness is a judgement (design, premise, API shape, security argument).
+  No test closes it, and a same-family judgement inherits the generator's blind spots. **Here the
+  direction guard earns its cost.**
+
+The axis decides whether escalation is possible; it does not by itself decide the spend is worth
+it. **All three of the following presuppose that no check settles the finding** — a green check
+takes it off the table first. Within that region, when one holds, the loop **proposes** the
+direction guard (never auto-runs it, never a `/review-loop:direction` sub-command) and the author
+says yes or no:
+
+1. **No runnable ground truth** — design/prose/premise, not something a check adjudicates. This is
+   the axis itself; the other two are reasons the spend is worth it within it.
+2. **High or irreversible cost, with no check to settle it** — shared code, a merge gate, an
+   outward-facing change, or a spec the downstream depends on. When judgement is all you have *and*
+   a wrong judgement is expensive, the asymmetry justifies the spend. (A passing check that does
+   not cover the risk is not ground truth for that risk — the finding is still in this region.)
+3. **Converged without proof** — the panel went clean, but "clean" rests on judgement, not a green
+   check. Same-family agreement with nothing runnable behind it is the
+   diversity-illusion danger zone; convergence here is the signal to let a decorrelated reviewer
+   try to break it.
+
+When "clean" is backed by a passing check, **do not escalate** — the ground truth already ruled.
+The default is to loop; adversarial review is the exception these triggers name.
 - **Codex usage limit** → stop only the Codex sub-loop; the rest of the loop continues.
 - **Merge** — never merge autonomously. Only on an explicit `merge` instruction. Default to a merge commit (`gh pr merge --merge`, not `--squash`) to preserve history; ask before deleting the branch, and prefer leaving the local branch in place for the author to prune. Honor the project's own merge conventions if they differ.
 
@@ -219,6 +404,39 @@ When the loop reaches its clean/stop state and the current branch is a **non-def
   9. **abort/rollback on any failure before the push** — `git reset --hard <backup>`, restore the stash (remove operation-created untracked artifacts blocking it; never the user's content; if it still won't restore, STOP and surface `<backup>` + the stash entry), and do not push. Keep `<backup>` until verified success.
 - **Invariants:** never overwrite remote commits the regrouped branch lacks; on any lease mismatch, abort and surface — never auto-retry. **Grouping preserves the base relationship; it does not advance onto a moved base** (the merge commit reconciles that; advancing is a separate, explicit, user-driven rebase). Never offer on a primary branch.
 
+## Facilitator discipline
+
+The facilitator frames, dispatches, validates and fixes — and it is also the Claude subagent's
+model. It may not put its own arguments in another reviewer's mouth.
+
+- Findings in the round output are **attributed** — `[codex]`, `[claude-fable]` — and a reviewer's
+  wording is preserved **verbatim**.
+- The facilitator's own observations go under a separate, labelled **Facilitator** heading. They
+  never count as a reviewer's findings and never gate anything.
+- **Merged duplicates retain both verbatim texts and both attributions.** "These two are the same
+  issue, I'll keep one phrasing" is the laundering the verbatim rule exists to stop. Two reviewers
+  slicing one problem into different buckets are **not** agreeing.
+- Any **downgrade or dismissal of a cross-family reviewer's finding is surfaced** with its reason.
+  The facilitator may propose it; the author sees it.
+- **An unexplained full reversal is a sycophancy flag.** A reviewer that abandons a finding without
+  a reason, or concedes every attack, is asked for the grounds before the reversal is accepted.
+
+Tiering (T1/T2/T3) stays facilitator judgement: scope-of-fix is not something a reviewer can assess
+for a repo it does not own.
+
+## Ghost reviewer gate
+
+A status line, an empty result, or an error dump is **not a contribution**. If one enters the
+record, the loop reasons about thin air.
+
+- **Codex, native path:** the existing structural `command_execution` detector, unchanged — a native
+  round that ran zero `command_execution` items never read the tree.
+- **Every other reviewer:** the return must be a substantive review — findings, or an explicit "no
+  remaining problems". Re-run once; on a second failure **drop the reviewer, continue, and disclose
+  which panel actually ran**.
+- **External CLIs run in the foreground** with a generous timeout (≈10 min). A wrapper that
+  backgrounds the call and returns early manufactures ghosts.
+
 ## Learning capture
 
 After each round, append to a review journal in the repo (e.g. `.claude/pr-review-journal.md`, create if absent):
@@ -233,4 +451,4 @@ Periodically distill recurring patterns into the project's conventions/guideline
 
 - Not fully autonomous. The author decides T2/T3 fixes and the final merge.
 - Not a squash-merge tool. Default to a merge commit to preserve history.
-- The Copilot path is GitHub-only (uses `gh` + GitHub GraphQL). For other forges, the local Claude + Codex gate still applies; the remote-reviewer phase does not.
+- The Copilot path is GitHub-only (uses `gh` + GitHub GraphQL). For other forges, the local reviewer gate (the enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies; the remote-reviewer phase does not.
