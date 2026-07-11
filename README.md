@@ -50,7 +50,7 @@ See [plugins/owasp/skills/owasp/README.md](plugins/owasp/skills/owasp/README.md)
 
 ### review-loop
 
-Assisted (not autonomous) multi-reviewer convergence loop for any change — code or design artifacts. Local reviewers run first (a Claude subagent always, plus headless Codex via `codex exec review` when `codex` is on `PATH`), then GitHub Copilot for PR targets. Classifies comments into tiers, auto-fixes the mechanical ones, pauses for your judgment on the architectural ones, and never merges on its own. One slash command: `/review-loop [PR# | branch | blank]`.
+Assisted (not autonomous) multi-reviewer convergence loop for any change — code or design artifacts. Local reviewers answer **blind and in parallel** on the same unfixed diff (a Claude subagent always, plus any models/CLIs you enrol per host — Codex via headless `codex exec` when present), then GitHub Copilot for PR targets. The verdict names which reviewers actually ran; heterogeneity is a bonus, not a gate, and same-family review is never treated as a downgrade. Classifies comments into tiers, auto-fixes the mechanical ones, pauses for your judgment on the architectural ones, and never merges on its own. Two slash commands: `/review-loop [PR# | branch | blank]` and `/review-loop:init` (enrol the roster for this host).
 
 See [plugins/review-loop/skills/review-loop/README.md](plugins/review-loop/skills/review-loop/README.md) for full documentation.
 
