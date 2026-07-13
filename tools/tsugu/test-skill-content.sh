@@ -369,4 +369,11 @@ need_in "$CTX" 'diff against the merge-base'              "knowledge/ reconcile 
 need_in "$CTX" 'human.s approval'                         "backstop/promotion needs human approval (single-line phrase)"
 grep -Eq '^## tsugu — post-handoff cleanup' "$ROOT/$CTX" && fail "context.md template must NOT contain the agent-md pointer section" || pass "context.md has no agent-md pointer (that belongs in the agent-md template)"
 
+PTR='plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md'
+need_file "$PTR"                                          "agent-md pointer template shipped"
+need_in "$PTR" '^## tsugu — post-handoff cleanup'        "pointer carries its section-heading marker"
+need_in "$PTR" 'BEFORE it lands'                         "pointer names the moment: before landing"
+need_in "$PTR" 'POST-HANDOFF CLEANUP block'             "pointer routes the agent to the context.md block"
+need_in "$PTR" 'public coordination.*approv|approval'   "pointer gates the default-branch collapse on approval"
+
 echo "All tsugu SKILL.md content checks passed."
