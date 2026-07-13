@@ -29,6 +29,13 @@ lineage** — those facts are derived from refs and the DAG.
   is, where the mainline stands, what recently landed. `init` writes the first
   version.
 
+The mainline form ends with a **standing, byte-immutable
+`POST-HANDOFF CLEANUP` block** (an HTML comment, the
+finishing-agent reminder). It is **inert in `exclude` mode** — the
+human strips `.tsugu/` before the public PR, so no branch narrative
+reaches default and there is nothing to reset — and does real work
+only in `include` mode.
+
 **Prefer runnable evidence.** Verification should point at runnable artifacts — a
 committed repro script, a failing test, a probe — over prose claims (extending
 004's principle #12): the next inheritor re-runs instead of re-trusting. Narrative
@@ -43,16 +50,20 @@ section). There is always a `context.md`. A branch with real commits whose
 narrative hasn't been written yet; the partition needs no special rule for the
 file's form.
 
-**Rewrite on merge-back (`include` mode).** Before the work branch merges,
-`converge` rewrites `context.md` into the **ready-to-merge mainline narrative**:
-read the default branch's current `context.md` from the fetched ref and integrate
-what this work changes. The file that lands on default is **pure desired
-content** — there is no state line to clean up afterwards, because "awaiting
-merge" lives in the ref namespace (slug pairing), not in the file. If the PR is
-instead rejected, the narrative is rewritten again at the next decision —
-narrative is maintained freely. Concurrent merges may conflict on `context.md`;
-that conflict is meaningful (two narratives to integrate) and is resolved by
-rewriting against the then-current default during the freshness rebase.
+**Reset before landing (`include` mode).** Under 011, `converge`
+**accept** renames `prepare/<slug>` → `<accepted-prefix>/<slug>`
+and **stops** — it does **not** rewrite `context.md` to a mainline
+narrative. The branch's own-story `context.md` rides the rename
+unchanged; the human and a finishing agent complete the work
+**outside tsugu's lifecycle**. Because `context.md` carries
+`merge=union`, landing the branch would otherwise concatenate its
+whole story onto the mainline note (duplicate `##` headers). So
+the **finishing agent resets `context.md` to the mainline form
+before landing** — prompted by the standing `POST-HANDOFF CLEANUP`
+block and the always-loaded agent-md pointer (spec 015).
+`converge` itself never rewrites the mainline. If the PR is
+instead rejected, the branch narrative is rewritten again at the
+next decision — narrative is maintained freely.
 
 **No lineage.** Lineage *to the mainline* is an ancestry question the DAG answers
 while history is preserved. Cross-work-branch lineage is **scratch-grade** — a

@@ -392,4 +392,13 @@ need 'standing, byte-immutable'                          "spine names the byte-i
 need 'converge .*prepares .*never .*collaps|does not collapse .context.md' "converge prepares the block, never collapses"
 need 'active detect-and-collapse step'                   "no prepare/converge/prune gains an active detect-and-collapse step (backtick-safe alt)"
 
+# --- Spec 015 Task 6: notes-and-packet.md reconciled to the 011 model (Change C) ---
+NP='plugins/tsugu/skills/tsugu/references/notes-and-packet.md'
+grep -Eq 'there is no state line to clean up afterwards' "$ROOT/$NP" && fail "notes-and-packet still has the stale pre-011 'no state line to clean up' claim" || pass "stale 'Rewrite on merge-back' claim removed"
+grep -Eq 'converge. rewrites .context.md. into the .*ready-to-merge mainline narrative' "$ROOT/$NP" && fail "notes-and-packet still says converge rewrites context.md before merge (pre-011)" || pass "notes-and-packet no longer claims converge pre-collapses the mainline"
+need_in "$NP" 'finishing agent'                          "notes-and-packet: finishing agent resets before landing"
+# notes-and-packet.md is hard-wrapped ~72 cols — keep "POST-HANDOFF CLEANUP" and "inert in `exclude`" each unbroken on one line when authoring:
+need_in "$NP" 'POST-HANDOFF CLEANUP'                     "notes-and-packet structure note names the standing block"
+need_in "$NP" 'inert.*exclude|exclude.*inert'           "notes-and-packet: block inert in exclude mode"
+
 echo "All tsugu SKILL.md content checks passed."
