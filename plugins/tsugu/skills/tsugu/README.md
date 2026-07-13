@@ -97,7 +97,7 @@ infrastructure file so the narrative never blocks a merge or rebase:
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 6`)
+                 merge method, … — `tsugu-schema: 7`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)

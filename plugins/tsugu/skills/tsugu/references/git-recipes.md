@@ -776,7 +776,7 @@ touch .tsugu/knowledge/.gitkeep
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 6`) + the mainline `context.md` +
+**2. Write `policy.md` (with `tsugu-schema: 7`) + the mainline `context.md` +
 `.tsugu/.gitattributes` only if absent**, rendered from the skill's templates
 (`.gitattributes` from `templates/gitattributes` — content `context.md
 merge=union`, flag-independent: it's written regardless of the repo's

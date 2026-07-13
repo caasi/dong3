@@ -19,7 +19,7 @@ decisions by reading `policy.md`'s `tsugu-schema:` stamp:
   curated `policy.md`.
 - **migrate** — `.tsugu/` present and the stamp is older → apply the documented
   migration steps below **in order** (N→N+1 until current — the full chain is
-  `1→2→3→4→5→6`), then update the stamp and commit. The commit message names the
+  `1→2→3→4→5→6→7`), then update the stamp and commit. The commit message names the
   migration range (e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`).
 
 The steps obey these rules, which hold for every migration (not just 1→2):
@@ -295,9 +295,9 @@ change. Three things move: the policy section `## Handoff Prefixes` is renamed
 `prepare/* investigate/* review/*` to **`prepare/*` alone** — but only on human
 confirmation, never auto (E2); and existing branches under the removed prefixes
 are handled per-branch, never renamed (E3). Apply these steps in order on the
-`init/*` branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract — 1→2,
-then 2→3, then 3→4, then 4→5, then 5→6, each stamping its own schema last before the
-next runs.
+`init/*` branch. A schema-1 repo runs **1→2→3→4→5→6→7** under the N→N+1 contract — 1→2,
+then 2→3, then 3→4, then 4→5, then 5→6, then 6→7, each stamping its own schema last
+before the next runs.
 
 ### E1 — Rename (always-applied, mechanical)
 
@@ -439,7 +439,7 @@ from the old `yes` (push preparation branches) to the new `no` (keep work local;
 push is a cross-machine opt-in). Nothing structural changes — **no committed
 `.tsugu/` files or directories are added or removed**; the only changes are one
 explicit policy field and the stamp. Apply these two steps in order on the `init/*`
-branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract — each prior
+branch. A schema-1 repo runs **1→2→3→4→5→6→7** under the N→N+1 contract — each prior
 migration stamps its own schema last before the next runs.
 
 **1. Pin the old default — write explicit `push-prepare-branches: yes` when the
@@ -473,7 +473,7 @@ Schema 6 is the spec 013 layout: `prepare` gains a **freshness-rebase** step tha
 keeps in-progress work branches current against the default branch. Like 4→5, this
 is **one behavior-changing default plus one structural addition** — no branch refs
 move and no existing `context.md` is rewritten. Apply these three steps in order on
-the `init/*` branch. A schema-1 repo runs **1→2→3→4→5→6** under the N→N+1 contract —
+the `init/*` branch. A schema-1 repo runs **1→2→3→4→5→6→7** under the N→N+1 contract —
 each prior migration stamps its own schema last before the next runs.
 
 **1. Pin the old default — write explicit `rebase-prepare-onto-default: no` when the

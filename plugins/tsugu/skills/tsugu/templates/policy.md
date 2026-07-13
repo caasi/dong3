@@ -1,4 +1,4 @@
-tsugu-schema: 6
+tsugu-schema: 7
 ## Private Git Space (agent may do freely)
 create/commit (push per `## Push`) `prepare/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
