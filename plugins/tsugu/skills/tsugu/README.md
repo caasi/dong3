@@ -58,6 +58,9 @@ One lifecycle, four routines:
    read-only pass is your **morning status view**: how many prepared branches are
    workable today, what awaits merge, what's stale. Looking and leaving is a valid
    outcome.
+
+**Post-handoff cleanup.** After `converge` hands a branch off, the human finishes it with an agent **outside tsugu's lifecycle**. Because `context.md` carries `merge=union`, landing would concatenate the branch's story onto the mainline note. So the mainline `context.md` ends with a standing **`POST-HANDOFF CLEANUP`** block, and `init` writes a matching pointer into the repo's **`CLAUDE.md`/`AGENTS.md`** (always-loaded) — together they remind the finishing agent to reset the narrative before landing. Passive, best-effort, out-of-lifecycle.
+
 4. **prune** (human present) — a recurring, queue-wide cleanup sweep of unused
    branches (**local + remote**), the home for the destructive cleanup that
    handoff-only `converge` and a never-cleaning scheduled `prepare` leave to pile up.
@@ -94,7 +97,7 @@ infrastructure file so the narrative never blocks a merge or rebase:
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 6`)
+                 merge method, … — `tsugu-schema: 7`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
   knowledge/     free-form shared wiki (promoted, durable findings)

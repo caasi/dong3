@@ -136,8 +136,8 @@ grep -rEn '^## Completion tail|swept .{0,30}completion tail|completion tail[^.]{
 
 # --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0, then Task 9 spec 013 bump to 0.8.0) ---
 # jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.8.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu version 0.8.0 (bumped by spec 013)" || fail "marketplace.json: tsugu not at 0.8.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.9.0 (bumped by spec 015)" || fail "marketplace.json: tsugu not at 0.9.0"
 # guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
@@ -167,7 +167,7 @@ grep -rIE "converge cuts?|converge cut hands|a converge cut" "$ROOT/plugins/tsug
 # (dropped bare `need 'push-prepare-branches'` — pre-satisfied by the old default-yes prose)
 need 'local-first|stays on local|keep work .*local'   "prepare is local-first by default"
 need 'schema 4 else|tsugu-schema: 4.*yes|absent.*schema' "schema-aware push default read"
-need 'tsugu-schema: 6|tsugu-schema. 6|schema . 6'     "init stamps schema 6 (spec 013: 5->6)"
+need 'tsugu-schema: 7|tsugu-schema. 7|schema . 7'     "init stamps schema 7 (spec 015: 6->7)"
 need 'cross-machine opt-in'                           "remote push is a cross-machine opt-in (bigram — bare 'opt-in' appears 5x in SKILL already)"
 # the OLD unconditional framing must be gone:
 refute 'default .yes. when the section is absent'     "old flat 'default yes when absent' removed"
@@ -204,7 +204,7 @@ grep -Eiq 'work queue, which is remote-tracking' "$ROOT/$GR" \
   && fail "git-recipes still frames the work queue as remote-tracking-only (012 unions local+remote)" \
   || pass "work queue reframed off remote-tracking-only"
 need_in "$GR" 'per-ref|each ref by its own tip'      "git-recipes notes per-ref/per-tip classification"
-need_in "$GR" 'tsugu-schema. 6'                       "git-recipes init-skeleton stamps schema 6 (spec 013, was 5)"
+need_in "$GR" 'tsugu-schema. 7'                       "git-recipes init-skeleton stamps schema 7 (spec 015, was 6)"
 
 # --- Task 5 (spec 012): 4->5 migration + template push default (the template schema stamp is now 6, asserted in the Spec 013 block below) ---
 TP='plugins/tsugu/skills/tsugu/templates/policy.md'
@@ -228,8 +228,8 @@ need_in "$RM" 'local-first|local by default'          "README explains local-fir
 need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
 
 # --- Task 8: version 0.7.0 + descriptions (superseded by Task 9 spec 013 bump to 0.8.0) ---
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.8.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu 0.8.0" || fail "marketplace.json: tsugu not at 0.8.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu 0.9.0" || fail "marketplace.json: tsugu not at 0.9.0"
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by default")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace desc notes local-first" || fail "marketplace.json: tsugu description missing local-first"
 jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
@@ -308,7 +308,7 @@ grep -q 'orphaned-accepted / taken-over (redundant prepare)' "$ROOT/CLAUDE.md" \
   || fail "CLAUDE.md prune list omits the taken-over bucket"
 
 # --- Spec 013 ---
-need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'tsugu-schema: 6'                 "policy template stamps schema 6"
+need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'tsugu-schema: 7'                 "policy template stamps schema 7"
 need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' '## Freshness'                     "policy template has Freshness section"
 need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'rebase-prepare-onto-default: yes' "policy template defaults the flag yes"
 need_file 'plugins/tsugu/skills/tsugu/templates/gitattributes'                              "gitattributes template shipped"
@@ -350,12 +350,85 @@ need_in "$MG" 'gitattributes'                    "5->6 adds the gitattributes"
 # --- Spec 013 Task 6: policy-and-intake documents the Freshness field ---
 need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' 'rebase-prepare-onto-default' "policy-and-intake documents the Freshness field"
 # --- Spec 013 Task 10: stale-stamp guard — init.md and README illustration stamp the CURRENT schema (6) ---
-need_in 'plugins/tsugu/commands/init.md' 'tsugu-schema: 6'                    "init.md command states schema 6 (no stale schema-5)"
-need_in 'plugins/tsugu/skills/tsugu/README.md' 'tsugu-schema: 6'              "README policy illustration stamps schema 6"
+need_in 'plugins/tsugu/commands/init.md' 'tsugu-schema: 7'                    "init.md command states schema 7 (no stale schema-6)"
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'tsugu-schema: 7'              "README policy illustration stamps schema 7"
 need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6'                        "init.md migration chain includes schema 6"
 
 # --- Spec 013 Task 9: version bump 0.7.0 -> 0.8.0 (marketplace only; plugin.json has no version field) ---
-[ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.8.0" ] \
-  || fail "marketplace tsugu entry not at 0.8.0"; pass "marketplace tsugu == 0.8.0"
+[ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.9.0" ] \
+  || fail "marketplace tsugu entry not at 0.9.0"; pass "marketplace tsugu == 0.9.0"
+
+# --- Spec 015 ---
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'POST-HANDOFF|post-handoff cleanup' "README explains the post-handoff cleanup"
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'matching pointer'                  "README notes the agent-md routing pointer (specific phrase)"
+need_in 'CLAUDE.md' 'post-handoff|POST-HANDOFF'                                     "dong3 CLAUDE.md notes the post-handoff block"
+
+CTX='plugins/tsugu/skills/tsugu/templates/context.md'
+# NOTE: the block is hard-wrapped verbatim from the spec — every anchor below is a phrase
+# that lands WITHIN a single wrapped line (grep is line-oriented; cross-line phrases never match).
+need_in "$CTX" '<!-- POST-HANDOFF CLEANUP'                 "block is an HTML comment carrying the marker (not a ## section)"
+need_in "$CTX" 'keep this block verbatim; never'          "block self-protection: keep verbatim (end of line 1)"
+need_in "$CTX" 'delete it, never retype it'               "block forbids retyping (line 2, byte-identity)"
+need_in "$CTX" 'diff against the merge-base'              "knowledge/ reconcile is merge-base-scoped"
+need_in "$CTX" 'human.s approval'                         "backstop/promotion needs human approval (single-line phrase)"
+grep -Eq '^## tsugu — post-handoff cleanup' "$ROOT/$CTX" && fail "context.md template must NOT contain the agent-md pointer section" || pass "context.md has no agent-md pointer (that belongs in the agent-md template)"
+
+PTR='plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md'
+need_file "$PTR"                                          "agent-md pointer template shipped"
+need_in "$PTR" '^## tsugu — post-handoff cleanup'        "pointer carries its section-heading marker"
+need_in "$PTR" 'BEFORE it lands'                         "pointer names the moment: before landing"
+need_in "$PTR" 'POST-HANDOFF CLEANUP block'             "pointer routes the agent to the context.md block"
+need_in "$PTR" 'public coordination.*approv'            "pointer gates the default-branch collapse on approval (requires both words, not a loose 'approval' anywhere)"
+
+# git-recipes init-skeleton clause for agent-md pointer
+need_in "$GR" 'agent-md-pointer|## tsugu — post-handoff cleanup|agent md.*pointer' "git-recipes init-skeleton writes the agent-md pointer"
+
+# specific-to-015 phrases (avoid bare "agent md" / "CLAUDE.md" — those pre-exist in the spine and would false-pass):
+need 'always-loaded channel that routes|routes any finishing agent' "init writes the agent-md pointer (Change E)"
+need 'never rewrites existing agent.?md'                 "agent-md pointer is append-only, no clobber"
+need 'offers to create a minimal'                        "init offers a minimal CLAUDE.md when none exists"
+
+# --- Spec 015 Task 3: prepare step 8 preserves the POST-HANDOFF block ---
+need 'do not delete it, and do not retype it|carry the trailing standing block through .*verbatim' "prepare step 8 preserves the block verbatim (Change B)"
+# NB: the marker in SKILL prose is backtick-wrapped (`POST-HANDOFF CLEANUP`), so grep for a phrase WITHOUT the marker:
+need 'standing instruction, HTML comment'                "prepare step 8 names the standing block (backtick-safe phrase)"
+
+# --- Spec 015 Task 5: spine + converge B4 + prune (Change C) ---
+# NB: the marker is backtick-wrapped in SKILL prose; anchor on phrases WITHOUT the marker:
+need 'standing, byte-immutable'                          "spine names the byte-immutable standing block (phrase precedes the backtick-wrapped marker)"
+need 'converge .*prepares .*never .*collaps|does not collapse .context.md' "converge prepares the block, never collapses"
+need 'active detect-and-collapse step'                   "no prepare/converge/prune gains an active detect-and-collapse step (backtick-safe alt)"
+
+# --- Spec 015 Task 6: notes-and-packet.md reconciled to the 011 model (Change C) ---
+NP='plugins/tsugu/skills/tsugu/references/notes-and-packet.md'
+grep -Eq 'there is no state line to clean up afterwards' "$ROOT/$NP" && fail "notes-and-packet still has the stale pre-011 'no state line to clean up' claim" || pass "stale 'Rewrite on merge-back' claim removed"
+grep -Eq 'converge. rewrites .context.md. into the .*ready-to-merge mainline narrative' "$ROOT/$NP" && fail "notes-and-packet still says converge rewrites context.md before merge (pre-011)" || pass "notes-and-packet no longer claims converge pre-collapses the mainline"
+need_in "$NP" 'finishing agent'                          "notes-and-packet: finishing agent resets before landing"
+# notes-and-packet.md is hard-wrapped ~72 cols — keep "POST-HANDOFF CLEANUP" and "inert in `exclude`" each unbroken on one line when authoring:
+need_in "$NP" 'POST-HANDOFF CLEANUP'                     "notes-and-packet structure note names the standing block"
+need_in "$NP" 'inert.*exclude|exclude.*inert'           "notes-and-packet: block inert in exclude mode"
+
+# --- Spec 015 Task 7: migrations.md — new 6->7 step (normalize + pointer) (Change D) ---
+MG='plugins/tsugu/skills/tsugu/references/migrations.md'
+need_in "$MG" '6 ?(→|->|to) ?7'                          "migrations has a 6->7 step"
+# keep these phrases each on a single line when authoring the section (grep is line-oriented):
+need_in "$MG" 're-append one canonical'                  "6->7 normalizes the block (re-append one canonical copy)"
+need_in "$MG" 'reserved'                                 "6->7 relies on the reserved marker (no curated-comment collision)"
+need_in "$MG" 'agent-md-pointer|agent md.*pointer|## tsugu — post-handoff cleanup' "6->7 adds the agent-md pointer"
+need_in "$MG" 'tsugu-schema: 7|tsugu-schema. 7'         "6->7 stamps schema 7 last"
+
+# --- Spec 015 Task 10: stamp schema 6->7 + version 0.9.0 everywhere (stale-stamp guard) ---
+need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'tsugu-schema: 7'    "policy template stamps schema 7"
+need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' 'current: .7.|schema . 7' "policy-and-intake current schema 7"
+need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6→7'                       "init.md migration chain includes schema 7"
+need_in 'plugins/tsugu/commands/init.md' 'pointer|agent md'                    "init.md notes init writes the agent-md pointer (spec Files-touched; Opus/Sonnet F4)"
+need_in 'plugins/tsugu/skills/tsugu/SKILL.md' 'schema 6→7|migrate .tsugu/ schema 6→7' "SKILL.md migrate-message example says schema 6→7 (not stale 5→6)"
+need_in 'plugins/tsugu/skills/tsugu/SKILL.md' '1→2→3→4→5→6→7'                   "SKILL.md init-migrate chain includes schema 7"
+need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' '1→2→3→4→5→6→7' "policy-and-intake chain includes schema 7"
+need_in 'plugins/tsugu/skills/tsugu/references/migrations.md' '1→2→3→4→5→6→7'  "migrations chain includes schema 7"
+need_in 'CLAUDE.md' '015-tsugu'                                                "dong3 CLAUDE.md references spec 015"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace tsugu 0.9.0" || fail "marketplace.json: tsugu not at 0.9.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.description|test("post-handoff|POST-HANDOFF")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace desc notes post-handoff" || fail "marketplace.json: tsugu description missing post-handoff"
+jq -e '.description|test("schema 7")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null && pass "plugin.json description stamps schema 7" || fail "plugin.json description not at schema 7"
 
 echo "All tsugu SKILL.md content checks passed."
