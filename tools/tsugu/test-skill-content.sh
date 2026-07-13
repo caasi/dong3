@@ -401,4 +401,13 @@ need_in "$NP" 'finishing agent'                          "notes-and-packet: fini
 need_in "$NP" 'POST-HANDOFF CLEANUP'                     "notes-and-packet structure note names the standing block"
 need_in "$NP" 'inert.*exclude|exclude.*inert'           "notes-and-packet: block inert in exclude mode"
 
+# --- Spec 015 Task 7: migrations.md — new 6->7 step (normalize + pointer) (Change D) ---
+MG='plugins/tsugu/skills/tsugu/references/migrations.md'
+need_in "$MG" '6 ?(→|->|to) ?7'                          "migrations has a 6->7 step"
+# keep these phrases each on a single line when authoring the section (grep is line-oriented):
+need_in "$MG" 're-append one canonical'                  "6->7 normalizes the block (re-append one canonical copy)"
+need_in "$MG" 'reserved'                                 "6->7 relies on the reserved marker (no curated-comment collision)"
+need_in "$MG" 'agent-md-pointer|agent md.*pointer|## tsugu — post-handoff cleanup' "6->7 adds the agent-md pointer"
+need_in "$MG" 'tsugu-schema: 7|tsugu-schema. 7'         "6->7 stamps schema 7 last"
+
 echo "All tsugu SKILL.md content checks passed."

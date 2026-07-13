@@ -516,3 +516,42 @@ over a half-applied migration (exactly as 004–012 specify).
 This migration changes one policy field, adds one committed file
 (`.tsugu/.gitattributes`), and the stamp; it touches no branch refs and rewrites no
 existing `context.md`.
+
+## Migration 6→7
+
+Schema 7 is the spec 015 layout: the mainline `context.md` gains a standing
+`POST-HANDOFF CLEANUP` block, and the repo's agent md gains a routing pointer. Like
+5→6, this is **structural additions only** — no policy default changes, no branch
+refs move, no existing `context.md` narrative is rewritten. A schema-1 repo runs
+**1→2→3→4→5→6→7** under the N→N+1 contract. Apply these three steps in order on the
+`init/*` branch.
+
+**1. Normalize the mainline `context.md` block.** Condition: always (idempotent by
+construction). **Strip every** `POST-HANDOFF CLEANUP` HTML-comment block from the
+default branch's mainline `.tsugu/context.md`, then **re-append one canonical copy**
+(the `templates/context.md` block). One rule heals all three states: absent → adds
+it; present-and-canonical → identity; drifted or duplicated (a `prepare` rewrite that
+retyped or duplicated it) → collapsed to one canonical copy. The strip matches
+**only the HTML-comment shape carrying the reserved marker** — `POST-HANDOFF CLEANUP`
+is a **reserved string inside `.tsugu/context.md` comments**, so normalization never
+touches the surrounding curated `##` narrative. This is the **first** migration to
+modify an existing curated `context.md` (5→6 only added a new file); appending/
+normalizing a schema-owned region is "restructure the schema part," not "overwrite
+curated content."
+
+**2. Add the agent-md pointer.** Condition: the repo's agent md lacks the
+`## tsugu — post-handoff cleanup` marker. Append the section from
+`${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/agent-md-pointer.md` to `CLAUDE.md`
+(and `AGENTS.md` if the repo uses one) — **append-only, never rewriting existing
+content**, human-approved (public coordination; `init` is human-present). Absent any
+agent md, offer to create a minimal `CLAUDE.md`. Idempotent by the marker.
+
+**3. Stamp `tsugu-schema: 7` — last.** Only after steps 1–2 succeed, update the
+`tsugu-schema:` stamp to `7` as the first line of `policy.md`. Until it is written a
+re-run re-enters migration 6→7 and each step's condition guard makes the re-entry a
+no-op (or, for step 1, an idempotent identity). **Push-protected exception:** the
+whole migration (context.md normalize + agent-md pointer + stamp) rides an `init/*`
+branch + human-approved PR, stamp the **last** write to land — as 004–013 specify.
+
+This migration changes no policy field, touches no branch refs, and rewrites no
+surrounding `context.md` narrative.
