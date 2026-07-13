@@ -4,7 +4,9 @@
      describes the mainline (what this repo is, where the mainline stands,
      what recently landed — init writes the first version). A new work branch
      inherits the mainline form; rewriting it into the branch's own story is
-     the first act of real work, and that rewrite commit is the claim. The trailing POST-HANDOFF CLEANUP block is a standing instruction, not part of the narrative skeleton; keep it verbatim. -->
+     the first act of real work, and that rewrite commit is the claim. The
+     trailing POST-HANDOFF CLEANUP block is a standing instruction, not part
+     of the narrative skeleton; keep it verbatim. -->
 ## Why this ref exists
 ## Current understanding
 ## Open questions

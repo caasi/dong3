@@ -378,7 +378,7 @@ need_file "$PTR"                                          "agent-md pointer temp
 need_in "$PTR" '^## tsugu — post-handoff cleanup'        "pointer carries its section-heading marker"
 need_in "$PTR" 'BEFORE it lands'                         "pointer names the moment: before landing"
 need_in "$PTR" 'POST-HANDOFF CLEANUP block'             "pointer routes the agent to the context.md block"
-need_in "$PTR" 'public coordination.*approv|approval'   "pointer gates the default-branch collapse on approval"
+need_in "$PTR" 'public coordination.*approv'            "pointer gates the default-branch collapse on approval (requires both words, not a loose 'approval' anywhere)"
 
 # git-recipes init-skeleton clause for agent-md pointer
 need_in "$GR" 'agent-md-pointer|## tsugu — post-handoff cleanup|agent md.*pointer' "git-recipes init-skeleton writes the agent-md pointer"
@@ -429,5 +429,6 @@ need_in 'plugins/tsugu/skills/tsugu/references/migrations.md' '1→2→3→4→5
 need_in 'CLAUDE.md' '015-tsugu'                                                "dong3 CLAUDE.md references spec 015"
 jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace tsugu 0.9.0" || fail "marketplace.json: tsugu not at 0.9.0"
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("post-handoff|POST-HANDOFF")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace desc notes post-handoff" || fail "marketplace.json: tsugu description missing post-handoff"
+jq -e '.description|test("schema 7")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null && pass "plugin.json description stamps schema 7" || fail "plugin.json description not at schema 7"
 
 echo "All tsugu SKILL.md content checks passed."
