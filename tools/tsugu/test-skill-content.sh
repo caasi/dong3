@@ -358,4 +358,15 @@ need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6'                
 [ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.8.0" ] \
   || fail "marketplace tsugu entry not at 0.8.0"; pass "marketplace tsugu == 0.8.0"
 
+# --- Spec 015 ---
+CTX='plugins/tsugu/skills/tsugu/templates/context.md'
+# NOTE: the block is hard-wrapped verbatim from the spec — every anchor below is a phrase
+# that lands WITHIN a single wrapped line (grep is line-oriented; cross-line phrases never match).
+need_in "$CTX" '<!-- POST-HANDOFF CLEANUP'                 "block is an HTML comment carrying the marker (not a ## section)"
+need_in "$CTX" 'keep this block verbatim; never'          "block self-protection: keep verbatim (end of line 1)"
+need_in "$CTX" 'delete it, never retype it'               "block forbids retyping (line 2, byte-identity)"
+need_in "$CTX" 'diff against the merge-base'              "knowledge/ reconcile is merge-base-scoped"
+need_in "$CTX" 'human.s approval'                         "backstop/promotion needs human approval (single-line phrase)"
+grep -Eq '^## tsugu — post-handoff cleanup' "$ROOT/$CTX" && fail "context.md template must NOT contain the agent-md pointer section" || pass "context.md has no agent-md pointer (that belongs in the agent-md template)"
+
 echo "All tsugu SKILL.md content checks passed."
