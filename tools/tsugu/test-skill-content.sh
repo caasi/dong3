@@ -359,6 +359,10 @@ need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6'                
   || fail "marketplace tsugu entry not at 0.8.0"; pass "marketplace tsugu == 0.8.0"
 
 # --- Spec 015 ---
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'POST-HANDOFF|post-handoff cleanup' "README explains the post-handoff cleanup"
+need_in 'plugins/tsugu/skills/tsugu/README.md' 'matching pointer'                  "README notes the agent-md routing pointer (specific phrase)"
+need_in 'CLAUDE.md' 'post-handoff|POST-HANDOFF'                                     "dong3 CLAUDE.md notes the post-handoff block"
+
 CTX='plugins/tsugu/skills/tsugu/templates/context.md'
 # NOTE: the block is hard-wrapped verbatim from the spec — every anchor below is a phrase
 # that lands WITHIN a single wrapped line (grep is line-oriented; cross-line phrases never match).
