@@ -386,4 +386,10 @@ need 'do not delete it, and do not retype it|carry the trailing standing block t
 # NB: the marker in SKILL prose is backtick-wrapped (`POST-HANDOFF CLEANUP`), so grep for a phrase WITHOUT the marker:
 need 'standing instruction, HTML comment'                "prepare step 8 names the standing block (backtick-safe phrase)"
 
+# --- Spec 015 Task 5: spine + converge B4 + prune (Change C) ---
+# NB: the marker is backtick-wrapped in SKILL prose; anchor on phrases WITHOUT the marker:
+need 'standing, byte-immutable'                          "spine names the byte-immutable standing block (phrase precedes the backtick-wrapped marker)"
+need 'converge .*prepares .*never .*collaps|does not collapse .context.md' "converge prepares the block, never collapses"
+need 'active detect-and-collapse step'                   "no prepare/converge/prune gains an active detect-and-collapse step (backtick-safe alt)"
+
 echo "All tsugu SKILL.md content checks passed."
