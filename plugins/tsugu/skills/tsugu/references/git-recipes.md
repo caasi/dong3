@@ -787,7 +787,7 @@ no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber r
 a human already tuned. Observation **sources** and **opt-in skills** are personal
 config (the global folder, not `policy.md`) — `init` does not write them into the
 repo. Re-running on an **older schema** applies `references/migrations.md` in
-order (N→N+1 until current) and stamps the new `tsugu-schema` **last**.
+order (N→N+1 until current) and stamps the new `tsugu-schema` **last**, and append the agent-md routing pointer (templates/agent-md-pointer.md) to CLAUDE.md/AGENTS.md — append-only, marker-idempotent, human-approved.
 
 **3. Land the metadata on the default branch.** `policy.md`, the mainline
 `context.md`, and `.tsugu/.gitattributes` must reach `<default>` so policy stays

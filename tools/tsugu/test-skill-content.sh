@@ -376,6 +376,9 @@ need_in "$PTR" 'BEFORE it lands'                         "pointer names the mome
 need_in "$PTR" 'POST-HANDOFF CLEANUP block'             "pointer routes the agent to the context.md block"
 need_in "$PTR" 'public coordination.*approv|approval'   "pointer gates the default-branch collapse on approval"
 
+# git-recipes init-skeleton clause for agent-md pointer
+need_in "$GR" 'agent-md-pointer|## tsugu — post-handoff cleanup|agent md.*pointer' "git-recipes init-skeleton writes the agent-md pointer"
+
 # specific-to-015 phrases (avoid bare "agent md" / "CLAUDE.md" — those pre-exist in the spine and would false-pass):
 need 'always-loaded channel that routes|routes any finishing agent' "init writes the agent-md pointer (Change E)"
 need 'never rewrites existing agent.?md'                 "agent-md pointer is append-only, no clobber"
