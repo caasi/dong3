@@ -376,6 +376,11 @@ need_in "$PTR" 'BEFORE it lands'                         "pointer names the mome
 need_in "$PTR" 'POST-HANDOFF CLEANUP block'             "pointer routes the agent to the context.md block"
 need_in "$PTR" 'public coordination.*approv|approval'   "pointer gates the default-branch collapse on approval"
 
+# specific-to-015 phrases (avoid bare "agent md" / "CLAUDE.md" — those pre-exist in the spine and would false-pass):
+need 'always-loaded channel that routes|routes any finishing agent' "init writes the agent-md pointer (Change E)"
+need 'never rewrites existing agent.?md'                 "agent-md pointer is append-only, no clobber"
+need 'offers to create a minimal'                        "init offers a minimal CLAUDE.md when none exists"
+
 # --- Spec 015 Task 3: prepare step 8 preserves the POST-HANDOFF block ---
 need 'do not delete it, and do not retype it|carry the trailing standing block through .*verbatim' "prepare step 8 preserves the block verbatim (Change B)"
 # NB: the marker in SKILL prose is backtick-wrapped (`POST-HANDOFF CLEANUP`), so grep for a phrase WITHOUT the marker:
