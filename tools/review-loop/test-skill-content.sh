@@ -71,6 +71,33 @@ need 'git diff --name-only'                              "the inferred diff is c
 # spec 014 — a review that is not a review
 need 'drop the reviewer, continue, and disclose'          "ghost reviewer gate"
 
+# issue #64 — reviewer owns convergence; orchestrator owns escalation + K
+need 'convergence is the reviewers. verdict'             "convergence locus is the reviewer, not the facilitator"
+need '\{ converged: bool, still_open'                    "explicit per-round convergence verdict schema"
+need 'Loop-until-dry, not loop-until-N'                  "loop-until-dry replaces round-counting"
+need 'K consecutive dry rounds'                          "stop after K consecutive dry rounds"
+need 'it is not the reviewer.s to set'                   "K is the facilitator's lever, not the reviewer's"
+need 'not.+ the convergence check'                       "facilitator's per-round job is escalation, not convergence"
+need 'Escalation and K ride the same axis'               "K and escalation are unified on the ground-truth axis"
+need 'never substring-match .CONVERGED'                  "verdict formats differ; no substring-match on CONVERGED"
+need 'no self-terminating sub-loop'                      "Codex returns a per-round verdict, no early-terminating sub-loop"
+need 'proposed, never auto-run'                          "K-raise via direction-guard stays proposal-gated"
+# round-1 local review (Opus/Sonnet/codex): K stickiness + boundary cases
+need 'K is sticky, not recomputed per round'            "K is sticky across dry rounds, not vacuously recomputed"
+need 'one-shot auditor for that claim'                  "direction guard is one-shot, not a new live-set member"
+need 'clean verdict never retires Codex'               "a clean Codex verdict does not remove it from the live set"
+need 'finding-free blind pass therefore ends with .converged: true' "clean first blind pass yields an asked-for verdict"
+need 'advisory.*a reviewer may set it'                  "suspected_drift is advisory, never gates dryness"
+need 'mechanical text-presence'                          "grep is ground truth only for text-presence, not judgement"
+# round-2 convergence review (Opus/Sonnet/codex): Codex blind-round verdict + K anchor
+need "a finding-free blind pass ends .CONVERGED"         "Codex \$brief requests a verdict on the blind round too"
+need 'clean round 1 with Codex live is a legitimate dry round' "clean round-1 Codex verdict is read, not inferred"
+need 'clean from the first blind pass.*.K = 1'           "K=1 when the episode resolved no findings at all"
+need 'running max of a per-round signal'                 "K is the running max of per-round signals (no flat K=1 vs ratchet contradiction)"
+need 'only ratchets up, never down'                      "K does not reset when a later fix-round is mechanical"
+need 'discharges the .* hold'                            "a clean direction-guard audit discharges the K>=2 hold"
+need 'ground truth for a .judgement. finding'            "escalation-section grep aligned with A3 mechanical-text limit"
+
 # gone
 refute 'Are your earlier points resolved'                "leading convergence prompt"
 refute '^\*\*A2\. Codex review'                          "the old serial second gate"

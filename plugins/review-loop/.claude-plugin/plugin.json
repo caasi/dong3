@@ -1,6 +1,6 @@
 {
   "name": "review-loop",
-  "description": "Assisted review loop — local reviewers answer blind and in parallel, the verdict names who ran; roster enrolled per host via /review-loop:init; never merges autonomously",
+  "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); roster enrolled per host via /review-loop:init; never merges autonomously",
   "author": {
     "name": "caasi"
   },
