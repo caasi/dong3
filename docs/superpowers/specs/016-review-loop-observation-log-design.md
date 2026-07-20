@@ -440,9 +440,8 @@ untested one round at a time:
       `SKILL.md` today. The tests above also assert against `commands/init.md`, `marketplace.json`
       `plugin.json` and `skills/review-loop/README.md`, so the harness grows from one file to five.
       `tools/tsugu/test-skill-content.sh` already anchors README assertions with its `need_in` helper
-      as well as `jq` assertions against `marketplace.json`,
-      `tools/tsugu/test-skill-content.sh` already makes `jq` assertions against `marketplace.json`,
-      so those belong in the same script rather than a new one.
+      and makes `jq` assertions against `marketplace.json`, so those belong in the same script rather
+      than a new one.
 - [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
       runs without it.
 - [ ] Whether `plugin.json` also needs a `hooks` key for that file to be merged is answered in
