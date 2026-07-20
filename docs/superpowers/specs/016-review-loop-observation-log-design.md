@@ -52,14 +52,30 @@ per project.
 Both writers derive it the same way, from a directory: the hook uses the `cwd` in its payload,
 `log.sh` uses its own. Neither is necessarily the repository root, so both run the same three steps:
 
-1. The remote, if there is one: `owner/repo` from `origin`, joined with a hyphen — `caasi-dong3`.
-   This is the project's identity rather than the checkout's, so two clones agree, and two unrelated
-   repositories that happen to share a directory name do not.
-2. Otherwise the basename of `git rev-parse --path-format=absolute --git-common-dir`, with the
-   trailing `.git` removed. **Not `--show-toplevel`**, which in a linked worktree returns the
-   worktree's own path: this project's convention is that branch work happens in a RAM-disk worktree,
-   so `--show-toplevel` would fragment one project across as many slugs as it has had worktrees.
-3. `project=none` when the directory is in no repository at all. The hook runs on every message,
+1. **`git remote get-url origin`, if it succeeds.** Remove any scheme and any user prefix, remove a
+   trailing `.git`, then replace every `/` and `:` with a hyphen:
+
+       https://github.com/caasi/dong3.git        →  github.com-caasi-dong3
+       git@gitlab.com:group/subgroup/repo.git    →  gitlab.com-group-subgroup-repo
+
+   The host is kept because this author works on two forges, and `github.com/acme/api` and
+   `gitlab.com/acme/api` are different projects. Every path segment is kept because GitLab subgroups
+   nest arbitrarily, and dropping the separator would merge `group/sub-a/repo` with
+   `group/sub-b/repo`. This is the project's identity rather than the checkout's, so two clones
+   agree. Two remotes that differ only in where a hyphen already sat still collide; that is accepted.
+   A repository with remotes but no `origin` falls through to step 2.
+
+2. **Otherwise the repository's own directory name**, from
+   `git rev-parse --path-format=absolute --git-common-dir`. That path is `<root>/.git` for an
+   ordinary clone and `<super>/.git/modules/<name>` for a submodule, so: if its basename is `.git`,
+   take the parent directory's basename; otherwise take the basename with a trailing `.git` removed.
+   Both shapes were checked against real repositories.
+
+   **Not `--show-toplevel`**, which in a linked worktree returns the worktree's own path. This
+   project's convention is that branch work happens in a RAM-disk worktree, so `--show-toplevel`
+   would fragment one project across as many slugs as it has had worktrees.
+
+3. **`project=none`** when the directory is in no repository at all. The hook runs on every message,
    including in sessions started outside any work tree, and a line still records that an objection
    happened.
 
@@ -92,7 +108,7 @@ inside it.
 - Each key is the **model id the reviewer reported**, not its roster nickname. § Exit conditions
   requires the verdict to report what actually ran, verified; a nickname stops identifying weights
   within a year.
-- **A reported model id is percent-encoded, and the general drop rule does not apply to it.** `%`
+- **A reported model id is percent-encoded, and the value rules above do not apply to it.** `%`
   first, as `%25`, then whitespace, `=`, `/`, `,` and `:`. `%` must come first or a reported `a,b` and
   a reported `a%2Cb` collide. Dropping characters instead would merge two reviewers into one key, and
   spec 014 enrols endpoints whose ids carry a path separator — `meta-llama/Llama-3.3-70B`. Encoding
@@ -323,11 +339,16 @@ the transcript, within its thirty days.
 - Both writers, run from the same repository, produce the same `project` value — including from a
   subdirectory, and including from a linked worktree, where the value is the main checkout's and not
   the worktree directory's.
-- A repository with no remote falls back to the common-directory basename; a directory in no
-  repository produces `project=none`.
+- An `origin` of each URL form — HTTPS with `.git`, SSH in scp form, and a nested path of three or
+  more segments — produces the slug in the table above, with the host kept and no segment merged.
+- **A plain non-bare clone with no remote produces a non-empty slug**, and so does a linked worktree
+  of it. A bare-repository fixture does not exercise this; the fixture must be an ordinary clone.
+- A submodule produces its own name, not its superproject's.
+- A directory in no repository produces `project=none`.
 - A value containing a space, an `=` or a path separator is written with those characters removed.
-- A reported model id containing `%`, `,` or `:` is percent-encoded, `%` first, and two ids that
-  differ only in those characters stay distinct.
+- A reported model id containing `%`, whitespace, `=`, `/`, `,` or `:` is percent-encoded, `%` first,
+  and two ids that differ only in those characters stay distinct. `meta-llama/Llama-3.3-70B` survives
+  with its path separator encoded rather than removed.
 - A line that would exceed 1024 bytes is not written.
 - A round where a reviewer drops out lists only the reviewers that returned a review.
 - In a run that ends on a round, the last round carries `end` and earlier rounds do not.
@@ -344,7 +365,8 @@ the transcript, within its thirty days.
       not before installing it, which is not possible. Declining leaves the rest of the roster setup
       working.
 - [ ] The hook writes only when `observation-log: yes` resolves, reading the project config before
-      the global one takes precedence, and the three states and the override are tested.
+      the project config takes precedence over the global one, and the three states and the override
+      are tested.
 - [ ] Item 1 under *The hook* — whether `UserPromptSubmit` fires inside a subagent, and whether
       `agent_type` is present — is answered in writing before any code.
 - [ ] The hook writes `object` lines with no model involvement in detection.
@@ -353,7 +375,7 @@ the transcript, within its thirty days.
 - [ ] The log file is created with mode 0600.
 - [ ] Concurrent appends never split a line.
 - [ ] The loop writes one `review` line per round from § A3, with per-reviewer counts and reported
-      model ids.
+      model ids, percent-encoded rather than subject to the value rules.
 - [ ] Every line carries `project`, both writers derive it identically, and a linked worktree yields
       the main checkout's slug.
 - [ ] The hook and `log.sh` both source their formatting and guard code from `logline.sh`, so the
