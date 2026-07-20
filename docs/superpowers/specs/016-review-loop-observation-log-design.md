@@ -190,6 +190,11 @@ this document names a dotfiles repository owning `~/.claude/` as a realistic cas
 therefore treats a config that arrived without being written locally the same as any other: it does
 not re-ask, and the disclosure says the answer travels with the file.
 
+The plugin's `README.md` and its `marketplace.json` description say that it ships an always-on
+prompt hook, inert until the author opts in at `init`. That is the only channel a marketplace user
+reads **before** enabling the plugin, which is the one moment that genuinely precedes installation;
+the ask below cannot reach it.
+
 `/review-loop:init` asks before writing `yes` — what the hook matches, what a line contains, where the
 file goes, that no message text is ever written, that the hook still executes on every message even
 while the answer is `no` or absent, and how to remove it. A plugin that records an author's messages
