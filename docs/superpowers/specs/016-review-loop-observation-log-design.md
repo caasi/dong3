@@ -109,8 +109,8 @@ inside it.
   reviewer that dropped out, hit a usage limit or was absent is simply not listed, so no separate
   field is needed. The panel total is the sum.
 - **The count is of findings the reviewer returned, before cross-critique and before tiering.** § A1
-  makes cross-critique optional and § Tiers puts classification after it, so a post-processing count
-  would be undefined on rounds where neither ran.
+  makes cross-critique optional and puts classification after it, so a post-processing count would be
+  undefined on rounds where neither ran.
 - Each key is the **model id the reviewer reported**, not its roster nickname. § Exit conditions
   requires the verdict to report what actually ran, verified; a nickname stops identifying weights
   within a year.
@@ -142,7 +142,7 @@ written.
 
 ## The hook, and telling the author about it
 
-The author marks an objection with a token in a message they were already sending:
+The author marks an objection with a marker in a message they were already sending:
 
     #redo   #again   #fix
 
@@ -194,7 +194,8 @@ not re-ask, and the disclosure says the answer travels with the file.
 marketplace user reads **before** enabling the plugin, and enabling is when the hook is merged. The
 ask below happens at `init`, which is after. Spec 014 requires that description to stay identical to
 the one in `plugins/review-loop/.claude-plugin/plugin.json`, so both change together. The skill's
-`README.md` says the same thing at greater length; it is the place a reader goes second, not first.
+`README.md` must say the same thing at greater length; it is the place a reader goes second, not
+first.
 
 `/review-loop:init` asks before writing `yes` — what the hook matches, what a line contains, where the
 file goes, that no message text is ever written, that the hook still executes on every message even
@@ -210,7 +211,7 @@ Three rules bind the hook:
 
 1. **It writes nothing when the payload carries `agent_type`.** Reviewer subagents run under
    model-composed prompts, and § Facilitator discipline requires reviewer text to be quoted verbatim,
-   so a reviewer's own text can carry these tokens. The hooks reference documents `agent_type` as a
+   so a reviewer's own text can carry these markers. The hooks reference documents `agent_type` as a
    common field, "present when the session uses `--agent` or the hook fires inside a subagent", and
    does not exempt this event — so the premise holds on the documentation. Re-check it against the
    installed harness rather than assuming.
@@ -306,8 +307,14 @@ during the loop, which is where an underperforming agent is most likely to skip 
 proposed.
 
 A log that receives no `object` lines gives no benefit and should be removed. Objections are written
-when the model fails, so a quiet period may mean a good period rather than an abandoned habit; the
-omission check above is what separates that from a broken writer.
+when the model fails, so a quiet period may mean a good period rather than an abandoned habit.
+
+**The omission rate does not settle that on its own, because two of its contributors are accepted by
+this design.** A main session started with `--agent` carries `agent_type`, so rule 1 suppresses its
+lines while its markers still sit in the transcript. Sessions from before the author wrote
+`observation-log: yes` do the same. Both count as omissions and neither is a fault. A nonzero rate is
+therefore a prompt to look at which sessions produced it; only omissions from sessions that were
+enrolled and not agent-scoped mean the writer is broken.
 
 ## What is not recorded, and why
 
@@ -331,8 +338,8 @@ the transcript, within its thirty days.
 
 ## Testing
 
-- Each token produces one line at the right tier; two tokens in one message produce one line at the
-  stronger tier; a token in a fenced code block or an inline code span produces none.
+- Each marker produces one line at the right tier; two markers in one message produce one line at the
+  stronger tier; a marker in a fenced code block or an inline code span produces none.
 - A prompt carrying `agent_type` produces no line.
 - The hook writes nothing to stdout and exits 0 on every path, including every failure path.
 - With the log file's own directory inside a git work tree, and the caller's working directory in an
@@ -372,6 +379,8 @@ the transcript, within its thirty days.
   real objection and one quoted marker, reports one and not two.
 - A reader who has not enabled the plugin can find the always-on hook stated in the `marketplace.json`
   entry description, and that string matches `plugin.json`'s byte for byte.
+- `skills/review-loop/README.md` states that the plugin ships an always-on prompt hook and that it
+  stays inert until the author opts in.
 - Two sessions overlapping in time, one carrying an objection and one not, are attributed correctly
   by the omission check. A join on timestamp proximity alone misattributes them; the `session` key is
   what prevents it, and this is the test that shows it.
@@ -403,9 +412,15 @@ the transcript, within its thirty days.
 - [ ] § A3 of `SKILL.md` gains the round-logging instruction, and `commands/init.md` gains the
       disclosure and the recorded answer.
 - [ ] Both edits gain anchors in `tools/review-loop/test-skill-content.sh`, which reads only
-      `SKILL.md` today and must be extended to a second file.
+      `SKILL.md` today. The tests above also assert against `commands/init.md`, `marketplace.json`
+      and `plugin.json`, so the harness grows from one file to four.
+      `tools/tsugu/test-skill-content.sh` already makes `jq` assertions against `marketplace.json`,
+      so those belong in the same script rather than a new one.
 - [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
       runs without it.
+- [ ] Whether `plugin.json` also needs a `hooks` key for that file to be merged is answered in
+      writing before any code, alongside the `agent_type` question. That manifest lists `skills` and
+      `commands` explicitly although both are default paths, so discovery cannot be assumed.
 - [ ] `review-loop` is `0.7.0` in the `plugins` array of `.claude-plugin/marketplace.json`. The
       version lives in that entry, not in the file's `metadata` header.
 - [ ] The `marketplace.json` entry description and the identical `plugin.json` description both
