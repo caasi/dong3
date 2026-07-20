@@ -1,247 +1,331 @@
-# 016 — review-loop observation log
+# 016 — an observation log for "is the model reliable today?"
 
-Status: design, for review. Implements nothing yet.
-Issue: caasi/dong3#56.
-Supersedes the proposal in that issue, which is withdrawn (see § 1).
+**Status:** Design
+**Plugin:** `review-loop`
+**Extends:** [014](014-review-loop-reviewer-roster-design.md)
+**Source:** [caasi/dong3#56](https://github.com/caasi/dong3/issues/56). That issue's proposal is **withdrawn**; see *What moved, and why*.
+**Target version:** `review-loop` 0.6.0 → 0.7.0
 
-## 1. What this is, and what it is not
+## What this changes, in one paragraph
 
-`review-loop` runs until K consecutive dry rounds. A dry round is one where every live reviewer
-returns `converged: true`. Issue #56 proposed to log the round count as a signal of how capable
-the driving model is.
+A person can tell within a few hours that a model is not reliable today. This spec records the
+observations that impression rests on, so the impression becomes explicit, timestamped and
+comparable across months. It records two indicators: **the author's own corrections and redo
+requests**, which are strong, and **the number of review rounds**, which is weak. It computes
+nothing during collection and displays nothing to the author. `K` keeps sole authority over
+termination. No loop behaviour changes.
 
-**That proposal is withdrawn.** The round count mixes artifact difficulty, the K policy, roster
-composition and author decisions. It also falls when a reviewer drops out mid-run, so a degraded
-run scores better. And a review loop is a repair mechanism, so its convergence is the quantity
-that hides a capability change, not the one that shows it. Anthropic's own postmortem records
-evaluations that missed a real degradation "in part because Claude often recovers well from
-isolated mistakes".
+## What moved, and why
 
-**This design records observations and computes nothing.** It changes no loop behaviour. K keeps
-sole authority over termination. Nothing is displayed to the author during a run.
+Issue #56 proposed logging rounds-to-convergence as a signal of model capability. Four rounds of
+investigation, four repositories, 128 merged pull requests and two literature reviews say that
+target cannot work.
 
-The purpose is to find out, over 18 months, whether a confidence instrument for this loop is
-possible at all. The answer may be no. § 8 states in advance what would show that.
+- The round count mixes artifact difficulty, the `K` policy, roster composition and author
+  decisions. It also falls when a reviewer drops out, so a degraded run scores better.
+- A review loop is a **repair mechanism**. Its convergence is therefore the quantity that hides a
+  capability change rather than showing it. Anthropic's postmortem of three 2025 inference bugs
+  reports that its own evaluations missed a real degradation, "in part because Claude often
+  recovers well from isolated mistakes"
+  ([source](https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues), 2025-09-17).
+  That is a statement about model evaluation, not about this loop, so read it as an analogy that
+  motivated the change, not as a measurement of it.
+- Ground truth about defects in the artifact is not obtainable at this scale. Of 267 public
+  degradation claims examined, 229 contained no measurement and 38 were scored after the fact.
+  None used a task set with a criterion declared in advance.
 
-## 2. Why a log now, rather than a design later
+**The error was the target, not the method.** The investigation asked "is this artifact clean",
+which needs ground truth nobody has. The impression a person actually forms is about **the
+interaction**, and its reference point is the session's own earlier state, which is on record.
 
-The loop produces state that exists only while it runs. Each reviewer's per-round verdict, the
-facilitator's K signal, and the routing decision for the Codex path are never written anywhere.
-When the run ends they are gone. No later analysis can reconstruct them.
+An instruction the author gave at turn 5 is a rule fixed before the search. A correction the author
+issues at turn 40 is the author acting as the authority on what they asked for, not as an estimator
+of code quality. Both are available immediately, in volume, at no cost.
 
-Everything else can wait, because it is derivable from git.
+## What this instrument is for
 
-## 3. The organising rule
+> It does not need to be more accurate than the author's intuition. It needs to make that intuition
+> explicit, timestamped and comparable over time.
 
-> **Record only what cannot be reconstructed from git later.**
+The author can already tell that today is worse. What they cannot do is answer, six months later,
+whether that period really had more such days or whether memory reshaped it. That is the whole
+purpose. A design that promises more than this is overselling a corpus of a few hundred sessions.
 
-Derived measurements must be recomputed, never stored, because the tools that derive them improve.
+## The two indicators
 
-This rule decides every field below. It also protects the corpus from the tools' current defects.
+### Primary — the author's corrections and redo requests
 
-**Worked example — `fxrank`.** An effect profile of the changed code would be a useful covariate:
-a dry round on pure, effect-free code plausibly means more than a dry round on effect-heavy code,
+Tiered, because the strengths differ by more than the labels suggest.
+
+| Event | What it means | Strength |
+|---|---|---|
+| **Redo** | the whole output is unusable; start again | strongest |
+| **Repeat** | the same point is corrected a second time | very strong |
+| **Fix** | one specific error is identified | strong |
+
+**Repeat is the most valuable of the three, because it is least sensitive to task difficulty.** A
+hard task produces more corrections; that is a property of the task. Failing again after being
+corrected is measured against the model's own state minutes earlier, so the task cancels out.
+
+### Secondary — review rounds
+
+Recorded, and explicitly weak.
+
+An earlier draft of this design excluded the round count as fatally confounded. That was an
+overcorrection. Confounded is not the same as uninformative; it means **weak**. A weak sensor is
+safe to include when its likelihood ratio is set honestly near 1. The danger is compounding, and
+compounding is controlled by setting the ratio low, not by discarding the sensor.
+
+## Capture
+
+**The author marks the event. The tool does not infer it.**
+
+Inferring "was that a correction" from a transcript needs semantic judgement, which returns the
+design to opinion. The author marking it is the same principle as a rule fixed in advance: the
+author is not estimating, the author is **defining**. There is no discretion to get wrong.
+
+**Mechanism:** a short token inside a message the author was already going to send.
+
+    #redo    the whole output is unusable
+    #again   this was already corrected once
+    #fix     one specific error
+
+Cost is about five characters and no extra message. A `UserPromptSubmit` hook matches the tokens by
+regular expression and appends a record. **No model is involved in detection at any point.**
+
+> **Blocking verification before implementation.** `UserPromptSubmit` must be confirmed to exist and
+> to receive the raw prompt text. This repository's own guidance records a past error of proposing a
+> hook event that Claude Code does not have. Confirm against the installed version, not from memory.
+> If the hook is unavailable, the fallback is a slash command, at higher friction, and the marking
+> rate condition in § Failure conditions becomes the first thing at risk.
+
+**The `#` prefix is chosen because `!` already runs a shell command in this harness.**
+
+## The organising rule
+
+> **Record only what cannot be reconstructed later.**
+
+Derived measurements are recomputed, never stored, because the tools that derive them improve.
+
+**Worked example — `fxrank`.** An effect profile of changed code is a plausible covariate: a quiet
+review of pure, effect-free code plausibly means more than a quiet review of effect-heavy code,
 because more of that artifact was constrained before review. But `fxrank` has open P1 defects that
-would be baked into any stored reading: cross-language comparability is inverted (#74), the
-confidence channel is effectively binary (#77), qualified pure calls are over-smeared (#76), test
-code leaks into production ranking (#53), and name heuristics misclassify pure predicates (#52).
-So the effect profile is **not logged**. The commit range is logged, and the profile is computed
-later by whichever version of `fxrank` is current.
+any stored reading would freeze into the corpus — cross-language comparability is inverted (#74),
+the confidence channel is effectively binary (#77), qualified pure calls are over-smeared (#76),
+test code leaks into production ranking (#53), and name heuristics misclassify pure predicates
+(#52). So the profile is **not** stored. The commit range is stored, and the profile is computed
+later by whichever version is current.
 
-**Precondition.** Derivability requires the recorded commits to stay reachable. This repository's
+**Precondition.** Reconstruction needs the recorded commits to stay reachable. This project's
 conventions support that: local branches are not pruned eagerly, and squash merges into primary
 branches are avoided. If that changes, the derivable half of this design is lost.
 
-## 4. Schema
+## Schema
 
-One JSON object per line. Two record kinds, distinguished by `kind`.
+One JSON object per line, at `~/.claude/review-loop.stats.jsonl`. Four record kinds.
 
-### 4.1 Round record
-
-```json
-{
-  "schema": 1,
-  "kind": "round",
-  "run": "<opaque run id, stable within one loop>",
-  "repo": "<salted hash of the repository path>",
-  "base": "<base commit sha>",
-  "head": "<head commit sha at this round>",
-  "round": 3,
-  "date": "2026-07-20",
-  "target_kind": "code | spec | plan | doc | mixed",
-  "enrolled": ["claude", "codex"],
-  "live": ["claude"],
-  "dropped": {"codex": "usage-limit | absent | failed | non-review"},
-  "verdicts": {"claude": true, "codex": null},
-  "suspected_drift": ["claude"],
-  "fix_round": true,
-  "k_signal": 2,
-  "k_running": 2,
-  "findings_resolved": {"t1": 3, "t2": 1, "t3": 0},
-  "checks": {"ran": true, "failed": false, "kind": ["test", "typecheck"],
-             "provenance": "pre-existing | written-this-session | mixed"},
-  "codex_path": "native | embedded-diff | n/a",
-  "guard": {"proposed": false, "accepted": null, "verdict": null}
-}
-```
-
-### 4.2 Outcome record
-
-Written by a scheduled retrospective scan, not by the loop. See § 6.
+### mark — written by the hook
 
 ```json
-{
-  "schema": 1,
-  "kind": "outcome",
-  "repo": "<same salted hash>",
-  "head": "<head commit sha of the run this refers to>",
-  "date": "2026-08-14",
-  "escaped": true,
-  "fix_commit": "<sha of the fix that proved it>",
-  "days_elapsed": 25,
-  "merges_since": 18,
-  "blamed_lines": 7,
-  "test_verified": true
-}
+{"schema": 1, "kind": "mark", "session": "<id>", "ts": "2026-07-20T14:22:31Z",
+ "tier": "redo | again | fix", "turn": 47,
+ "model": "<session model id>", "effort": "<level>", "fast": false,
+ "context_turns": 47, "context_pct": 0.62}
 ```
 
-A record with `escaped: false` is **censored survival data**, not a clean verdict. It states only
-that no escaped defect was attributed after `days_elapsed` days and `merges_since` merges. Its
-weight must grow with both. A fresh run always reads `escaped: false` and means nothing.
+### session — written at session end
 
-## 5. Field rationale — why each cannot be reconstructed
+```json
+{"schema": 1, "kind": "session", "session": "<id>", "date": "2026-07-20",
+ "turns": 96, "duration_min": 210,
+ "models": ["<id>"], "effort": "<level>", "fast": false,
+ "task_kind": "code | prose | mixed | ops",
+ "marks": {"redo": 1, "again": 3, "fix": 7},
+ "impression": "good | normal | off | null"}
+```
 
-| Field | Why it is unrecoverable |
+`impression` is the author's own one-token verdict on the session, and it is the **label** the
+failure conditions test against. It is optional, and null is recorded rather than assumed.
+
+### run — written by the loop, one per round
+
+```json
+{"schema": 1, "kind": "run", "session": "<id>", "run": "<id>",
+ "repo": "<plain path or short label>", "base": "<sha>", "head": "<sha>",
+ "target_state": "committed | uncommitted | dirty",
+ "pr": 42,
+ "round": 3, "ts": "2026-07-20T15:04:00Z",
+ "target_kind": "code | spec | plan | doc | mixed",
+ "enrolled": ["claude", "codex"], "live": ["claude"],
+ "models": {"claude": "<id>", "codex": "<id or null>"},
+ "dropped": {"codex": "usage-limit | absent | failed | non-review"},
+ "degraded": {"codex": "ghost-rerun | range-mismatch | resume-last | resume-fresh"},
+ "verdicts": {"claude": true, "codex": null},
+ "still_open_count": {"claude": 0},
+ "suspected_drift": ["claude"],
+ "fix_round": true, "k_signal": 2, "k_running": 2,
+ "findings": {"raised": {"claude": 5}, "survived_crosscritique": {"claude": 3},
+              "resolved": {"t1": 2, "t2": 1, "t3": 0}},
+ "crosscritique": {"ran": true, "attacked": true},
+ "checks": {"ran": true, "failed": false, "kind": ["test"], "uncommitted": false},
+ "codex_route": "preflight | detector | mismatch | n/a",
+ "sandbox": "usable | broken | unknown",
+ "guard": {"proposed": false, "accepted": null, "verdict": null},
+ "author": {"a0_override": false, "t2t3_decisions": 2, "t2t3_overrides": 1}}
+```
+
+### run_end — written when a run stops
+
+```json
+{"schema": 1, "kind": "run_end", "run": "<id>", "ts": "...",
+ "end_reason": "k-dry | copilot-clean | repeat-guard | codex-limit | codex-failed | author-stopped | abandoned",
+ "final_round": 5, "k_final": 2}
+```
+
+Without `end_reason` an abandoned run is indistinguishable from a converged one. In one studied
+repository only 11 of 19 multi-round pull requests ended on a dry round; the rest ended because the
+author merged. The exit state of an abandoned run is not an exit state.
+
+### Why each recorded field is unrecoverable
+
+| Field | Reason |
 |---|---|
-| `verdicts` | Each reviewer states `{converged, still_open, reason}` per round (§ A3). Only the loop sees it. |
-| `enrolled` / `live` / `dropped` | § A3 treats an unavailable reviewer as "done". A dry round on a degraded set is a different event from one on a full set, and afterwards the two are indistinguishable. |
-| `k_signal` / `k_running` | K is the facilitator's judgement of whether each resolved finding had a runnable check. It is the loop's existing confidence signal and it is never written down. |
-| `codex_path` | Native `review` **silently false-cleans** on a broken sandbox host against unpushed commits (§ Codex mechanics, and SKILL.md's note on local-only commits on `main`). Without this flag, false-clean dry rounds are indistinguishable from real ones and the corpus is permanently contaminated. |
-| `suspected_drift` | Advisory, collected per round, discarded after. |
-| `guard` | The direction guard is proposed, accepted or declined per episode. A clean audit discharges a K ≥ 2 hold. |
-| `findings_resolved` | Post-cross-critique, deduplicated, tier-classified counts. The classification is facilitator judgement made at the time. |
-| `checks.provenance` | Whether a test pre-existed is derivable; whether it *ran during this round* is not. |
-| `base` / `head` / `repo` | The join key. It is what makes everything in § 3's derivable column derivable. Without it the log cannot be linked to any outcome, and version 1's whole purpose fails silently. |
+| `mark` records | The author's judgement at that moment. Nothing else captures it. |
+| `impression` | Same, and it decays within a day. |
+| `verdicts`, `still_open_count` | Stated per round per reviewer (§ A3). Only the loop sees them. |
+| `enrolled` / `live` / `dropped` / `degraded` | § A3 treats an unavailable reviewer as done. A quiet round on a degraded set is a different event, and afterwards the two look identical. |
+| `k_signal` / `k_running` | The facilitator's judgement of whether each resolved finding had a runnable check. Never written down. |
+| `codex_route` / `sandbox` | Native `review` **silently false-cleans** on a broken sandbox host against unpushed commits. `detector` means a false-clean was caught this run — the most informative event in the Codex branch. |
+| `findings.raised` / `survived_crosscritique` | Cross-critique exists to kill false positives before they become commits. Recording only survivors makes the kill rate permanently unobservable, and that rate is the one measurement this loop can make that published work cannot. |
+| `models` | Over 18 months every model in the roster is replaced. Since the question is about model behaviour, this is the covariate whose absence would make the corpus unable to answer it. Self-reported, and recorded as such. |
+| `author` | The A0 pass and the T2/T3 decision are the author acting inside the loop, at no cost. |
+| `target_state` | For an uncommitted target, `head` does not contain what was reviewed, so every derived field would evaluate against the wrong tree. |
+| `base` / `head` / `repo` / `pr` | The join key. It is what makes the derivable set derivable, and what links a run to its forge reviews. |
 
-### Explicitly not recorded
+### Not recorded
 
-- **`still_open` and `reason` from the verdict object.** Only the boolean is taken. Those fields
-  carry finding text.
-- **Any path, diff, or finding text.**
-- **The repository path in plain form.** A salted hash, because this file may sit beside
-  configuration that is symlinked into a repository that gets pushed.
+- **`still_open` and `reason` text from the verdict object.** Only the boolean and the count.
+- **Any path, diff, prompt, or finding text.** Marks record the tier and the turn number, never the
+  message.
 - **Any derived measurement**: effect profile, diff size, file counts, test presence.
-- **Any computed probability.** See § 7.
+- **Any computed probability.**
 
-## 6. Storage and collection
+The repository identifier is stored **in plain form**. An earlier draft hashed it with a salt. That
+protects nothing, because a full commit sha sits in the same record and identifies a public
+repository through any code search. The salt also created an unanswered question about where a
+cross-machine secret lives, and a way to orphan every record written before a rotation. The log is
+identifying by construction; the protection is the enforcement below.
 
-**Path:** `~/.claude/review-loop.stats.jsonl`, a sibling of the existing
-`~/.claude/review-loop.local.md`. Never `${CLAUDE_PLUGIN_ROOT}`, which the marketplace replaces on
-update. Never inside a repository under review.
+## Storage
 
-**Enforcement, not documentation:** the writer refuses to write if the resolved path is inside a
-git work tree, and creates the file with mode 0600.
+Path `~/.claude/review-loop.stats.jsonl`, beside the existing `~/.claude/review-loop.local.md`.
+Never `${CLAUDE_PLUGIN_ROOT}`, which the marketplace replaces on update. Never inside a repository
+under review.
 
-**Never commit.** The user's `~/.claude/` contains files symlinked into a dotfiles repository that
-is pushed. This file must be excluded there.
+Enforced, not documented: the writer refuses if the resolved path is inside a git work tree, and
+creates the file with mode 0600. `~/.claude/` holds files symlinked into a dotfiles repository that
+is pushed, so this file must be excluded there.
 
-**Writer:** a helper script beside `copilot.sh` and `pr-comments.sh`, called with explicit
-arguments at each round boundary. Not an instruction in SKILL.md prose — a prompt instruction is
-skipped nondeterministically, and most often by exactly the weak model the log would document.
+One `write()` per record under `O_APPEND`, with a stated line-size bound, so two loops in two
+worktrees cannot interleave. Fields are append-only; a reader ignores unknown fields and skips
+unknown `schema` values. The file is never rotated in place; if it is rotated, it is copied to a
+dated sibling and never truncated.
 
-**Outcome records** come from a scheduled retrospective scan over git history, not from the author
-and not from the loop:
+## No inference during collection
 
-> a `fix:` commit that adds or changes a real test, and modifies pre-existing lines whose blame
-> points to a commit merged in a different, earlier pull request.
+Nothing computes a score during a session, and nothing is displayed to the author.
 
-The author is not asked to remember anything. Escape latency is bimodal — median 4 days and 8
-intervening merges, with a cluster at 10 to 27 days and 18 to 30 merges — so a question asked at
-merge time is close to uninformative.
+The reason is not that a displayed number would gain unearned authority, though it would. It is
+that **displaying it contaminates the collection**. It would change what the author attends to and
+how they mark. The marks and the impression are the labels, so a corpus gathered while a number was
+on screen cannot afterwards be used to test that number.
 
-**Outstanding verification.** The scan has not been validated by checking out the parent commit and
-running the added test to confirm it fails. That check is cheap for a Rust or OCaml target. Until it
-is done, `test_verified` must be written as `false` and outcome records carry no weight.
-
-## 7. No inference in version 1
-
-Nothing computes a posterior during a run, and nothing is displayed to the author.
-
-The reason is not that a displayed number would gain unearned authority, though it would. The
-reason is that **displaying it contaminates the collection.** It would change what the author
-attends to and how they report. A corpus gathered while a number was on screen cannot afterwards
-be used to test that number.
-
-An offline command may read the log and print a posterior. It must print every parameter it used
-beside the number, and label itself experimental. Disputes then happen against a fixed corpus.
-
-### The model, stated as a hypothesis under test
-
-Latent variable `D` = at least one defect remains. Each observation is a sensor with a likelihood
-under `D` and under `not D`. The panel event for a live-set is modelled directly, so no
-independence between reviewers is assumed.
-
-**All likelihood values are chosen, not estimated.** None may be written into this design. When
-they are eventually set, they must be derived from a stated posterior budget — decide first what
-the posterior may reach on dry rounds alone, then solve for the largest per-round likelihood ratio
-consistent with that — and the prior must be anchored on the one empirical number available: at
-least 23 percent of merged pull requests in four repositories carried a defect a test later proved.
+An offline command may read the log and print an analysis. It must print every parameter it used
+beside the result and label itself experimental.
 
 ### Known failure modes, recorded so they are not rediscovered as surprises
 
-1. **Weak evidence compounds.** Weakness limits the rate, not the destination. A likelihood ratio
-   of 1.2 per dry round reaches a posterior of 0.97 from a prior of 0.5 in 20 rounds. "Weak,
-   therefore safe" is false.
-2. **The misspecification is directional.** Every sensor errs toward "clean": a reviewer reports
-   converged more readily when a defect is subtle, when its context is exhausted, and after the
-   loop has repaired the visible problems. Random errors partly cancel across observations.
-   Directional errors accumulate.
-3. **The sensor is not conditionally independent of the artifact.** The reviewer, the fixer and
-   often the test author are the same model family. No reviewer-correlation term repairs this.
-4. **`rho` is not identifiable from round structure.** A miss count is bounded above by the round
-   count by construction, so any correlation between them is partly definitional. The loop cannot
-   calibrate itself from its own rounds. This is why outcome records come from outside the loop.
+1. **Weak evidence compounds.** Weakness limits the rate, not the destination. A likelihood ratio of
+   1.2 per round reaches a posterior of 0.97 from a prior of 0.5 in 20 rounds. "Weak, therefore
+   safe" is false.
+2. **Misspecification here is directional.** Review sensors err toward quiet. Random errors partly
+   cancel across observations; directional errors accumulate.
+3. **The marking rate is itself a behaviour that can drift.** A quiet week may mean a good week or a
+   week the author stopped marking. § Failure conditions treats this as a first-class risk.
+4. **Task difficulty is not controlled.** `again` is the least exposed of the three tiers, which is
+   why it is weighted highest. Separating difficulty properly needs a fixed task set re-run
+   periodically, compared pairwise. That is out of scope here and noted as future work.
 
-## 8. Pre-registered failure conditions
+## Confounders recorded as covariates
 
-Fixed now, before any likelihood value is chosen, because they are what make this a design rather
-than an open-ended activity.
+`context_turns` and `context_pct`, because a long session degrades for reasons unrelated to the
+model. `model`, `effort` and `fast`, because these change within and between sessions. `task_kind`,
+declared by the author, coarse on purpose.
+
+## Failure conditions, pre-registered
+
+Fixed now, before any weighting exists, because they are what make this a design rather than an
+open-ended activity.
 
 | Test | Fails if | Needs |
 |---|---|---|
-| **T3 — non-informativeness** | the exit posterior correlates with the round count above 0.9; the number is then a restatement of K | ~50 runs, no labels |
-| **T4 — parameter dominance** | varying any chosen likelihood ratio by a factor of 3 moves the exit posterior by more than 0.2 for most runs; the number then reports the parameters, not the evidence | parameters only |
-| **T1 — discrimination** | the exit posterior separates later-leaking runs from clean ones at an area under the ROC curve of 0.6 or below | ~40 outcome labels |
-| **T2 — confident and wrong** | among runs whose posterior exceeded 0.9, the observed escape rate is above 0.2; the directional misspecification in § 7 has then occurred and the instrument is harmful | ~40 outcome labels |
+| **T0 — marking survives** | in any month after the first, marked sessions fall below 50 percent of sessions containing at least one `run` record | the log alone |
+| **T3 — non-informativeness** | the session mark count correlates with turn count above 0.9; the signal then measures session length, not reliability | 50 sessions |
+| **T4 — parameter dominance** | varying any chosen weight by a factor of 3 moves the session score by more than 0.2 for most sessions | 50 sessions, fixed parameter set |
+| **T1 — agreement** | the session score separates `off` sessions from `normal` sessions at an area under the ROC curve whose **lower 95 percent confidence bound** is at or below 0.6 | 40 sessions carrying an impression |
+| **T2 — confident and wrong** | among sessions the score called normal, more than 20 percent were marked `off`; minimum subgroup 15 sessions, else "not yet testable" | 40 impressions |
 
-**Interim gate at about 50 logged runs:** run T3 and T4. Either alone stops the project.
+**T3 and T4 must both name the fixed parameter set they run against, pre-registered when the
+parameters are first chosen.** Otherwise a failing T3 can be argued away by choosing other
+parameters, and the pair becomes unfalsifiable.
 
-**Verdict horizon: 150 to 200 logged runs, or 18 months, whichever comes first.**
+**Interim gate at 50 sessions:** run T0, T3 and T4. Any one alone stops the project.
 
-**A further failure condition, written down now because it is the easiest to explain away later:**
-if at 18 months the corpus is still too small to run T1, that is itself a failure verdict. It means
-the instrument needs more data than this workflow produces.
+**Verdict horizon: 200 sessions or 12 months, whichever is reached first.**
 
-At roughly one escaped defect per 4.4 merged pull requests, 40 labels need about 175 merged pull
-requests. Four repositories took the project's lifetime to accumulate 128.
+**Stated in advance because it is the easiest outcome to explain away later:** if at the horizon
+there are fewer than 40 sessions carrying an impression, that is a failure verdict. It means the
+instrument needs more marking than this workflow sustains.
 
-## 9. What a later specification may and may not claim
+This target is reachable in a way the withdrawn proposal's was not. The artifact-defect channel
+needed roughly 256 merged pull requests for 40 labels, which is about two project lifetimes at
+current velocity. Sessions accumulate daily.
 
-**May claim:** that the log records observations and computes nothing during a run; that the model
-is a hypothesis with pre-registered falsification tests; that an offline experimental command may
-compute a posterior if it prints its parameters; that K keeps sole authority.
+## Testing
 
-**Must not claim:** that any posterior is calibrated; that any likelihood was estimated; that the
-number measures `P(clean)`; that a dry round is evidence of cleanliness of known strength; that
-slow movement is by itself evidence of honesty; that repeated passes are shown to be necessary or
-insufficient; that cross-family decorrelation was measured.
+- **Hook capture:** a message containing each token produces exactly one `mark` record with the
+  right tier; a message containing none produces none; a token inside a fenced code block produces
+  none.
+- **Writer refusal:** with the resolved path inside a git work tree, the writer exits non-zero and
+  writes nothing.
+- **Mode:** a newly created file is 0600.
+- **Concurrency:** two writers appending 1000 records each produce 2000 parseable lines.
+- **Schema tolerance:** a reader skips a record with `schema: 99` and reports the count skipped.
+- **Round fields:** a run where Codex hits its usage limit mid-loop produces `dropped`, and a
+  `run_end` with `end_reason: codex-limit`.
+- **No text leakage:** a corpus scan finds no field containing a path separator, a diff marker, or
+  more than 64 characters of free text.
 
-## 10. Open questions
+## Acceptance criteria
 
-1. Should `run` be derivable from `repo` plus `base` plus start time, rather than opaque, so a
-   resumed loop can append to the same run?
-2. `target_kind` is facilitator judgement. Is a coarse split of code against prose enough, given
-   § A3 already distinguishes them only by whether a runnable check exists?
-3. The salted hash of the repository path needs a salt that survives across machines but is not in
-   the dotfiles repository. Where does it live?
-4. Should the writer refuse to run when `git` reports a dirty tree, so `head` is unambiguous?
+1. `UserPromptSubmit` is confirmed to exist and to receive raw prompt text, or the slash-command
+   fallback is implemented instead.
+2. The hook writes `mark` records with no model involvement in detection.
+3. The loop writes `run` and `run_end` records at every call site, including the paths where a
+   reviewer drops out and where the author stops the loop.
+4. Nothing is displayed to the author during a session.
+5. The offline command prints every parameter beside its result and is labelled experimental.
+6. All tests above pass.
+7. The failure conditions are copied into the implementation plan unchanged, with the parameter set
+   named at the time weights are first chosen.
+
+## Open questions
+
+1. Should `again` be inferable from two `fix` marks on the same topic, or must the author always
+   type it? Inference is convenient and it is judgement, which this design otherwise excludes.
+2. Where does the session `impression` get asked? A prompt at session end has no reliable trigger,
+   and asking the next morning risks it never being answered.
+3. `task_kind` is author-declared. Is a four-way split useful, or does it invite unstable
+   self-classification that adds noise?
+4. Should a `mark` record the turn number only, or also which model output it attaches to when a
+   session changed models mid-way?
