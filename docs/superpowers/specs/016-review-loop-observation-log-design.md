@@ -12,7 +12,7 @@ Unqualified `§` references point to `plugins/review-loop/skills/review-loop/SKI
 
 A line-oriented log, in the Unix style. One line per event, plain text, readable with `grep`.
 
-**It is append-only, and that is the point.** A line is written once and never changed. A new writer
+**It is append-only, and that is its organising property.** A line is written once and never changed. A new writer
 joins by appending, with no coordination and no migration. A new key appears on new lines and old
 lines stay valid. Nothing in this design may require reading a line back to update it.
 
@@ -42,8 +42,8 @@ those characters rather than writing a malformed line. Key order is as shown bel
 
 Two events.
 
-    2026-07-20T13:47:52Z  review  project=dong3  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
-    2026-07-20T14:31:02Z  object  project=dong3  session=0f3c8a1e-…  tier=redo
+    2026-07-20T13:47:52Z  review  project=github.com-caasi-dong3  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
+    2026-07-20T14:31:02Z  object  project=github.com-caasi-dong3  session=0f3c8a1e-…  tier=redo
 
 `project` is on every line. This file is global — one file for every repository and every host — so
 without it no line says where it came from. It is what makes one file sufficient instead of one file
@@ -52,11 +52,17 @@ per project.
 Both writers derive it the same way, from a directory: the hook uses the `cwd` in its payload,
 `log.sh` uses its own. Neither is necessarily the repository root, so both run the same three steps:
 
-1. **`git remote get-url origin`, if it succeeds.** Remove any scheme and any user prefix, remove a
-   trailing `.git`, then replace every `/` and `:` with a hyphen:
+1. **`git remote get-url origin`, if it succeeds.** Remove the scheme, remove the whole `userinfo@`
+   component **including any password or token**, remove a trailing `.git`, then replace every `/`
+   and `:` with a hyphen:
 
        https://github.com/caasi/dong3.git        →  github.com-caasi-dong3
        git@gitlab.com:group/subgroup/repo.git    →  gitlab.com-group-subgroup-repo
+
+   Removing the whole userinfo component matters: an HTTPS remote can carry
+   `https://oauth2:<token>@host/a/b.git`, and a rule that strips only a `git@`-shaped prefix would
+   write that token into this file as part of `project`. The file is append-only, so a credential
+   written once cannot be removed.
 
    The host is kept because this author works on two forges, and `github.com/acme/api` and
    `gitlab.com/acme/api` are different projects. Every path segment is kept because GitLab subgroups
@@ -260,7 +266,7 @@ path convention of the existing helper scripts:
 
 The caller passes only those keys. The script supplies the timestamp and `project`, applies the value
 rules, and performs the guard. It takes no `session` key: the session id is not available to a script the loop
-invokes, so `review` lines carry none — see *What is not recorded*.
+invokes, so `review` lines carry none, as stated in *Format*.
 
 Objection lines are written by the hook at
 `${CLAUDE_PLUGIN_ROOT}/hooks/object.sh`. Both writers source the formatting and guard code from
@@ -304,7 +310,7 @@ omission check above is what separates that from a broken writer.
   author has worked in on that host. A repository name is usually harmless and sometimes is not. The
   file is mode 0600 and outside any repository, and that is the whole of its protection.
 - **No derived measurement** — diff size, file counts, effect profile. All are recomputable from git
-  later, and the tools that derive them still change. `fxrank` is the case in point: it has open P1
+  later, and the tools that derive them still change. `fxrank` is one example: it has open P1
   defects (#74, #76, #53, #52), so a reading stored today would be wrong in a way no later version
   could repair.
 
@@ -313,8 +319,8 @@ sandbox routing — is stated in the loop's own output and is in the session tra
 transcripts prune at about thirty days, so anything not on a line above is lost after that. That is
 accepted: deciding what to keep past thirty days is an analysis decision, and analysis is deferred.
 
-**A count says what was raised, not whether it was right.** A round that raised ten findings, two of
-them wrong, logs the same numbers as a round that raised ten sound ones. Judging review quality needs
+A round that raised ten findings, two of them wrong, logs the same numbers as a round that raised ten
+sound ones. Judging review quality needs
 the transcript, within its thirty days.
 
 ## Testing
@@ -330,8 +336,8 @@ the transcript, within its thirty days.
 - A project config with `observation-log: no` overrides a global `yes`, and the hook writes nothing.
 - A file whose frontmatter has no `observation-log` key, but whose `## Notes` body contains the line
   `observation-log: yes`, is read as absent and the hook writes nothing.
-- Stopping the loop between rounds produces `review run=<tok> end=stopped` with no `round` key, and a
-  reader counts the run as finished.
+- Stopping the loop between rounds produces a `review` line carrying `project`, `run` and
+  `end=stopped`, with no `round` key, and a reader counts the run as finished.
 - A second `init` run with the key already present, in either state, does not ask again.
 - With `REVIEW_LOOP_LOG=0`, neither writer writes.
 - A new file has mode 0600.
@@ -343,7 +349,11 @@ the transcript, within its thirty days.
   more segments — produces the slug in the table above, with the host kept and no segment merged.
 - **A plain non-bare clone with no remote produces a non-empty slug**, and so does a linked worktree
   of it. A bare-repository fixture does not exercise this; the fixture must be an ordinary clone.
-- A submodule produces its own name, not its superproject's.
+- A clone with an `upstream` remote and no `origin` falls through to step 2, and produces the same
+  slug as the same clone with no remote at all.
+- A submodule reached through step 2 produces the name of its path in the superproject, which is what
+  `.git/modules/` is keyed by, not the name of the repository it was cloned from.
+- A remote carrying a userinfo component produces a slug with no part of that component in it.
 - A directory in no repository produces `project=none`.
 - A value containing a space, an `=` or a path separator is written with those characters removed.
 - A reported model id containing `%`, whitespace, `=`, `/`, `,` or `:` is percent-encoded, `%` first,
@@ -364,13 +374,13 @@ the transcript, within its thirty days.
 - [ ] `/review-loop:init` states what the hook does and asks before writing `observation-log: yes` —
       not before installing it, which is not possible. Declining leaves the rest of the roster setup
       working.
-- [ ] The hook writes only when `observation-log: yes` resolves, reading the project config before
-      the project config takes precedence over the global one, and the three states and the override
-      are tested.
+- [ ] The hook reads both configs and writes only when `observation-log: yes` resolves. A project
+      config overrides the global one. The three states and the override are tested.
 - [ ] Item 1 under *The hook* — whether `UserPromptSubmit` fires inside a subagent, and whether
       `agent_type` is present — is answered in writing before any code.
 - [ ] The hook writes `object` lines with no model involvement in detection.
-- [ ] Neither writer ever exits non-zero or writes to stdout.
+- [ ] Neither writer ever exits non-zero. The hook writes nothing to stdout on any path. `log.sh`
+      writes nothing to stdout except the token printed by `new-run`.
 - [ ] Both writers refuse when the log file's own directory is inside a git work tree.
 - [ ] The log file is created with mode 0600.
 - [ ] Concurrent appends never split a line.
