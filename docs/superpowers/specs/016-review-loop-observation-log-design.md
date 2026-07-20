@@ -120,9 +120,8 @@ inside it.
   spec 014 enrols endpoints whose ids carry a path separator — `meta-llama/Llama-3.3-70B`. Encoding
   rather than dropping also removes the question of which operation runs first.
 - `end` appears on the last `review` line of a run: `end=converged` or `end=stopped` (the author
-  ended it). There is no usage-limit value: § Exit conditions is explicit that a usage limit stops
-  only the Codex sub-loop, and § A3 counts an unavailable reviewer as done, so a limit never ends a
-  run. Without `end`, a run is unfinished. Convergence is the reviewers' own verdict per § A3 and is
+  ended it). There is no usage-limit value: the skill is explicit that a usage limit stops only
+  the Codex sub-loop, and § A3 counts an unavailable reviewer as done, so a limit never ends a run. Without `end`, a run is unfinished. Convergence is the reviewers' own verdict per § A3 and is
   never inferred from a zero count.
 - An author who stops the loop between rounds leaves no round in flight to carry `end`. The
   facilitator then writes `review run=<tok> end=stopped` with no `round` and no `reviewers`. This is
@@ -369,6 +368,7 @@ the transcript, within its thirty days.
 - A remote carrying a userinfo component produces a slug with no part of that component in it.
 - A directory in no repository produces `project=none`.
 - A value containing a space, an `=` or a path separator is written with those characters removed.
+- Both writers emit keys in the order the format states, so a reader can address a field by position.
 - A reported model id containing `%`, whitespace, `=`, `/`, `,` or `:` is percent-encoded, `%` first,
   and two ids that differ only in those characters stay distinct. `meta-llama/Llama-3.3-70B` survives
   with its path separator encoded rather than removed.
