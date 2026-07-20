@@ -79,14 +79,26 @@ split one.
 
 ## Before implementing
 
-Confirm against the installed Claude Code version, not from memory:
+Checked against `https://code.claude.com/docs/en/hooks.md`, so rules 1 and 2 rest on the
+documentation rather than on recollection:
 
-1. That `UserPromptSubmit` exists and receives the raw prompt text.
-2. **That `agent_type` appears in a subagent's payload.** Rule 1 above depends on it entirely.
-3. Whether `UserPromptSubmit` stdout is injected, since rule 2 depends on it.
-4. How a script invoked by the loop learns which run it is in, so `review` and `object` lines can
+- `UserPromptSubmit` exists. Its documented stdin fields are `session_id`, `prompt_id`,
+  `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`, and optionally `agent_id` and
+  `agent_type`. **`agent_type` is documented**, so rule 1 is implementable.
+- Its documented control surface is `decision: "block"`, `additionalContext`, and **stdout as
+  context**, which is what rule 2 guards against.
+- No model id, reasoning effort, fast flag, turn number or context usage is available to the hook,
+  and there is no documented way to obtain them. Nothing above needs them.
+
+Two things still to confirm against the installed version, not from memory:
+
+1. **The raw prompt text field.** The documentation lists the envelope above but does not name the
+   field carrying the prompt, even though the hook plainly receives it. Rule 3 and the whole
+   matching step depend on reading it.
+2. **How a script invoked by the loop learns which run it is in**, so `review` and `object` lines can
    share a `run` value. If there is no reliable channel, `object` lines carry no `run` and the two
-   event kinds are joined by timestamp only.
+   event kinds are joined by timestamp only. That is a smaller loss than it sounds: most objections
+   in practice fall outside any run.
 
 If the hook does not exist, the fallback is a slash command, at higher friction.
 
@@ -105,6 +117,16 @@ Everything else the loop knows — per-reviewer verdicts, tier classifications, 
 sandbox routing — is stated in the loop's own output and is in the session transcript. Those
 transcripts prune at about thirty days, so anything not on a line above is lost after that. That is
 accepted: deciding what to keep past thirty days is an analysis decision, and analysis is deferred.
+
+**`findings` counts what was found, not whether it was right.** A round that produced ten findings,
+two of them wrong, logs the same number as a round that produced ten sound ones. This was observed
+during the review of this spec: a reviewer filed a finding claiming a verification it had not
+received, then corrected itself. The log would show neither the claim nor the correction. Judging
+review quality needs the transcript, within its thirty days.
+
+**Most objections fall outside any run.** In the session that produced this spec, eight of ten came
+before the first review round, during design. That is why the hook is global rather than tied to a
+review-loop run.
 
 ## The one thing worth watching
 
