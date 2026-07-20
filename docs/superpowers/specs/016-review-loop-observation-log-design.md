@@ -190,10 +190,11 @@ this document names a dotfiles repository owning `~/.claude/` as a realistic cas
 therefore treats a config that arrived without being written locally the same as any other: it does
 not re-ask, and the disclosure says the answer travels with the file.
 
-The plugin's `README.md` and its `marketplace.json` description say that it ships an always-on
-prompt hook, inert until the author opts in at `init`. That is the only channel a marketplace user
-reads **before** enabling the plugin, which is the one moment that genuinely precedes installation;
-the ask below cannot reach it.
+**The `marketplace.json` entry description must disclose the hook**, because that is what a
+marketplace user reads **before** enabling the plugin, and enabling is when the hook is merged. The
+ask below happens at `init`, which is after. Spec 014 requires that description to stay identical to
+the one in `plugins/review-loop/.claude-plugin/plugin.json`, so both change together. The skill's
+`README.md` says the same thing at greater length; it is the place a reader goes second, not first.
 
 `/review-loop:init` asks before writing `yes` — what the hook matches, what a line contains, where the
 file goes, that no message text is ever written, that the hook still executes on every message even
@@ -368,7 +369,9 @@ the transcript, within its thirty days.
 - A round where a reviewer drops out lists only the reviewers that returned a review.
 - In a run that ends on a round, the last round carries `end` and earlier rounds do not.
 - The omission check, run with the user-role and fence filters over a transcript set containing one
-  real objection and one quoted token, reports one and not two.
+  real objection and one quoted marker, reports one and not two.
+- A reader who has not enabled the plugin can find the always-on hook stated in the `marketplace.json`
+  entry description, and that string matches `plugin.json`'s byte for byte.
 - Two sessions overlapping in time, one carrying an objection and one not, are attributed correctly
   by the omission check. A join on timestamp proximity alone misattributes them; the `session` key is
   what prevents it, and this is the test that shows it.
@@ -403,5 +406,9 @@ the transcript, within its thirty days.
       `SKILL.md` today and must be extended to a second file.
 - [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
       runs without it.
-- [ ] `.claude-plugin/marketplace.json` records the version bump in the header.
+- [ ] `review-loop` is `0.7.0` in the `plugins` array of `.claude-plugin/marketplace.json`. The
+      version lives in that entry, not in the file's `metadata` header.
+- [ ] The `marketplace.json` entry description and the identical `plugin.json` description both
+      disclose the always-on hook, and `skills/review-loop/README.md` does too. Neither description
+      is changed without the other; spec 014 requires them to match.
 - [ ] All tests above pass.
