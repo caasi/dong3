@@ -58,6 +58,10 @@ Two events.
 
 `end` is last when it appears, as the third line shows.
 
+The first four fields are fixed, so a reader may take them by position. After that the keys are
+optional — `$5` is `round` on an ordinary `review` line and `end` on a stop line — so a reader tests
+for a key rather than counting.
+
 `project` is on every line. This file is global — one file for every repository and every host — so
 without it no line says where it came from. It is what makes one file sufficient instead of one file
 per project.
@@ -380,10 +384,15 @@ the transcript, within its thirty days.
   `.git/modules/` is keyed by, not the name of the repository it was cloned from.
 - A remote carrying a userinfo component produces a slug with no part of that component in it.
 - A directory in no repository produces `project=none`.
+The four rules in the *Format* paragraph are tested together, because three of them were found
+untested one round at a time:
+
 - A value containing a space, an `=` or a path separator is written with those characters removed.
-- Both writers emit keys in the order the format states, so a reader can address a field by position.
+- Both writers emit keys in the order the format states.
 - Every line separates its fields by exactly two spaces, with no padding, whatever the width of the
   values on it or on any other line.
+- Timestamps are UTC with a trailing `Z`. Lines written on two hosts in different zones, interleaved,
+  sort into true chronological order by plain string comparison.
 - A reported model id containing `%`, whitespace, `=`, `/`, `,` or `:` is percent-encoded, `%` first,
   and two ids that differ only in those characters stay distinct. `meta-llama/Llama-3.3-70B` survives
   with its path separator encoded rather than removed.
@@ -399,7 +408,8 @@ the transcript, within its thirty days.
 - Two sessions overlapping in time, one carrying an objection and one not, are attributed correctly
   by the omission check. A join on timestamp proximity alone misattributes them; the `session` key is
   what prevents it, and this is the test that shows it.
-- `log.sh new-run` prints a 6-character token and nothing else, and two calls differ.
+- `log.sh new-run` prints a 6-character token of lowercase letters and digits only, and nothing else.
+  Two calls differ.
 
 ## Acceptance criteria
 
@@ -428,7 +438,9 @@ the transcript, within its thirty days.
       disclosure and the recorded answer.
 - [ ] Both edits gain anchors in `tools/review-loop/test-skill-content.sh`, which reads only
       `SKILL.md` today. The tests above also assert against `commands/init.md`, `marketplace.json`
-      and `plugin.json`, so the harness grows from one file to four.
+      `plugin.json` and `skills/review-loop/README.md`, so the harness grows from one file to five.
+      `tools/tsugu/test-skill-content.sh` already anchors README assertions with its `need_in` helper
+      as well as `jq` assertions against `marketplace.json`,
       `tools/tsugu/test-skill-content.sh` already makes `jq` assertions against `marketplace.json`,
       so those belong in the same script rather than a new one.
 - [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
