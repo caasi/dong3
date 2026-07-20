@@ -40,19 +40,27 @@ those characters rather than writing a malformed line. Key order is as shown bel
 
 Two events.
 
-    2026-07-20T13:47:52Z  review  session=d51240  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
-    2026-07-20T14:31:02Z  object  session=d51240  run=x7k2p9  tier=redo
+    2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
+    2026-07-20T14:31:02Z  object  session=0f3c8a1e-…  tier=redo
 
-`session` is the harness session id, on every line. It is what joins the two event kinds, and it is
-what makes the omission check below exact rather than approximate.
+**The two writers know different things, and the keys follow that rather than pretending otherwise.**
+The hook receives the harness session id and cannot learn the run token the loop minted. The loop's
+script holds the run token and has no documented way to read the session id. So `review` lines carry
+`run` and no `session`; `object` lines carry `session` and no `run`. Nothing joins an objection to a
+round except time order, and that is enough for everything this log claims.
+
+`session` is the id **in full**, as the hook receives it. The omission check below matches it against
+the transcript's session id exactly, which is the only reason that check is exact rather than
+approximate. The example abbreviates it for width; real lines do not.
 
 **`review`** — one line per round, written by the loop. A *run* is one `/review-loop` invocation
 from start to stop, called an *episode* in § A3; a *round* is one dispatch-review-fix iteration
 inside it.
 
-- `run` is 8 lowercase alphanumeric characters from a random source, generated once per run. It must
-  not be a pull request number or a branch slug: this log is global, so both collide across
-  repositories, and a branch slug can contain a path separator.
+- `run` is 6 lowercase alphanumeric characters, minted once per run by `log.sh` from `/dev/urandom`
+  rather than by the agent, which is not a random source. It must not be a pull request number or a
+  branch slug: this log is global, so both collide across repositories, and a branch slug can contain
+  a path separator.
 - `round` is a positive integer, starting at 1, increasing by one per round within a run.
 - `reviewers` pairs each reviewer that returned a review this round with the count it raised. A
   reviewer that dropped out, hit a usage limit or was absent is simply not listed, so no separate
@@ -75,7 +83,8 @@ inside it.
 - `tier` is `redo` (the whole output is unusable), `again` (this was already corrected once), or
   `fix` (one specific error). If a message carries more than one token, the order `redo` > `again` >
   `fix` decides which is written.
-- `run` is present when the objection falls inside a review-loop run, absent otherwise.
+- There is no `run` key. The hook has no channel to the loop's run token, and inventing one would be
+  a shared state file to keep in step for a join nothing yet needs.
 
 Unknown keys are ignored by any reader. Keys may be added later without changing what is already
 written.
@@ -89,20 +98,39 @@ The author marks an objection with a token in a message they were already sendin
 A `UserPromptSubmit` hook matches them as whitespace-delimited words and appends one line. `#` is
 used because `!` already runs a shell command in this harness.
 
-This is an always-on prompt hook: it runs on every message, in every repository, for as long as it
-is installed. **`/review-loop:init` states that plainly and asks before installing it** — what it
-matches, what a line contains, where the file goes, that no message text is ever written, and how to
-remove it. A plugin that installs an always-on hook without saying so is not honest, whatever the
-hook does. Declining leaves the rest of the roster setup unaffected; only `object` lines are lost.
+This is an always-on prompt hook: it runs on every message, in every repository, for as long as the
+plugin is enabled.
+
+**Installation cannot be asked about; writing can, and is.** A plugin ships its hooks in
+`hooks/hooks.json`, which the harness merges the moment the plugin is enabled, so no disclosure can
+precede installation. Writing the hook into `~/.claude/settings.json` instead would allow an ask, but
+it makes `init` write a file it does not touch today. So the hook ships with the plugin and **stays
+inert until the author agrees**: it exits immediately unless `~/.claude/review-loop.hook-enabled`
+exists.
+
+`/review-loop:init` states this plainly and offers to create that file — what the hook matches, what a
+line contains, where the file goes, that no message text is ever written, that the hook still executes
+on every message even while inert, and how to remove it. A plugin that records an author's messages
+without saying so is not honest, whatever it records.
+
+The answer is stored in `~/.claude/review-loop.local.md`, as `observation-log: yes | no`, so a re-run
+of `init` does not ask again. `init` is idempotent and preserves explicit opt-outs; a recorded `no` is
+a decision, not an absence. Declining leaves the rest of the roster setup unaffected; only `object`
+lines are lost.
 
 Three rules bind the hook:
 
 1. **It writes nothing when the payload carries `agent_type`.** Reviewer subagents run under
    model-composed prompts, and § Facilitator discipline requires reviewer text to be quoted verbatim,
-   so a reviewer's own text can carry these tokens. **This rule's premise is unverified** — the
-   documentation introduces `agent_type` as a field added inside a subagent generally and never says
-   this event fires there. If the event does not fire for subagents the rule is inert and harmless;
-   confirm before implementing.
+   so a reviewer's own text can carry these tokens. The hooks reference documents `agent_type` as a
+   common field, "present when the session uses `--agent` or the hook fires inside a subagent", and
+   does not exempt this event — so the premise holds on the documentation. Re-check it against the
+   installed harness rather than assuming.
+
+   **The rule costs more than it targets.** The same field marks a main session started with
+   `--agent`, so an author working that way gets no `object` lines and no notice. The documentation
+   offers no field that separates the two cases. The loss is accepted rather than solved, and it is
+   listed here so it is not discovered as a surprise.
 2. **It writes nothing to stdout, and always exits 0.** Its stdout is added to the prompt context. A
    non-zero exit shows the author a hook-error notice, and exit code 2 erases the message the author
    is typing. So the hook never reports failure through its exit status: when it cannot write, it
@@ -111,7 +139,19 @@ Three rules bind the hook:
    this spec would otherwise register objections. This needs fence and span tracking, not a bare
    regular expression.
 
-**Off switch:** `REVIEW_LOOP_LOG=0` stops the hook and the loop's writer.
+The hook reads a JSON payload on standard input, so it needs a JSON parser. § Requirements treats
+`jq` as optional, and under rule 2 a missing parser means the hook writes nothing and exits 0 — which
+reads exactly like an author who stopped objecting. `init` therefore reports a missing parser at
+enrollment, and the omission check below is what catches it later.
+
+**Off switch:** `REVIEW_LOOP_LOG=0`. A hook inherits the environment the harness was launched with,
+so exporting it in the shell affects sessions started afterwards, and setting it in `settings.json`
+under `env` affects every session including the current one. Both are honoured; neither stops a
+session already running from a shell that lacks it.
+
+**Timeout:** the hook entry sets a timeout of 5 seconds. `UserPromptSubmit` blocks the harness until
+the hook returns, so a hang would stall every message the author sends. Rule 2 covers failure, not
+slowness; this covers slowness.
 
 ## Where it goes
 
@@ -127,21 +167,37 @@ directory, which is the repository under review on every call:
 
     git -C "$(dirname "$LOGFILE")" rev-parse --is-inside-work-tree
 
-If that succeeds, the writer writes nothing and still exits 0. A dotfiles repository that owns
+The test is the printed value, not the exit status: the command exits 0 and prints `false` inside a
+`.git` directory or a bare repository, which is not the case this guard is aimed at. If it prints
+`true`, the writer writes nothing and still exits 0. A dotfiles repository that owns
 `~/.claude/` is the realistic case.
 
 One `write()` per line under `O_APPEND`, with lines bounded at 1024 bytes, so two loops in two
 worktrees interleave lines but never split one. A writer that would exceed the bound writes nothing.
 
 Round lines are written by `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh`, following the
-path convention of the existing helper scripts. Objection lines are written by the hook, which
-shares the same formatting and guard code.
+path convention of the existing helper scripts:
+
+    log.sh new-run                                    # prints a fresh run token, and nothing else
+    log.sh review run=<tok> round=<n> reviewers=<list> [end=<reason>]
+
+The caller passes only those keys. The script supplies the timestamp, applies the value rules, and
+performs the guard. It takes no `session` key: the session id is not available to a script the loop
+invokes, so `review` lines carry none — see *What is not recorded*.
+
+Objection lines are written by the hook at
+`${CLAUDE_PLUGIN_ROOT}/hooks/object.sh`. Both writers source the formatting and guard code from
+`${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/logline.sh`, so a change to the value rules cannot
+apply to one and not the other.
 
 ### Where the loop calls it
 
-§ A3 is the integration point for `review` lines: the facilitator writes one line after it has
-aggregated the round's verdicts and before it decides whether the round was dry. The `end` key is
-added on the round that satisfies an exit condition in § Exit conditions.
+§ A3 of `plugins/review-loop/skills/review-loop/SKILL.md` gains the instruction, and that edit is the
+deliverable — not a runtime property, which nothing here could check.
+
+The facilitator writes one line per round, **after** it has aggregated the verdicts and decided
+whether the round was dry. It must be after: a line is written once and never updated, and `end`
+cannot be known before the exit condition in § Exit conditions is evaluated for that round.
 
 ## The known weakness, and how to measure it
 
@@ -226,6 +282,10 @@ the same way.
 - The last round of a run carries `end`; earlier rounds do not.
 - The omission check, run with the user-role and fence filters over a transcript set containing one
   real objection and one quoted token, reports one and not two.
+- Two sessions overlapping in time, one carrying an objection and one not, are attributed correctly
+  by the omission check. A join on timestamp proximity alone misattributes them; the `session` key is
+  what prevents it, and this is the test that shows it.
+- `log.sh new-run` prints a 6-character token and nothing else, and two calls differ.
 
 ## Acceptance criteria
 
@@ -242,4 +302,9 @@ the same way.
       model ids.
 - [ ] The off switch stops both writers.
 - [ ] The omission check is documented with its user-role and fence filters, not as a bare `grep`.
+- [ ] § A3 of `SKILL.md` gains the round-logging instruction, and `commands/init.md` gains the
+      disclosure and the stored answer. Both are prose in a system prompt, where wording is
+      behaviour, so both gain anchors in `tools/review-loop/test-skill-content.sh` as specs 010 and
+      014 require for the rules they added.
+- [ ] `.claude-plugin/marketplace.json` records the version bump in the header.
 - [ ] All tests above pass.
