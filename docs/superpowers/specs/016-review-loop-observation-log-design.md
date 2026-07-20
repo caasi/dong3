@@ -12,6 +12,10 @@ Unqualified `§` references point to `plugins/review-loop/skills/review-loop/SKI
 
 A line-oriented log, in the Unix style. One line per event, plain text, readable with `grep`.
 
+**It is append-only, and that is the point.** A line is written once and never changed. A new writer
+joins by appending, with no coordination and no migration. A new key appears on new lines and old
+lines stay valid. Nothing in this design may require reading a line back to update it.
+
 It answers two questions later: **which reviewers ran a round and how many findings each raised**,
 and **when the author objected**.
 
@@ -38,8 +42,14 @@ those characters rather than writing a malformed line. Key order is as shown bel
 
 Two events.
 
-    2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
-    2026-07-20T14:31:02Z  object  session=0f3c8a1e-…  tier=redo
+    2026-07-20T13:47:52Z  review  project=dong3  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
+    2026-07-20T14:31:02Z  object  project=dong3  session=0f3c8a1e-…  tier=redo
+
+`project` is on every line. This file is global — one file for every repository and every host — so
+without it no line says where it came from. It is a slug, not a path: the basename of the repository
+root, with any character the value rules forbid removed. A slug avoids recording directory structure,
+and it is what makes one file sufficient instead of one file per project. The hook derives it from the
+`cwd` in its payload; `log.sh` derives it from its own working directory.
 
 The hook receives the harness session id and cannot learn the run token the loop minted, and the
 loop's script has no documented way to read the session id. So `review` lines carry
@@ -55,9 +65,8 @@ from start to stop, called an *episode* in § A3; a *round* is one dispatch-revi
 inside it.
 
 - `run` is 6 lowercase alphanumeric characters, minted once per run by `log.sh` from `/dev/urandom`
-  rather than by the agent, which is not a random source. It must not be a pull request number or a
-  branch slug: this log is global, so both collide across repositories, and a branch slug can contain
-  a path separator.
+  rather than by the agent, which is not a random source. It must not be a branch slug: branches are
+  reused, so a slug does not stay unique within one project over time.
 - `round` is a positive integer, starting at 1, increasing by one per round within a run.
 - `reviewers` pairs each reviewer that returned a review this round with the count it raised. A
   reviewer that dropped out, hit a usage limit or was absent is simply not listed, so no separate
