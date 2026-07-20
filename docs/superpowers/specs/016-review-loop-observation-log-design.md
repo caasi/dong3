@@ -43,7 +43,10 @@ Analysis is out of scope.
 
     <UTC timestamp, ISO-8601, trailing Z>  <event>  <key>=<value> ...
 
-Fields are separated by two spaces. Timestamps are UTC so that lines from two hosts sort correctly.
+Fields are separated by exactly two spaces. **Columns are never padded to align.** A writer cannot
+align them: the width a later line needs is unknown when an earlier one is written, and the file is
+append-only, so nothing can go back and re-pad. A `round=1` written before `round=18` exists must not
+reserve room for it. Timestamps are UTC so that lines from two hosts sort correctly.
 A value contains no whitespace, no `=`, and no path separator; a writer that is handed one drops
 those characters rather than writing a malformed line. Key order is as shown below.
 
@@ -51,6 +54,9 @@ Two events.
 
     2026-07-20T13:47:52Z  review  project=github.com-caasi-dong3  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
     2026-07-20T14:31:02Z  object  project=github.com-caasi-dong3  session=0f3c8a1e-…  tier=redo
+    2026-07-20T17:12:40Z  review  project=github.com-caasi-dong3  run=x7k2p9  round=4  reviewers=claude-opus-4-8:0,gpt-5.5:0  end=converged
+
+`end` is last when it appears, as the third line shows.
 
 `project` is on every line. This file is global — one file for every repository and every host — so
 without it no line says where it came from. It is what makes one file sufficient instead of one file
@@ -376,6 +382,8 @@ the transcript, within its thirty days.
 - A directory in no repository produces `project=none`.
 - A value containing a space, an `=` or a path separator is written with those characters removed.
 - Both writers emit keys in the order the format states, so a reader can address a field by position.
+- Every line separates its fields by exactly two spaces, with no padding, whatever the width of the
+  values on it or on any other line.
 - A reported model id containing `%`, whitespace, `=`, `/`, `,` or `:` is percent-encoded, `%` first,
   and two ids that differ only in those characters stay distinct. `meta-llama/Llama-3.3-70B` survives
   with its path separator encoded rather than removed.
