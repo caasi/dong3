@@ -43,7 +43,7 @@ Copied verbatim from spec 016; every task inherits these.
 | `tools/review-loop/test-logline.sh` | Slug, value rules, guard, append, off switch. |
 | `tools/review-loop/test-log-sh.sh` | `new-run`, `review`, stop line, `end`. |
 | `tools/review-loop/test-object-sh.sh` | Config gate, `agent_type`, fence/span, tiers, stdout/exit. |
-| `tools/review-loop/test-format-rules.sh` | The four Format-paragraph rules **and a lint that each has a test** (see Task 9). |
+| `tools/review-loop/test-format-rules.sh` | The four Format-paragraph rules and the end-to-end encoding/bound rules, asserted against writer output (see Task 9). |
 | `tools/review-loop/test-skill-content.sh` | Migrated to `need_in` over five files. |
 
 Tasks are ordered so each builds only on earlier ones. Task 1 is a gate: **no code before it is answered.**
@@ -143,6 +143,17 @@ w=$(mk_worktree "$d")
 eq "$(ll_project_slug "$w")" "$base" "worktree yields main checkout"
 # No repo → none
 eq "$(ll_project_slug /tmp)" "none" "no repo"
+# upstream remote but no origin → falls through to step 2, same as no remote
+d=$(mk_plain_repo); git -C "$d" remote add upstream https://example.com/x/y.git
+eq "$(ll_project_slug "$d")" "$(basename "$d")" "upstream-only falls through to step 2"
+# a submodule reached through step 2 yields its path name under .git/modules
+sup=$(mk_plain_repo); sub=$(mk_plain_repo)
+git -C "$sup" -c protocol.file.allow=always submodule add -q "$sub" mysub >/dev/null 2>&1
+git -C "$sup/mysub" remote remove origin 2>/dev/null || true
+eq "$(ll_project_slug "$sup/mysub")" "mysub" "submodule yields its superproject path name"
+# same slug from a subdirectory of the repo
+d=$(mk_repo_with_origin https://github.com/caasi/dong3.git); mkdir -p "$d/a/b"
+eq "$(ll_project_slug "$d/a/b")" "github.com-caasi-dong3" "subdirectory yields repo slug"
 echo ALL PASS
 ```
 
@@ -158,6 +169,10 @@ Expected: FAIL — `ll_project_slug: command not found` (function undefined).
 # logline.sh — shared writer library for the review-loop observation log.
 # Sourced by log.sh and object.sh. Defines ll_* functions; runs nothing on its own.
 
+# ll_scrub drops the characters a value may not contain. Defined here because the
+# slug (below) routes its result through it; the value-rule tests live in Task 3.
+ll_scrub() { local v="$1"; v="${v//[[:space:]]/}"; v="${v//=/}"; v="${v//\//}"; printf '%s' "$v"; }
+
 # Derive the project slug for a directory. Never fails; prints `none` outside a repo.
 ll_project_slug() { # $1=dir
   local dir="$1" url b cd
@@ -165,12 +180,12 @@ ll_project_slug() { # $1=dir
     url="${url#*://}"        # drop scheme
     url="${url#*@}"          # drop whole userinfo@ (token included)
     url="${url%.git}"        # drop trailing .git
-    printf '%s' "${url//[\/:]/-}"
+    ll_scrub "${url//[\/:]/-}"   # a value-rule-forbidden char in a path is removed (spec line 105)
     return
   fi
   if cd=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
     b=$(basename "$cd")
-    if [ "$b" = ".git" ]; then basename "$(dirname "$cd")"; else printf '%s' "${b%.git}"; fi
+    if [ "$b" = ".git" ]; then ll_scrub "$(basename "$(dirname "$cd")")"; else ll_scrub "${b%.git}"; fi
     return
   fi
   printf 'none'
@@ -200,7 +215,6 @@ git commit -m "feat(review-loop): logline.sh project slug derivation"
 **Interfaces:**
 - Consumes: `ll_project_slug`.
 - Produces:
-  - `ll_scrub <value>` → value with whitespace, `=`, and `/` removed.
   - `ll_encode_id <model-id>` → percent-encoded id: `%`→`%25` first, then whitespace, `=`, `/`, `,`, `:`.
   - `ll_ts` → current UTC timestamp, ISO-8601, trailing `Z`.
   - `ll_line <event> <key=value>...` → a single log line joined by two spaces. Does not write.
@@ -225,13 +239,14 @@ Expected: FAIL — `ll_scrub: command not found`.
 
 - [ ] **Step 3: Implement**
 
-```bash
-ll_scrub() { local v="$1"; v="${v//[[:space:]]/}"; v="${v//=/}"; v="${v//\//}"; printf '%s' "$v"; }
+`ll_scrub` is already defined in Task 2 (the slug uses it). Add the rest:
 
+```bash
 ll_encode_id() { # percent-encode; % first so the mapping is injective
   local v="$1"
-  v="${v//%/%25}"; v="${v// /%20}"; v="${v//=/%3D}"
-  v="${v//\//%2F}"; v="${v//,/%2C}"; v="${v//:/%3A}"
+  v="${v//%/%25}"
+  v="${v// /%20}"; v="${v//$'\t'/%09}"; v="${v//$'\n'/%0A}"   # all whitespace, not only space
+  v="${v//=/%3D}"; v="${v//\//%2F}"; v="${v//,/%2C}"; v="${v//:/%3A}"
   printf '%s' "$v"
 }
 
@@ -300,6 +315,10 @@ Expected: FAIL — `ll_append: command not found`.
 ```bash
 ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.log}"; }
 
+# Note: the guard forks `git` once per call. In production each writer is invoked once
+# per line (one review line per round, one object line per objection), so that is one
+# fork per line written — fine. The 2000-line concurrency test below forks git 2000
+# times and so runs for a few seconds; that is a test artifact, not the real write rate.
 ll_append() { # $1=line. All failure paths return 0 and write nothing.
   [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && return 0
   local line="$1" f dir
@@ -308,7 +327,10 @@ ll_append() { # $1=line. All failure paths return 0 and write nothing.
   if [ "$(git -C "$dir" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]; then return 0; fi
   # bound: reject a line that would exceed 1024 bytes (line + newline)
   [ "$(printf '%s' "$line" | wc -c)" -ge 1024 ] && return 0
-  [ -f "$f" ] || { (umask 177; : > "$f"); }
+  mkdir -p "$dir" 2>/dev/null || true          # default ~/.claude may not exist yet
+  # append-create, never truncate: two writers racing on a missing file must not
+  # each run `: > "$f"` and wipe the other's already-appended line.
+  [ -e "$f" ] || (umask 177; : >> "$f")
   printf '%s\n' "$line" >> "$f"   # one write(), O_APPEND; atomic under PIPE_BUF for <1024 bytes
   return 0
 }
@@ -390,29 +412,42 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "${1:-}" in
   new-run)
-    LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 6; echo
+    # Read a bounded chunk and slice with the shell — no `head -c 6` closing a live
+    # pipe, which would SIGPIPE `tr` and fail the pipeline under `set -o pipefail`.
+    s="$(head -c 96 /dev/urandom | LC_ALL=C tr -dc 'a-z0-9')"
+    printf '%s\n' "${s:0:6}"
     ;;
   review)
     shift
-    proj="$(ll_project_slug "$PWD")"
-    # pass caller keys through verbatim except: prepend project, keep order run/round/reviewers/end
-    out=(review "project=$proj")
-    for kv in "$@"; do out+=("$kv"); done
-    ll_append "$(ll_line "${out[@]}")"
+    # Encode reviewer ids in place: `reviewers=model:count,model:count` — the ids can
+    # carry `/`, `:`, `,` (e.g. meta-llama/Llama-3.3-70B), which are structural here.
+    out=()
+    for kv in "$@"; do
+      case "$kv" in
+        reviewers=*) out+=("reviewers=$(ll_encode_reviewers "${kv#reviewers=}")") ;;
+        *)           out+=("$kv") ;;
+      esac
+    done
+    ll_append "$(ll_line review "project=$(ll_project_slug "$PWD")" "${out[@]}")"
     ;;
-  *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewers=...] [end=...]}" >&2; exit 2 ;;
+  *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewers=...] [end=...]}" >&2; exit 0 ;;
+  # exit 0, not 2: acceptance §424 makes non-zero exit forbidden for either writer.
 esac
 ```
 
-Note: `ll_line` prepends the timestamp and joins with two spaces; here `out` already starts with the event `review`, so pass the tail keys to `ll_line` as `ll_line review project=... run=...`. Adjust: call `ll_line review "project=$proj" "$@"`.
-
-Replace the `review)` body with:
+`ll_encode_reviewers` (added to `logline.sh` in Task 3) encodes only the id side of each
+`id:count` pair, leaving the `:count` and the `,` separators structural:
 
 ```bash
-  review)
-    shift
-    ll_append "$(ll_line review "project=$(ll_project_slug "$PWD")" "$@")"
-    ;;
+ll_encode_reviewers() { # $1 = "id:count,id:count,..."
+  local out="" pair id count
+  local IFS=,
+  for pair in $1; do
+    id="${pair%:*}"; count="${pair##*:}"
+    out="${out:+$out,}$(ll_encode_id "$id"):$count"
+  done
+  printf '%s' "$out"
+}
 ```
 
 - [ ] **Step 4: Run to verify passes**
@@ -467,8 +502,25 @@ say_yes; : > "$LOG"; out="$(run '"please #fix here"')"
 grep -q '  object  project=github.com-caasi-dong3  session=S1  tier=fix$' "$LOG" && pass "fix line" || fail "no fix line"
 # strongest wins
 : > "$LOG"; run '"#fix and #redo"'; grep -q 'tier=redo$' "$LOG" && pass "redo wins" || fail "priority"
-# fenced code ignored
-: > "$LOG"; run '"see ```\n#redo\n``` end"'; [ ! -s "$LOG" ] && pass "fenced ignored" || fail "fenced counted"
+# fenced code on its own lines is ignored
+: > "$LOG"; run '"before\n```\n#redo\n```\nafter"'; [ ! -s "$LOG" ] && pass "own-line fence ignored" || fail "fence counted"
+# inline span is ignored
+: > "$LOG"; run '"use `#redo` as the token"'; [ ! -s "$LOG" ] && pass "inline span ignored" || fail "span counted"
+# a real marker outside a fence still counts even when a fenced example is present
+: > "$LOG"; run '"```\n#fix\n```\nreally #redo now"'; grep -q 'tier=redo$' "$LOG" && pass "out-of-fence marker counts" || fail "out-of-fence missed"
+# adjacency does NOT match: #fixed is not #fix
+: > "$LOG"; run '"already #fixed it"'; [ ! -s "$LOG" ] && pass "adjacency no-match" || fail "#fixed matched"
+# observation-log: no → nothing
+printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
+: > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "no → silent" || fail "wrote against no"
+# project no overrides a global yes
+printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md" 2>/dev/null || { mkdir -p "$tmp/.claude"; printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md"; }
+printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
+: > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "project no overrides global yes" || fail "override failed"
+# a key only in the ## Notes body, not the frontmatter, is read as absent
+printf -- '---\nreview-loop-config: 1\n---\n## Notes\nobservation-log: yes\n' > "$cfg/review-loop.local.md"
+: > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "notes-body not read" || fail "read body key"
+say_yes
 # agent_type suppresses
 : > "$LOG"; run '"#fix"' ',"agent_type":"general"'; [ ! -s "$LOG" ] && pass "agent_type silent" || fail "agent line"
 # exit 0 even on garbage
@@ -512,12 +564,17 @@ ans="$(resolve "$cwd/.claude/review-loop.local.md" || true)"
 [ -n "$ans" ] || ans="$(resolve "$HOME/.claude/review-loop.local.md" || true)"
 [ "$ans" = "yes" ] || exit 0
 
-# strip fenced blocks and inline spans, then match a standalone marker word
-stripped="$(printf '%s' "$prompt" | awk 'BEGIN{f=0} /^```/{f=!f;next} !f{print}' | sed 's/`[^`]*`//g')"
+# Remove fenced blocks (lines between ``` fences) and inline spans (`...`),
+# then match a whitespace-delimited marker word. Priority redo > again > fix.
+stripped="$(printf '%s' "$prompt" | awk 'BEGIN{f=0} /^[[:space:]]*```/{f=!f;next} !f{print}' | sed 's/`[^`]*`//g')"
+has() { # $1=word — true only if it appears whitespace-delimited
+  printf '%s' " $stripped " | grep -Eq "[[:space:]]#$1[[:space:]]"
+}
 tier=""
-case " $stripped " in *" #redo "*|*"#redo "*|*" #redo"*) tier=redo;; esac
-[ -z "$tier" ] && case " $stripped " in *"#again"*) tier=again;; esac
-[ -z "$tier" ] && case " $stripped " in *"#fix"*) tier=fix;; esac
+if has redo; then tier=redo
+elif has again; then tier=again
+elif has fix; then tier=fix
+fi
 [ -n "$tier" ] || exit 0
 
 proj="$(ll_project_slug "$cwd")"
@@ -525,7 +582,10 @@ ll_append "$(ll_line object "project=$proj" "session=$sid" "tier=$tier")"
 exit 0
 ```
 
-Note: the marker match above is illustrative; the whitespace-delimited-word rule and the `redo>again>fix` priority are the contract, and the test in Step 1 is the gate. Refine the matcher until every Step-1 assert passes; keep fence/span stripping before the match.
+The `has` helper matches a marker only when it is a whitespace-delimited word, so `#fixed`
+does not match `#fix`. Fenced blocks are dropped first (own-line ``` fences), then inline
+spans, so a marker survives only outside code. The Step-1 fixtures — own-line fence, inline
+span, out-of-fence marker, and the `#fixed` adjacency case — are the gate that this is right.
 
 - [ ] **Step 4: Run to verify passes**
 
@@ -608,12 +668,12 @@ git commit -m "docs(review-loop): 016 — A3 logging instruction, init disclosur
 
 ---
 
-## Task 9: Format-rule tests plus the recurring-gap lint
+## Task 9: Format-rule and encoding tests against writer output
 
 **Files:**
 - Create: `tools/review-loop/test-format-rules.sh`
 
-This materialises the check the spec calls out: the Format paragraph's rules gap recurred four times in review, so a test asserts each rule **and** that each rule name has a test.
+The Format paragraph's rules gap recurred four times in review. The answer is concrete assertions run against real writer output — not a keyword lint over the test files, which a reviewer showed proves nothing (it passes on a comment and survives deleting the assertion it claims to guard).
 
 **Interfaces:**
 - Consumes: `logline.sh`, `log.sh`, `object.sh` from earlier tasks; `sim3.log` shape.
@@ -638,21 +698,25 @@ head -1 "$REVIEW_LOOP_LOG_FILE" | grep -Eq '  review  project=[^ ]+  run=[^ ]+  
 pass "key order"
 ```
 
-- [ ] **Step 2: Write the recurring-gap lint** — every rule stated in the Format paragraph of the spec must have a matching test line. Parse the four bolded/normative rules and assert each appears as a test.
+- [ ] **Step 2: Assert the encoding and bound rules against real writer output**
 
 ```bash
-SPEC="$LIBDIR/../../docs/superpowers/specs/016-review-loop-observation-log-design.md"
-for rule in "exactly two spaces" "never padded" "no whitespace" "trailing .Z"; do
-  grep -Fq "$rule" "$SPEC" || fail "spec lost Format rule: $rule"
-done
-# each of the four Format rules must be named in a test file
-TESTS="$LIBDIR/test-format-rules.sh $LIBDIR/test-logline.sh"
-for probe in "two spaces" "padding" "UTC" "characters removed"; do
-  grep -hq "$probe" $TESTS || fail "Format rule has no test: $probe"
-done
-pass "every Format-paragraph rule has a test"
+# percent-encoding of a reviewer id reaches the log through log.sh, not just the unit
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=2 reviewers=meta-llama/Llama-3.3-70B:3 )
+grep -q 'reviewers=meta-llama%2FLlama-3.3-70B:3' "$REVIEW_LOOP_LOG_FILE" \
+  && pass "reviewer id encoded on the writer path" || fail "id not encoded end to end"
+# a line over 1024 bytes is not written
+before=$(wc -l < "$REVIEW_LOOP_LOG_FILE")
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=3 "reviewers=$(printf 'x%.0s' $(seq 1 1100)):1" )
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = "$before" ] && pass "over-1024 line refused" || fail "bound not enforced"
 echo ALL PASS
 ```
+
+There is deliberately **no lint that greps the test files for rule keywords.** An earlier
+draft had one; a reviewer showed it was theatre — it proves a keyword is present in a comment
+or a `pass` string, not that a rule is asserted, and it survives deleting the assertion. The
+real coverage is the concrete assertions in Step 1 and Step 2, run against writer output. The
+symmetry gap this task answers is closed by those assertions, not by a keyword scan.
 
 - [ ] **Step 3: Run to verify passes**
 
@@ -754,7 +818,8 @@ git commit -m "test(review-loop): one runner for the observation-log suite"
 
 ## Self-review notes
 
-- **Spec coverage:** slug (T2), value/encoding rules (T3), guard/bound/off/append (T4), `log.sh` review+stop+new-run (T5), hook with three rules + config gate (T6), `hooks.json` + manifest question (T7), A3+init+README+descriptions+version (T8), the four Format rules + recurring-gap lint (T9), five-file content harness (T10), acceptance sweep (T11), harness questions before code (T1). The omission check is documented in the spec and is a manual/offline procedure; it is not a shipped writer, so it has no code task — its acceptance item (§436) is a documentation check in T11.
+- **Spec coverage:** slug (T2), value/encoding rules (T3), guard/bound/off/append (T4), `log.sh` review+stop+new-run (T5), hook with three rules + config gate (T6), `hooks.json` + manifest question (T7), A3+init+README+descriptions+version (T8), Format rules + end-to-end encoding/bound (T9), five-file content harness (T10), acceptance sweep (T11), harness questions before code (T1).
+- **Intentionally not automated, named rather than dropped:** the omission check (spec Testing 402-403, 408-410) is an offline procedure over transcripts, verified in T11 as a documentation check (Acceptance §436), not a shipped writer. The hook-merge check (T7 Step 3) is a manual runtime check. Both are stated as manual so they are not silently missing.
 - **Deferred by the spec, not built:** any posterior/score; a `run`↔`object` join; a snapshot for uncommitted targets; finding identity. Do not add them.
 - **Type consistency:** `ll_project_slug`, `ll_scrub`, `ll_encode_id`, `ll_ts`, `ll_line`, `ll_append` are named identically wherever referenced. `REVIEW_LOOP_LOG_FILE` overrides the log path in tests; `REVIEW_LOOP_LOG=0` is the off switch — two different variables, kept distinct.
 - **Open runtime dependency:** Task 1's answers gate Tasks 6 and 7. If `agent_type` behaves unexpectedly, the hook's rule 1 changes; if the manifest needs a `hooks` key, Task 7 adds it. Neither blocks the other tasks.
