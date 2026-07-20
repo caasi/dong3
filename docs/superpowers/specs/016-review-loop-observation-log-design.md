@@ -93,6 +93,12 @@ author is not estimating, the author is **defining**. There is no discretion to 
 Cost is about five characters and no extra message. A `UserPromptSubmit` hook matches the tokens by
 regular expression and appends a record. **No model is involved in detection at any point.**
 
+**One inference is permitted, and it is flagged.** Two `#fix` marks on the same topic may be
+recorded as an `again`. That is a guess, so the record carries `inferred: true` and the explicit
+form carries `inferred: false`. Any analysis may then run with inferred marks included or excluded,
+and the difference between the two runs measures how much the guess is worth. An inference the
+corpus cannot separate from a declaration would be a silent contamination; this one is separable.
+
 > **Blocking verification before implementation.** `UserPromptSubmit` must be confirmed to exist and
 > to receive the raw prompt text. This repository's own guidance records a past error of proposing a
 > hook event that Claude Code does not have. Confirm against the installed version, not from memory.
@@ -128,7 +134,7 @@ One JSON object per line, at `~/.claude/review-loop.stats.jsonl`. Four record ki
 
 ```json
 {"schema": 1, "kind": "mark", "session": "<id>", "ts": "2026-07-20T14:22:31Z",
- "tier": "redo | again | fix", "turn": 47,
+ "tier": "redo | again | fix", "inferred": false, "turn": 47,
  "model": "<session model id>", "effort": "<level>", "fast": false,
  "context_turns": 47, "context_pct": 0.62}
 ```
@@ -144,8 +150,42 @@ One JSON object per line, at `~/.claude/review-loop.stats.jsonl`. Four record ki
  "impression": "good | normal | off | null"}
 ```
 
-`impression` is the author's own one-token verdict on the session, and it is the **label** the
-failure conditions test against. It is optional, and null is recorded rather than assumed.
+`impression` here is a session-level aggregate and is usually null. The **labelled unit is the run**,
+not the session — see *Collecting the label* below.
+
+### Collecting the label
+
+The label is the author's own verdict, and it is asked at **the end of a review-loop run**, through
+`AskUserQuestion`.
+
+That moment is chosen because it is a trigger that actually fires. A session has no reliable end
+event, and a question asked the next morning is rarely answered. A run end is already a point where
+the loop asks the author something — the offer to group commits (§ *After convergence*) — and the
+author has just read the output, so the impression is fresh.
+
+The harness collects thumbs-up and thumbs-down feedback of its own. That data is not readable from
+here, so this asks separately rather than assuming access to it.
+
+One question, three options, no free text:
+
+    Header: model form
+    Q:      How did the model behave during this run?
+    - about normal
+    - off — needed more correcting or repeating than usual
+    - better than usual
+
+**Marks are attributed to a run by timestamp.** A `mark` falling inside a run's first-to-last round
+window belongs to that run. Marks outside any run stay session-scoped and carry no label. So the
+primary indicator is collected continuously and the label is collected at a bounded moment.
+
+**The tradeoff, stated:** labels now arrive only for review-loop runs, which are less frequent than
+sessions. At a few runs per week, 40 labels take roughly three to six months. That is slower than
+the session-based estimate and far faster than the withdrawn artifact channel, and it buys a
+trigger that fires without the author having to remember anything.
+
+**The risk, stated:** a question asked at every run end can be dismissed reflexively. The answer
+rate alone would not show this, because a degenerate answer set — nearly always "about normal" —
+carries no signal even at a perfect answer rate. T0 tests both.
 
 ### run — written by the loop, one per round
 
@@ -269,27 +309,33 @@ open-ended activity.
 
 | Test | Fails if | Needs |
 |---|---|---|
-| **T0 — marking survives** | in any month after the first, marked sessions fall below 50 percent of sessions containing at least one `run` record | the log alone |
-| **T3 — non-informativeness** | the session mark count correlates with turn count above 0.9; the signal then measures session length, not reliability | 50 sessions |
-| **T4 — parameter dominance** | varying any chosen weight by a factor of 3 moves the session score by more than 0.2 for most sessions | 50 sessions, fixed parameter set |
-| **T1 — agreement** | the session score separates `off` sessions from `normal` sessions at an area under the ROC curve whose **lower 95 percent confidence bound** is at or below 0.6 | 40 sessions carrying an impression |
-| **T2 — confident and wrong** | among sessions the score called normal, more than 20 percent were marked `off`; minimum subgroup 15 sessions, else "not yet testable" | 40 impressions |
+| **T0a — marking survives** | in any month after the first, sessions carrying at least one mark fall below 50 percent of sessions containing at least one `run` record | the log alone |
+| **T0b — labels survive and discriminate** | the run-end question is answered for under 60 percent of runs, **or** one answer takes more than 90 percent of answers; a degenerate label set carries no signal at any answer rate | 30 runs |
+| **T3 — non-informativeness** | the run mark count correlates with round count or turn count above 0.9; the signal then measures length, not reliability | 50 runs |
+| **T4 — parameter dominance** | varying any chosen weight by a factor of 3 moves the run score by more than 0.2 for most runs | 50 runs, fixed parameter set |
+| **T1 — agreement** | the run score separates `off` runs from `about normal` runs at an area under the ROC curve whose **lower 95 percent confidence bound** is at or below 0.6 | 40 labelled runs |
+| **T2 — confident and wrong** | among runs the score called normal, more than 20 percent were labelled `off`; minimum subgroup 15 runs, else "not yet testable" | 40 labelled runs |
+| **T5 — the inference is not carrying it** | T1 passes with inferred `again` marks included and fails without them; the result then rests on a guess, not on declarations | 40 labelled runs |
 
 **T3 and T4 must both name the fixed parameter set they run against, pre-registered when the
 parameters are first chosen.** Otherwise a failing T3 can be argued away by choosing other
 parameters, and the pair becomes unfalsifiable.
 
-**Interim gate at 50 sessions:** run T0, T3 and T4. Any one alone stops the project.
+**Interim gate at 30 runs:** run T0a and T0b. Either alone stops the project, and both fire long
+before any weighting exists, so a dead data channel is found early rather than at the horizon.
 
-**Verdict horizon: 200 sessions or 12 months, whichever is reached first.**
+**Second gate at 50 runs:** run T3 and T4. Either alone stops the project.
+
+**Verdict horizon: 100 labelled runs or 12 months, whichever is reached first.**
 
 **Stated in advance because it is the easiest outcome to explain away later:** if at the horizon
-there are fewer than 40 sessions carrying an impression, that is a failure verdict. It means the
-instrument needs more marking than this workflow sustains.
+there are fewer than 40 labelled runs, that is a failure verdict. It means the instrument needs more
+answering than this workflow sustains.
 
 This target is reachable in a way the withdrawn proposal's was not. The artifact-defect channel
-needed roughly 256 merged pull requests for 40 labels, which is about two project lifetimes at
-current velocity. Sessions accumulate daily.
+needed roughly 256 merged pull requests for 40 labels, about two project lifetimes at current
+velocity, and its labels arrived weeks after the work. These labels arrive at the moment the run
+ends.
 
 ## Testing
 
@@ -321,11 +367,12 @@ current velocity. Sessions accumulate daily.
 
 ## Open questions
 
-1. Should `again` be inferable from two `fix` marks on the same topic, or must the author always
-   type it? Inference is convenient and it is judgement, which this design otherwise excludes.
-2. Where does the session `impression` get asked? A prompt at session end has no reliable trigger,
-   and asking the next morning risks it never being answered.
-3. `task_kind` is author-declared. Is a four-way split useful, or does it invite unstable
+1. `task_kind` is author-declared. Is a four-way split useful, or does it invite unstable
    self-classification that adds noise?
-4. Should a `mark` record the turn number only, or also which model output it attaches to when a
+2. Should a `mark` record the turn number only, or also which model output it attaches to when a
    session changed models mid-way?
+3. What defines "the same topic" for the inferred `again`? A file, a finding, or a window of turns.
+   The rule must be mechanical and fixed in advance, or the inference becomes judgement by another
+   route.
+4. Should the run-end question also fire when a run ends by abandonment? The author is least likely
+   to answer then, and that is exactly the case where the label would be most informative.
