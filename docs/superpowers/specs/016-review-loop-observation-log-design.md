@@ -46,10 +46,25 @@ Two events.
     2026-07-20T14:31:02Z  object  project=dong3  session=0f3c8a1e-…  tier=redo
 
 `project` is on every line. This file is global — one file for every repository and every host — so
-without it no line says where it came from. It is a slug, not a path: the basename of the repository
-root, with any character the value rules forbid removed. A slug avoids recording directory structure,
-and it is what makes one file sufficient instead of one file per project. The hook derives it from the
-`cwd` in its payload; `log.sh` derives it from its own working directory.
+without it no line says where it came from. It is what makes one file sufficient instead of one file
+per project.
+
+Both writers derive it the same way, from a directory: the hook uses the `cwd` in its payload,
+`log.sh` uses its own. Neither is necessarily the repository root, so both run the same three steps:
+
+1. The remote, if there is one: `owner/repo` from `origin`, joined with a hyphen — `caasi-dong3`.
+   This is the project's identity rather than the checkout's, so two clones agree, and two unrelated
+   repositories that happen to share a directory name do not.
+2. Otherwise the basename of `git rev-parse --path-format=absolute --git-common-dir`, with the
+   trailing `.git` removed. **Not `--show-toplevel`**, which in a linked worktree returns the
+   worktree's own path: this project's convention is that branch work happens in a RAM-disk worktree,
+   so `--show-toplevel` would fragment one project across as many slugs as it has had worktrees.
+3. `project=none` when the directory is in no repository at all. The hook runs on every message,
+   including in sessions started outside any work tree, and a line still records that an objection
+   happened.
+
+Any character the value rules forbid is removed from the result. A slug records no directory
+structure.
 
 The hook receives the harness session id and cannot learn the run token the loop minted, and the
 loop's script has no documented way to read the session id. So `review` lines carry
@@ -76,10 +91,12 @@ inside it.
   would be undefined on rounds where neither ran.
 - Each key is the **model id the reviewer reported**, not its roster nickname. § Exit conditions
   requires the verdict to report what actually ran, verified; a nickname stops identifying weights
-  within a year. Inside this value `,` and `:` are structural, so a reported id containing either has
-  it percent-encoded. `%` is encoded first, as `%25`, then `,` as `%2C` and `:` as `%3A`; without that
-  order a reported `a,b` and a reported `a%2Cb` collide. Removing the characters instead would map
-  `a:b` and `a,b` onto one key and merge two reviewers into one.
+  within a year.
+- **A reported model id is percent-encoded, and the general drop rule does not apply to it.** `%`
+  first, as `%25`, then whitespace, `=`, `/`, `,` and `:`. `%` must come first or a reported `a,b` and
+  a reported `a%2Cb` collide. Dropping characters instead would merge two reviewers into one key, and
+  spec 014 enrols endpoints whose ids carry a path separator — `meta-llama/Llama-3.3-70B`. Encoding
+  rather than dropping also removes the question of which operation runs first.
 - `end` appears on the last `review` line of a run: `end=converged` or `end=stopped` (the author
   ended it). There is no usage-limit value: § Exit conditions is explicit that a usage limit stops
   only the Codex sub-loop, and § A3 counts an unavailable reviewer as done, so a limit never ends a
@@ -93,7 +110,7 @@ inside it.
 **`object`** — one line each time the author objects, written by the hook.
 
 - `tier` is `redo` (the whole output is unusable), `again` (this was already corrected once), or
-  `fix` (one specific error). If a message carries more than one token, the order `redo` > `again` >
+  `fix` (one specific error). If a message carries more than one marker, the order `redo` > `again` >
   `fix` decides which is written.
 - There is no `run` key. The hook has no channel to the loop's run token, and inventing one would be
   a shared state file to keep in step for a join nothing yet needs.
@@ -111,7 +128,8 @@ A `UserPromptSubmit` hook matches them as whitespace-delimited words and appends
 used because `!` already runs a shell command in this harness.
 
 This is an always-on prompt hook: it runs on every message, in every repository, for as long as the
-plugin is enabled.
+plugin is enabled. That scope is what the global file needs — a record of work across projects, not
+of one review loop — and it is why `project` is on every line.
 
 **Installation cannot be asked about; writing can, and is.** A plugin ships its hooks in
 `hooks/hooks.json`, which the harness merges the moment the plugin is enabled, so no disclosure can
@@ -137,11 +155,11 @@ The three states are:
     observation-log: no    declined; the hook writes nothing
     observation-log: yes   the hook writes
 
-A two-file scheme — the answer in one file, a marker the hook reads in a second — can disagree, and
-both directions are bad: a recorded `no` with a
-surviving marker means the hook writes against a decline, and a recorded `yes` with a missing marker
-means the hook is inert forever while `init` never asks again — which looks exactly like an author who
-stopped objecting. One file has neither failure.
+A two-file scheme keeps the answer in one file and a marker the hook reads in a second. The two can
+disagree, and both directions are bad. A recorded `no` with a surviving marker means the hook writes
+against a decline. A recorded `yes` with a missing marker means the hook is inert forever while
+`init` never asks again, which looks exactly like an author who stopped objecting. One file has
+neither failure.
 
 It does not, however, inherit an ignore rule. `init` offers to add `.claude/*.local.md` to a
 *project's* `.gitignore`; the global answer lives in `~/.claude/`, which no such offer covers, and
@@ -177,7 +195,7 @@ Three rules bind the hook:
    non-zero exit shows the author a hook-error notice, and exit code 2 erases the message the author
    is typing. So the hook never reports failure through its exit status: when it cannot write, it
    writes nothing and exits 0.
-3. **A token inside a fenced code block or an inline code span does not count.** A message discussing
+3. **A marker inside a fenced code block or an inline code span does not count.** A message discussing
    this spec would otherwise register objections. This needs fence and span tracking, not a bare
    regular expression.
 
@@ -224,8 +242,8 @@ path convention of the existing helper scripts:
     log.sh review run=<tok> round=<n> reviewers=<list> [end=<reason>]
     log.sh review run=<tok> end=stopped               # a stop between rounds; no round, no reviewers
 
-The caller passes only those keys. The script supplies the timestamp, applies the value rules, and
-performs the guard. It takes no `session` key: the session id is not available to a script the loop
+The caller passes only those keys. The script supplies the timestamp and `project`, applies the value
+rules, and performs the guard. It takes no `session` key: the session id is not available to a script the loop
 invokes, so `review` lines carry none — see *What is not recorded*.
 
 Objection lines are written by the hook at
@@ -245,7 +263,7 @@ cannot be known before the exit condition in § Exit conditions is evaluated for
 ## The known weakness, and how to measure it
 
 **The `object` side is measurable.** Session transcripts sit under `~/.claude/projects/` for about
-thirty days. Within that window, extract the tokens from **user-role message content only**, applying
+thirty days. Within that window, extract the markers from **user-role message content only**, applying
 the same fence and code-span rule the hook applies, and compare the resulting session ids against the
 `session` values on `object` lines. The difference is the omission rate.
 
@@ -266,6 +284,9 @@ omission check above is what separates that from a broken writer.
 ## What is not recorded, and why
 
 - **No message text, paths, diffs or finding text.** A line carries counts and identifiers.
+- **`project` is the exception worth naming.** With it the file becomes a list of every project the
+  author has worked in on that host. A repository name is usually harmless and sometimes is not. The
+  file is mode 0600 and outside any repository, and that is the whole of its protection.
 - **No derived measurement** — diff size, file counts, effect profile. All are recomputable from git
   later, and the tools that derive them still change. `fxrank` is the case in point: it has open P1
   defects (#74, #76, #53, #52), so a reading stored today would be wrong in a way no later version
@@ -299,12 +320,17 @@ the transcript, within its thirty days.
 - With `REVIEW_LOOP_LOG=0`, neither writer writes.
 - A new file has mode 0600.
 - Two writers appending 1000 lines each produce 2000 whole lines.
+- Both writers, run from the same repository, produce the same `project` value — including from a
+  subdirectory, and including from a linked worktree, where the value is the main checkout's and not
+  the worktree directory's.
+- A repository with no remote falls back to the common-directory basename; a directory in no
+  repository produces `project=none`.
 - A value containing a space, an `=` or a path separator is written with those characters removed.
 - A reported model id containing `%`, `,` or `:` is percent-encoded, `%` first, and two ids that
   differ only in those characters stay distinct.
 - A line that would exceed 1024 bytes is not written.
 - A round where a reviewer drops out lists only the reviewers that returned a review.
-- The last round of a run carries `end`; earlier rounds do not.
+- In a run that ends on a round, the last round carries `end` and earlier rounds do not.
 - The omission check, run with the user-role and fence filters over a transcript set containing one
   real objection and one quoted token, reports one and not two.
 - Two sessions overlapping in time, one carrying an objection and one not, are attributed correctly
@@ -318,7 +344,7 @@ the transcript, within its thirty days.
       not before installing it, which is not possible. Declining leaves the rest of the roster setup
       working.
 - [ ] The hook writes only when `observation-log: yes` resolves, reading the project config before
-      the global one, and the three states and the override are tested.
+      the global one takes precedence, and the three states and the override are tested.
 - [ ] Item 1 under *The hook* — whether `UserPromptSubmit` fires inside a subagent, and whether
       `agent_type` is present — is answered in writing before any code.
 - [ ] The hook writes `object` lines with no model involvement in detection.
@@ -328,6 +354,10 @@ the transcript, within its thirty days.
 - [ ] Concurrent appends never split a line.
 - [ ] The loop writes one `review` line per round from § A3, with per-reviewer counts and reported
       model ids.
+- [ ] Every line carries `project`, both writers derive it identically, and a linked worktree yields
+      the main checkout's slug.
+- [ ] The hook and `log.sh` both source their formatting and guard code from `logline.sh`, so the
+      value rules cannot apply to one and not the other.
 - [ ] The off switch stops both writers.
 - [ ] The omission check is documented with its user-role and fence filters, not as a bare `grep`.
 - [ ] § A3 of `SKILL.md` gains the round-logging instruction, and `commands/init.md` gains the
