@@ -20,7 +20,7 @@ key and no migration.
 
 - **No score, threshold or probability.** Two earlier drafts computed one; both are withdrawn on #56.
 - **No comparison of finding counts across runs or across reviewers.** A count mixes artifact
-  difficulty, roster composition, deduplication strictness and author scope decisions. The columns
+  difficulty, roster composition, deduplication strictness and author scope decisions. The keys
   below make such a comparison easy to attempt and it remains invalid; see #56 for why.
 - **No claim about review quality.** `findings` counts what was raised, not whether it was right.
 - **Nothing is displayed to the author.** Showing a number would change what the author attends to,
@@ -38,9 +38,8 @@ Two events.
     2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=opus-4-8:19,sonnet-5:9,gpt-5.5:5
     2026-07-20T14:31:02Z  object  run=x7k2p9  tier=redo
 
-**`review`** — one line per round, written by the loop. A *run* is one `/review-loop` invocation
-from start to stop, called an *episode* in § A3 of the skill; a *round* is one
-dispatch-review-fix iteration inside it.
+**`review`** — one line per round. A *run* is one `/review-loop` invocation from start to stop,
+called an *episode* in § A3 of the skill; a *round* is one dispatch-review-fix iteration inside it.
 
 - `run` is a random token, lowercase alphanumeric, generated once per run. It must not be a pull
   request number or a branch slug: this log is global, so both collide across repositories, and a
@@ -55,41 +54,58 @@ dispatch-review-fix iteration inside it.
   `end=limit` (a reviewer's usage limit ended it). Without it, a run is unfinished. Convergence is
   the reviewers' own verdict per § A3 and is never inferred from a zero count.
 
-**`object`** — one line each time the author objects, written by a prompt hook.
+**`object`** — one line each time the author objects.
 
 - `tier` is `redo` (the whole output is unusable), `again` (this was already corrected once), or
   `fix` (one specific error). If a message carries more than one token, the order `redo` > `again` >
   `fix` decides which is written.
-- `run` is present only when the hook can learn which run it is inside. See *Before implementing*.
+- `run` is present when the objection falls inside a review-loop run, absent otherwise.
 
 Unknown keys are ignored by any reader. Keys may be added later without changing what is already
 written.
 
-## How the author objects
+## How a line gets written
 
-Three tokens, typed in a message the author was already sending:
+Both events are written by the agent, through one script.
+
+    scripts/log.sh review run=x7k2p9 round=1 reviewers=opus-4-8:19,sonnet-5:9
+    scripts/log.sh object run=x7k2p9 tier=fix
+
+The script stamps the timestamp, refuses to write outside its fixed path, and creates the file with
+mode 0600. It never fails loudly: when it cannot write, it writes nothing and exits 0, so a logging
+problem never interrupts the author.
+
+The author marks an objection with a token in a message they were already sending:
 
     #redo   #again   #fix
 
-A `UserPromptSubmit` hook matches them as whitespace-delimited words and appends one line.
+`#` is used because `!` already runs a shell command in this harness. A token inside a fenced code
+block or an inline code span is quoted text, not a mark — a message discussing this spec must not
+produce lines.
 
-Three rules prevent a machine-generated token from being recorded as an author objection, or the
-hook from disturbing the session:
+**Off switch:** `REVIEW_LOOP_LOG=0`.
 
-1. **The hook writes nothing when the payload carries `agent_type`.** Reviewer subagents run under
-   model-composed prompts, and § Facilitator discipline in the skill requires reviewer text to be
-   quoted verbatim. A reviewer's own text can therefore carry these tokens. This rule's premise is
-   unverified; see *Before implementing*.
-2. **The hook writes nothing to stdout, and always exits 0.** A `UserPromptSubmit` hook's stdout is
-   added to the prompt context. A non-zero exit shows the author a hook-error notice, and exit code
-   2 erases the message the author was typing. So the hook reports no failure through its exit
-   status: when it cannot write, it writes nothing and exits 0.
-3. **A token inside a fenced code block does not count.** A message quoting this spec would
-   otherwise register objections. Inline code spans are not handled; that false positive is accepted.
+### The known weakness, and how to measure it
 
-`#` is used because `!` already runs a shell command in this harness.
+An earlier draft captured objections with a `UserPromptSubmit` hook. That is dropped. The hook's
+only advantage was immunity from the agent forgetting to write, and it carried real costs: a
+non-zero exit erases the message the author is typing, stdout is injected into the prompt context,
+and its central rule depended on `agent_type` being present in a subagent — which the documentation
+never states for that event, so the rule may have been inert.
 
-**Off switch:** `REVIEW_LOOP_LOG=0` stops both writers.
+What remains is one real defect. **The agent writes the lines, and a degraded agent is the one most
+likely to omit them**, so lines go missing exactly when they matter most. That is directional, not
+random.
+
+It is also measurable, cheaply, without new machinery. Session transcripts sit under
+`~/.claude/projects/` for about thirty days. Within that window:
+
+    grep -l '#redo\|#again\|#fix' ~/.claude/projects/*/*.jsonl
+
+Every session in that list should have `object` lines with matching timestamps. The difference is
+the omission rate. Run it occasionally. **If omission turns out to be high, or correlated with
+anything else in the log, the hook becomes worth its cost — and the format does not change when it
+is added.**
 
 ## Where it goes
 
@@ -100,39 +116,11 @@ under review — § Learning capture in the skill already appends a narrative jo
 and per repository; this log is separate and global.
 
 The path is a fixed constant, so it cannot land inside a repository under review unless the home
-directory is one. If the resolved path is inside a git work tree, the writer writes nothing — and,
-per rule 2, still exits 0. A dotfiles repository that owns `~/.claude/` is the realistic case.
+directory is one. If the resolved path is inside a git work tree, the script writes nothing. A
+dotfiles repository that owns `~/.claude/` is the realistic case.
 
 One `write()` per line under `O_APPEND`, so two loops in two worktrees interleave lines but never
 split one.
-
-## Before implementing
-
-Checked against `https://code.claude.com/docs/en/hooks.md`:
-
-- `UserPromptSubmit` exists. Its common input fields are `session_id`, `prompt_id`,
-  `transcript_path`, `cwd`, `permission_mode` and `hook_event_name`, and it additionally receives
-  **`prompt`**, the text the author submitted. That is what rule 3 reads.
-- Its decision-control fields are `decision: "block"` and `reason`. **Stdout is added to the prompt
-  context**, which is what rule 2 guards against. A non-zero exit produces a hook-error notice, and
-  exit code 2 blocks the prompt and erases it.
-- No model id, fast flag, turn number or context usage is available to the hook. Reasoning effort
-  **is** available, as the `$CLAUDE_EFFORT` environment variable. Nothing in this design needs any
-  of them.
-
-Two things to confirm against the installed version, not from the documentation and not from memory:
-
-1. **Whether `UserPromptSubmit` fires inside a subagent at all, and whether `agent_type` is present
-   when it does.** The documentation introduces `agent_id` and `agent_type` as fields added "inside a
-   subagent", as a general condition over hook inputs, and does not list them for this event. A
-   `Task`-dispatched brief is not a user prompt. If the event never fires there, rule 1 is inert and
-   its justification is wrong; if it does fire, the field still needs confirming.
-2. **How a script invoked by the loop learns which run it is in**, so `review` and `object` lines can
-   share a `run` value. If there is no channel, `object` lines carry no `run` and the two event kinds
-   are joined by timestamp alone. That is a smaller loss than it sounds: most objections observed so
-   far fall outside any run.
-
-If the hook does not exist, the fallback is a slash command, at higher friction.
 
 ## What is not recorded, and why
 
@@ -160,12 +148,12 @@ running.
 
 That is a judgement for the author, not a rule for a script. Objections are written when the model
 fails, so a quiet period may mean a good period rather than an abandoned habit, and no automatic
-test separates those.
+test separates those. The omission check above is what distinguishes a quiet period from a broken
+writer.
 
 ## An example, and what it is evidence of
 
-`review` and `object` lines from one working day, reconstructed from the session that produced this
-spec:
+Lines from one working day, reconstructed from the session that produced this spec:
 
     2026-07-20T11:08:19Z  object  tier=redo
     2026-07-20T12:30:06Z  object  tier=redo
@@ -176,9 +164,8 @@ spec:
 
 In that session, eight of ten objections came before the first review round, during design rather
 than during review. **That is one session, so it is an observation and not yet a reason.** It is the
-weak evidence behind making the hook global rather than attaching it to a run; if a second session
-splits evenly, the choice should be revisited. Sibling spec 014 grades its own comparable evidence
-the same way.
+weak evidence behind logging objections outside a run at all; if a second session splits evenly, the
+choice should be revisited. Sibling spec 014 grades its own comparable evidence the same way.
 
 The session also ran the direction guard in every round, which § Reviewer roster does not permit —
 it is held back and one-shot. That is a misuse of the skill, not of the format, and it is the kind
@@ -186,28 +173,26 @@ of thing these lines would make visible.
 
 ## Testing
 
-- Each token produces one line at the right tier; two tokens in one message produce one line at the
-  stronger tier per the stated order; a token in a fenced code block produces none.
-- A prompt carrying `agent_type` produces no line.
-- The hook writes nothing to stdout and exits 0 on every path, including every failure path.
-- With the resolved path inside a git work tree, the hook writes nothing and still exits 0.
-- With `REVIEW_LOOP_LOG=0`, neither writer writes.
+- `log.sh review …` and `log.sh object …` each append one line in the stated format, with a UTC
+  timestamp the caller did not supply.
+- The script writes nothing and exits 0 when the resolved path is inside a git work tree.
+- The script exits 0 on every failure path, and writes nothing to stdout.
+- With `REVIEW_LOOP_LOG=0`, the script writes nothing.
 - A new file has mode 0600.
 - Two writers appending 1000 lines each produce 2000 whole lines.
+- A value containing a space, an `=` or a path separator is rejected, and the script writes nothing
+  rather than a malformed line.
 - A round where a reviewer drops out lists only the reviewers that returned a review.
-- A reviewer whose reported model id contains a space or an `=` is written with those characters
-  removed, and the line still parses into the expected number of fields.
-- No line contains a path separator or more than 64 characters in any value.
 
 ## Acceptance criteria
 
-- [ ] The two items under *Before implementing* are answered in writing, before any code.
-- [ ] The hook writes `object` lines with no model involvement in detection.
-- [ ] The hook is silent on stdout and exits 0 on every path.
-- [ ] The writer refuses inside a git work tree without a non-zero exit.
+- [ ] `log.sh` appends both event kinds in the stated format.
+- [ ] The script never exits non-zero and never writes to stdout.
+- [ ] The script refuses inside a git work tree, and refuses malformed values.
 - [ ] The log file is created with mode 0600.
 - [ ] Concurrent appends never split a line.
 - [ ] The loop writes one `review` line per round, with per-reviewer counts and reported model ids.
-- [ ] The off switch stops both writers.
+- [ ] The off switch stops writing.
 - [ ] Nothing is displayed to the author.
+- [ ] The omission check is documented where the author will find it.
 - [ ] All tests above pass.
