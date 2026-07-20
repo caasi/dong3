@@ -71,12 +71,16 @@ inside it.
 - Each key is the **model id the reviewer reported**, not its roster nickname. § Exit conditions
   requires the verdict to report what actually ran, verified; a nickname stops identifying weights
   within a year. Inside this value `,` and `:` are structural, so a reported id containing either has
-  it removed.
+  it percent-encoded — `%2C` and `%3A`. Removing them instead would map `a:b` and `a,b` onto one key
+  and merge two reviewers into one.
 - `end` appears on the last `review` line of a run: `end=converged` or `end=stopped` (the author
   ended it). There is no usage-limit value: § Exit conditions is explicit that a usage limit stops
   only the Codex sub-loop, and § A3 counts an unavailable reviewer as done, so a limit never ends a
   run. Without `end`, a run is unfinished. Convergence is the reviewers' own verdict per § A3 and is
   never inferred from a zero count.
+- An author who stops the loop between rounds leaves no round in flight to carry `end`. The
+  facilitator then writes a bare `review run=<tok> end=stopped` with no `round` and no `reviewers`.
+  Without it such a run would stay indistinguishable from one that was abandoned.
 
 **`object`** — one line each time the author objects, written by the hook.
 
@@ -105,18 +109,31 @@ plugin is enabled.
 `hooks/hooks.json`, which the harness merges the moment the plugin is enabled, so no disclosure can
 precede installation. Writing the hook into `~/.claude/settings.json` instead would allow an ask, but
 it makes `init` write a file it does not touch today. So the hook ships with the plugin and **stays
-inert until the author agrees**: it exits immediately unless `~/.claude/review-loop.hook-enabled`
-exists.
+inert until the author agrees**.
 
-`/review-loop:init` states this plainly and offers to create that file — what the hook matches, what a
-line contains, where the file goes, that no message text is ever written, that the hook still executes
-on every message even while inert, and how to remove it. A plugin that records an author's messages
+**The answer lives in one file, and the hook reads that file directly.** It is
+`~/.claude/review-loop.local.md`, which `init` already writes, and the key is `observation-log`:
+
+    absent                 never asked; the hook writes nothing
+    observation-log: no    declined; the hook writes nothing
+    observation-log: yes   the hook writes
+
+An earlier draft put the answer in `review-loop.local.md` and a separate marker file that the hook
+read. Two records of one decision can disagree, and both directions are bad: a recorded `no` with a
+surviving marker means the hook writes against a decline, and a recorded `yes` with a missing marker
+means the hook is inert forever while `init` never asks again — which looks exactly like an author who
+stopped objecting. One file has neither failure. It also inherits the `.claude/*.local.md` ignore rule
+`init` already offers, so consent cannot travel to another host through a dotfiles sync.
+
+`/review-loop:init` asks before writing `yes` — what the hook matches, what a line contains, where the
+file goes, that no message text is ever written, that the hook still executes on every message even
+while the answer is `no` or absent, and how to remove it. A plugin that records an author's messages
 without saying so is not honest, whatever it records.
 
-The answer is stored in `~/.claude/review-loop.local.md`, as `observation-log: yes | no`, so a re-run
-of `init` does not ask again. `init` is idempotent and preserves explicit opt-outs; a recorded `no` is
-a decision, not an absence. Declining leaves the rest of the roster setup unaffected; only `object`
-lines are lost.
+`init` is idempotent and does not ask again once the key is present in either state; a recorded `no` is
+a decision, not an absence. Adding the key does not bump the file's `review-loop-config` stamp, since
+absence of the key is a meaningful state and needs no migration. Declining leaves the rest of the
+roster setup unaffected; only `object` lines are lost.
 
 Three rules bind the hook:
 
@@ -233,7 +250,10 @@ accepted: deciding what to keep past thirty days is an analysis decision, and an
 
 **A count says what was raised, not whether it was right.** A round that raised ten findings, two of
 them wrong, logs the same numbers as a round that raised ten sound ones. During the review of this
-spec, one reviewer filed a finding claiming a verification it had not received, then corrected itself
+spec, the round-one Claude reviewer filed a finding that claimed a verification it had not received,
+and corrected itself two rounds later — "I killed my wait loops and wrote the finding from my own
+recollection while presenting it as a checked fact". The claim and the correction both reached the
+facilitator and neither would reach a line here; that exchange
 two rounds later; the correction is in this branch's review history and in the session transcript,
 and the log would show neither the claim nor the correction. Judging review quality needs the
 transcript, within its thirty days.
@@ -251,18 +271,25 @@ separates those. The omission check above is what distinguishes a quiet period f
 
 Lines from one working day, reconstructed from the session that produced this spec:
 
-    2026-07-20T11:08:19Z  object  session=d51240  tier=redo
-    2026-07-20T12:30:06Z  object  session=d51240  tier=redo
-    2026-07-20T13:47:52Z  review  session=d51240  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
-    2026-07-20T14:05:13Z  object  session=d51240  run=x7k2p9  tier=fix
-    2026-07-20T14:52:31Z  review  session=d51240  run=x7k2p9  round=2  reviewers=claude-opus-4-8:17,claude-sonnet-5:7,gpt-5.5:1  end=stopped
-    2026-07-20T16:58:03Z  object  session=d51240  tier=again
+    2026-07-20T11:08:19Z  object  session=0f3c8a1e-…  tier=redo
+    2026-07-20T12:30:06Z  object  session=0f3c8a1e-…  tier=redo
+    2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
+    2026-07-20T14:05:13Z  object  session=0f3c8a1e-…  tier=fix
+    2026-07-20T14:52:31Z  review  run=x7k2p9  round=2  reviewers=claude-opus-4-8:17,claude-sonnet-5:7,gpt-5.5:1  end=stopped
+    2026-07-20T16:58:03Z  object  session=0f3c8a1e-…  tier=again
 
 In that session, eight of ten objections came before the first review round, during design rather
 than during review. **That is one session, so it is an observation and not yet a reason.** It is the
-weak evidence behind making the hook always-on rather than scoping it to a run; if a second session
-splits evenly, that choice should be revisited. Sibling spec 014 grades its own comparable evidence
-the same way.
+weak evidence behind making the hook always-on rather than scoping it to a run. Sibling spec 014
+grades its own comparable evidence the same way.
+
+**That count is reconstructed from the session transcript, and the log cannot produce it.** An
+objection line carries `session` and a round line carries `run`; they share no key, and this file is
+global across repositories and hosts, so a second session's objections interleave with these
+indistinguishably. Ordering by time is enough to read one working day on one machine, and it is not
+enough to attribute a split. So the instrument for revisiting that choice is the transcript, within
+its thirty days — not these lines. A log that cannot evaluate the condition placed on its own design
+should say so where the condition is stated.
 
 ## Testing
 
@@ -272,6 +299,9 @@ the same way.
 - The hook writes nothing to stdout and exits 0 on every path, including every failure path.
 - With the log file's own directory inside a git work tree, and the caller's working directory in an
   unrelated repository, the writer writes nothing and exits 0.
+- With no `observation-log` key in `review-loop.local.md`, the hook writes nothing. With
+  `observation-log: no`, the hook writes nothing. With `observation-log: yes`, it writes.
+- A second `init` run with the key already present, in either state, does not ask again.
 - With `REVIEW_LOOP_LOG=0`, neither writer writes.
 - A new file has mode 0600.
 - Two writers appending 1000 lines each produce 2000 whole lines.
@@ -289,8 +319,10 @@ the same way.
 
 ## Acceptance criteria
 
-- [ ] `/review-loop:init` states what the hook does and asks before installing it, and declining
-      leaves the rest of the roster setup working.
+- [ ] `/review-loop:init` states what the hook does and asks before writing `observation-log: yes` —
+      not before installing it, which is not possible. Declining leaves the rest of the roster setup
+      working.
+- [ ] The hook writes only when `observation-log: yes` is present, and the three states are tested.
 - [ ] Item 1 under *The hook* — whether `UserPromptSubmit` fires inside a subagent, and whether
       `agent_type` is present — is answered in writing before any code.
 - [ ] The hook writes `object` lines with no model involvement in detection.
@@ -303,8 +335,13 @@ the same way.
 - [ ] The off switch stops both writers.
 - [ ] The omission check is documented with its user-role and fence filters, not as a bare `grep`.
 - [ ] § A3 of `SKILL.md` gains the round-logging instruction, and `commands/init.md` gains the
-      disclosure and the stored answer. Both are prose in a system prompt, where wording is
-      behaviour, so both gain anchors in `tools/review-loop/test-skill-content.sh` as specs 010 and
-      014 require for the rules they added.
+      disclosure and the recorded answer.
+- [ ] Both edits gain anchors in `tools/review-loop/test-skill-content.sh`, because prose in a system
+      prompt is behaviour. **That script reads only `SKILL.md` today** — it hardcodes one path and
+      contains no reference to `commands/`. Spec 014 states command docs should be anchored and never
+      added one, so this work extends the script to a second file rather than following an existing
+      precedent.
+- [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
+      runs without it.
 - [ ] `.claude-plugin/marketplace.json` records the version bump in the header.
 - [ ] All tests above pass.
