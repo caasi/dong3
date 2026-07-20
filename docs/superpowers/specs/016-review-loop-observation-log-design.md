@@ -15,15 +15,13 @@ A line-oriented log, in the Unix style. One line per event, plain text, readable
 It answers two questions later: **which reviewers ran a round and how many findings each raised**,
 and **when the author objected**.
 
-Analysis is out of scope. The format is deliberately not a schema, so a later field costs one new
-key and no migration.
+Analysis is out of scope.
 
 ## Non-goals
 
-- **No score, threshold or probability.** Two earlier drafts computed one; both are withdrawn on #56.
+- **No score, threshold or probability.**
 - **No comparison of finding counts across runs or across reviewers.** A count mixes artifact
-  difficulty, roster composition, deduplication strictness and author scope decisions. The keys
-  below make such a comparison easy to attempt and it remains invalid; see #56 for why.
+  difficulty, roster composition, deduplication strictness and author scope decisions; see #56.
 - **No claim about review quality.** A count says what was raised, not whether it was right.
 - **No computed score or summary is shown to the author.** Objection lines are written by a hook and
   are invisible. Round lines are written by a script the loop calls, so that invocation appears in
@@ -43,9 +41,8 @@ Two events.
     2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
     2026-07-20T14:31:02Z  object  session=0f3c8a1e-…  tier=redo
 
-**The two writers know different things, and the keys follow that rather than pretending otherwise.**
-The hook receives the harness session id and cannot learn the run token the loop minted. The loop's
-script holds the run token and has no documented way to read the session id. So `review` lines carry
+The hook receives the harness session id and cannot learn the run token the loop minted, and the
+loop's script has no documented way to read the session id. So `review` lines carry
 `run` and no `session`; `object` lines carry `session` and no `run`. Nothing joins an objection to a
 round except time order, and that is enough for everything this log claims.
 
@@ -115,7 +112,7 @@ inert until the author agrees**.
 
 **The answer lives in the roster config, and the hook reads it directly.** `init` writes
 `~/.claude/review-loop.local.md` and, per `commands/init.md`, that file is "overridden per project by
-`<project-root>/.claude/review-loop.local.md`". The hook resolves both, in that order, from the `cwd`
+`<project-root>/.claude/review-loop.local.md`". The hook resolves both, from the `cwd`
 its payload carries — reading only the global file would let a project-level `observation-log: no` be
 ignored, which is the write-against-a-decline case this design exists to avoid.
 
@@ -131,8 +128,8 @@ The three states are:
     observation-log: no    declined; the hook writes nothing
     observation-log: yes   the hook writes
 
-An earlier draft put the answer in `review-loop.local.md` and a separate marker file that the hook
-read. Two records of one decision can disagree, and both directions are bad: a recorded `no` with a
+A two-file scheme — the answer in one file, a marker the hook reads in a second — can disagree, and
+both directions are bad: a recorded `no` with a
 surviving marker means the hook writes against a decline, and a recorded `yes` with a missing marker
 means the hook is inert forever while `init` never asks again — which looks exactly like an author who
 stopped objecting. One file has neither failure.
@@ -243,17 +240,19 @@ thirty days. Within that window, extract the tokens from **user-role message con
 the same fence and code-span rule the hook applies, and compare the resulting session ids against the
 `session` values on `object` lines. The difference is the omission rate.
 
-The user-role and fence filters are not optional refinements. A bare
-`grep -l '#redo\|#again\|#fix'` over the transcript directory was run against 36 sessions on the
-reference host: it matched exactly one, the session that wrote this spec, and every match was this
-document's own text being discussed. Measured that way the check reports total omission where there
-was none, because it counts precisely the occurrences rule 3 tells the hook to skip.
+A bare `grep` over the transcript directory matches this document's own text being discussed, not
+only real objections, which is the case rule 3 excludes. Without both filters the check reports total
+omission where there was none.
 
 **The `review` side is not measurable, and that is accepted.** A round line has no author-typed
 antecedent, so nothing independent records that a round happened. It is also written by the agent
 during the loop, which is where an underperforming agent is most likely to skip it. Sequential
 `round` values reveal a gap inside a run; a run that was never logged at all is invisible. No fix is
 proposed.
+
+A log that receives no `object` lines gives no benefit and should be removed. Objections are written
+when the model fails, so a quiet period may mean a good period rather than an abandoned habit; the
+omission check above is what separates that from a broken writer.
 
 ## What is not recorded, and why
 
@@ -269,49 +268,8 @@ transcripts prune at about thirty days, so anything not on a line above is lost 
 accepted: deciding what to keep past thirty days is an analysis decision, and analysis is deferred.
 
 **A count says what was raised, not whether it was right.** A round that raised ten findings, two of
-them wrong, logs the same numbers as a round that raised ten sound ones. During the review of this
-spec, the round-one Claude reviewer filed a finding that claimed a verification it had not received,
-and corrected itself two rounds later: "I killed my wait loops and wrote the finding from my own
-recollection while presenting it as a checked fact." Both the claim and the correction reached the
-facilitator; neither would reach a line here. Judging review quality needs the transcript, within its
-thirty days.
-
-## The one thing worth watching
-
-A log that receives no `object` lines gives no benefit, and should be removed rather than left
-running.
-
-That is a judgement for the author, not a rule for a script. Objections are written when the model
-fails, so a quiet period may mean a good period rather than an abandoned habit, and no automatic test
-separates those. The omission check above is what distinguishes a quiet period from a broken writer.
-
-## An example, and what it is evidence of
-
-Six lines from one working day, reconstructed from the session that produced this spec. The day held
-more; this is an excerpt chosen to show both event kinds:
-
-    2026-07-20T11:08:19Z  object  session=0f3c8a1e-…  tier=redo
-    2026-07-20T12:30:06Z  object  session=0f3c8a1e-…  tier=redo
-    2026-07-20T13:47:52Z  review  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,claude-sonnet-5:9,gpt-5.5:5
-    2026-07-20T14:05:13Z  object  session=0f3c8a1e-…  tier=fix
-    2026-07-20T14:52:31Z  review  run=x7k2p9  round=2  reviewers=claude-opus-4-8:17,claude-sonnet-5:7,gpt-5.5:1  end=stopped
-    2026-07-20T16:58:03Z  object  session=0f3c8a1e-…  tier=again
-
-In that session, eight of ten objections came before the first review round, during design rather
-than during review. **That is one session, so it is an observation and not yet a reason.** It is the
-weak evidence behind making the hook always-on rather than scoping it to a run.
-
-Spec 014 grades its two hypotheses against project history and states the evidence for one of them
-confidently. It does not hedge a single self-referential sample, because it does not use one. This
-document does, so the hedge is stated here rather than borrowed.
-
-**That count is reconstructed from the session transcript, and the log cannot produce it.** An
-objection line carries `session` and a round line carries `run`, and they share no key. Objections
-from two concurrent sessions stay separable — that is what `session` is for, and the omission check
-depends on it. What cannot be recovered is which *round* an objection fell inside, and the split
-above is stated against rounds. So the instrument for revisiting that choice is the transcript, within
-its thirty days — not these lines. A log that cannot evaluate the condition placed on its own design
-should say so where the condition is stated.
+them wrong, logs the same numbers as a round that raised ten sound ones. Judging review quality needs
+the transcript, within its thirty days.
 
 ## Testing
 
@@ -332,8 +290,9 @@ should say so where the condition is stated.
 - With `REVIEW_LOOP_LOG=0`, neither writer writes.
 - A new file has mode 0600.
 - Two writers appending 1000 lines each produce 2000 whole lines.
-- A value containing a space, an `=` or a path separator is written with those characters removed; a
-  reported model id containing `,` or `:` likewise.
+- A value containing a space, an `=` or a path separator is written with those characters removed.
+- A reported model id containing `%`, `,` or `:` is percent-encoded, `%` first, and two ids that
+  differ only in those characters stay distinct.
 - A line that would exceed 1024 bytes is not written.
 - A round where a reviewer drops out lists only the reviewers that returned a review.
 - The last round of a run carries `end`; earlier rounds do not.
@@ -364,11 +323,8 @@ should say so where the condition is stated.
 - [ ] The omission check is documented with its user-role and fence filters, not as a bare `grep`.
 - [ ] § A3 of `SKILL.md` gains the round-logging instruction, and `commands/init.md` gains the
       disclosure and the recorded answer.
-- [ ] Both edits gain anchors in `tools/review-loop/test-skill-content.sh`, because prose in a system
-      prompt is behaviour. **That script reads only `SKILL.md` today** — it hardcodes one path and
-      contains no reference to `commands/`. Spec 014 states command docs should be anchored and never
-      added one, so this work extends the script to a second file rather than following an existing
-      precedent.
+- [ ] Both edits gain anchors in `tools/review-loop/test-skill-content.sh`, which reads only
+      `SKILL.md` today and must be extended to a second file.
 - [ ] `hooks/hooks.json` declares the hook command and its 5-second timeout. Nothing in this design
       runs without it.
 - [ ] `.claude-plugin/marketplace.json` records the version bump in the header.
