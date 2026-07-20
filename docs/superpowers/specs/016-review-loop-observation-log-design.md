@@ -10,7 +10,14 @@ Unqualified `§` references point to `plugins/review-loop/skills/review-loop/SKI
 
 ## What this is
 
-A line-oriented log, in the Unix style. One line per event, plain text, readable with `grep`.
+A line-oriented log, in the Unix style. One line per event, plain text.
+
+**`grep` reaches the objections; the counts need a field parser.** `grep object` and
+`grep tier=redo` answer their questions directly. Per-reviewer counts do not: `:` separates a
+reviewer from its count and also separates hours from minutes, so a pattern loose enough to catch
+`gpt-5.5:5` also catches `21:58` from the timestamp. Fields are two-space separated, so
+`awk '$2=="review"'` and then splitting the `reviewers=` value is exact. This was found by simulating
+the log rather than by reading the format.
 
 **It is append-only, and that is its organising property.** A line is written once and never changed. A new writer
 joins by appending, with no coordination and no migration. A new key appears on new lines and old
