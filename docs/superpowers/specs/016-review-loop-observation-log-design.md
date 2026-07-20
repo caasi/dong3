@@ -71,15 +71,17 @@ inside it.
 - Each key is the **model id the reviewer reported**, not its roster nickname. § Exit conditions
   requires the verdict to report what actually ran, verified; a nickname stops identifying weights
   within a year. Inside this value `,` and `:` are structural, so a reported id containing either has
-  it percent-encoded — `%2C` and `%3A`. Removing them instead would map `a:b` and `a,b` onto one key
-  and merge two reviewers into one.
+  it percent-encoded. `%` is encoded first, as `%25`, then `,` as `%2C` and `:` as `%3A`; without that
+  order a reported `a,b` and a reported `a%2Cb` collide. Removing the characters instead would map
+  `a:b` and `a,b` onto one key and merge two reviewers into one.
 - `end` appears on the last `review` line of a run: `end=converged` or `end=stopped` (the author
   ended it). There is no usage-limit value: § Exit conditions is explicit that a usage limit stops
   only the Codex sub-loop, and § A3 counts an unavailable reviewer as done, so a limit never ends a
   run. Without `end`, a run is unfinished. Convergence is the reviewers' own verdict per § A3 and is
   never inferred from a zero count.
 - An author who stops the loop between rounds leaves no round in flight to carry `end`. The
-  facilitator then writes a bare `review run=<tok> end=stopped` with no `round` and no `reviewers`.
+  facilitator then writes `review run=<tok> end=stopped` with no `round` and no `reviewers`. This is
+  the one `review` line that is not a round, and a reader distinguishes it by the absence of `round`.
   Without it such a run would stay indistinguishable from one that was abandoned.
 
 **`object`** — one line each time the author objects, written by the hook.
@@ -111,8 +113,19 @@ precede installation. Writing the hook into `~/.claude/settings.json` instead wo
 it makes `init` write a file it does not touch today. So the hook ships with the plugin and **stays
 inert until the author agrees**.
 
-**The answer lives in one file, and the hook reads that file directly.** It is
-`~/.claude/review-loop.local.md`, which `init` already writes, and the key is `observation-log`:
+**The answer lives in the roster config, and the hook reads it directly.** `init` writes
+`~/.claude/review-loop.local.md` and, per `commands/init.md`, that file is "overridden per project by
+`<project-root>/.claude/review-loop.local.md`". The hook resolves both, in that order, from the `cwd`
+its payload carries — reading only the global file would let a project-level `observation-log: no` be
+ignored, which is the write-against-a-decline case this design exists to avoid.
+
+The key is a **top-level scalar in the file's frontmatter**, and the reader stops at the closing
+`---`. That file's body is free-form markdown, and `init` invites the author to write notes in it, so
+a match anywhere in the file would be satisfied by a line in `## Notes` or inside a fenced example.
+Scoping the read to the frontmatter keeps it a line match and avoids adding a YAML parser as an
+always-on dependency.
+
+The three states are:
 
     absent                 never asked; the hook writes nothing
     observation-log: no    declined; the hook writes nothing
@@ -122,8 +135,14 @@ An earlier draft put the answer in `review-loop.local.md` and a separate marker 
 read. Two records of one decision can disagree, and both directions are bad: a recorded `no` with a
 surviving marker means the hook writes against a decline, and a recorded `yes` with a missing marker
 means the hook is inert forever while `init` never asks again — which looks exactly like an author who
-stopped objecting. One file has neither failure. It also inherits the `.claude/*.local.md` ignore rule
-`init` already offers, so consent cannot travel to another host through a dotfiles sync.
+stopped objecting. One file has neither failure.
+
+It does not, however, inherit an ignore rule. `init` offers to add `.claude/*.local.md` to a
+*project's* `.gitignore`; the global answer lives in `~/.claude/`, which no such offer covers, and
+this document names a dotfiles repository owning `~/.claude/` as a realistic case. So a recorded
+`yes` can reach a second host through a dotfiles sync, and the author is never asked there. `init`
+therefore treats a config that arrived without being written locally the same as any other: it does
+not re-ask, and the disclosure says the answer travels with the file.
 
 `/review-loop:init` asks before writing `yes` — what the hook matches, what a line contains, where the
 file goes, that no message text is ever written, that the hook still executes on every message even
@@ -197,6 +216,7 @@ path convention of the existing helper scripts:
 
     log.sh new-run                                    # prints a fresh run token, and nothing else
     log.sh review run=<tok> round=<n> reviewers=<list> [end=<reason>]
+    log.sh review run=<tok> end=stopped               # a stop between rounds; no round, no reviewers
 
 The caller passes only those keys. The script supplies the timestamp, applies the value rules, and
 performs the guard. It takes no `session` key: the session id is not available to a script the loop
@@ -251,12 +271,10 @@ accepted: deciding what to keep past thirty days is an analysis decision, and an
 **A count says what was raised, not whether it was right.** A round that raised ten findings, two of
 them wrong, logs the same numbers as a round that raised ten sound ones. During the review of this
 spec, the round-one Claude reviewer filed a finding that claimed a verification it had not received,
-and corrected itself two rounds later — "I killed my wait loops and wrote the finding from my own
-recollection while presenting it as a checked fact". The claim and the correction both reached the
-facilitator and neither would reach a line here; that exchange
-two rounds later; the correction is in this branch's review history and in the session transcript,
-and the log would show neither the claim nor the correction. Judging review quality needs the
-transcript, within its thirty days.
+and corrected itself two rounds later: "I killed my wait loops and wrote the finding from my own
+recollection while presenting it as a checked fact." Both the claim and the correction reached the
+facilitator; neither would reach a line here. Judging review quality needs the transcript, within its
+thirty days.
 
 ## The one thing worth watching
 
@@ -269,7 +287,8 @@ separates those. The omission check above is what distinguishes a quiet period f
 
 ## An example, and what it is evidence of
 
-Lines from one working day, reconstructed from the session that produced this spec:
+Six lines from one working day, reconstructed from the session that produced this spec. The day held
+more; this is an excerpt chosen to show both event kinds:
 
     2026-07-20T11:08:19Z  object  session=0f3c8a1e-…  tier=redo
     2026-07-20T12:30:06Z  object  session=0f3c8a1e-…  tier=redo
@@ -280,14 +299,17 @@ Lines from one working day, reconstructed from the session that produced this sp
 
 In that session, eight of ten objections came before the first review round, during design rather
 than during review. **That is one session, so it is an observation and not yet a reason.** It is the
-weak evidence behind making the hook always-on rather than scoping it to a run. Sibling spec 014
-grades its own comparable evidence the same way.
+weak evidence behind making the hook always-on rather than scoping it to a run.
+
+Spec 014 grades its two hypotheses against project history and states the evidence for one of them
+confidently. It does not hedge a single self-referential sample, because it does not use one. This
+document does, so the hedge is stated here rather than borrowed.
 
 **That count is reconstructed from the session transcript, and the log cannot produce it.** An
-objection line carries `session` and a round line carries `run`; they share no key, and this file is
-global across repositories and hosts, so a second session's objections interleave with these
-indistinguishably. Ordering by time is enough to read one working day on one machine, and it is not
-enough to attribute a split. So the instrument for revisiting that choice is the transcript, within
+objection line carries `session` and a round line carries `run`, and they share no key. Objections
+from two concurrent sessions stay separable — that is what `session` is for, and the omission check
+depends on it. What cannot be recovered is which *round* an objection fell inside, and the split
+above is stated against rounds. So the instrument for revisiting that choice is the transcript, within
 its thirty days — not these lines. A log that cannot evaluate the condition placed on its own design
 should say so where the condition is stated.
 
@@ -301,6 +323,11 @@ should say so where the condition is stated.
   unrelated repository, the writer writes nothing and exits 0.
 - With no `observation-log` key in `review-loop.local.md`, the hook writes nothing. With
   `observation-log: no`, the hook writes nothing. With `observation-log: yes`, it writes.
+- A project config with `observation-log: no` overrides a global `yes`, and the hook writes nothing.
+- A file whose frontmatter has no `observation-log` key, but whose `## Notes` body contains the line
+  `observation-log: yes`, is read as absent and the hook writes nothing.
+- Stopping the loop between rounds produces `review run=<tok> end=stopped` with no `round` key, and a
+  reader counts the run as finished.
 - A second `init` run with the key already present, in either state, does not ask again.
 - With `REVIEW_LOOP_LOG=0`, neither writer writes.
 - A new file has mode 0600.
@@ -322,7 +349,8 @@ should say so where the condition is stated.
 - [ ] `/review-loop:init` states what the hook does and asks before writing `observation-log: yes` —
       not before installing it, which is not possible. Declining leaves the rest of the roster setup
       working.
-- [ ] The hook writes only when `observation-log: yes` is present, and the three states are tested.
+- [ ] The hook writes only when `observation-log: yes` resolves, reading the project config before
+      the global one, and the three states and the override are tested.
 - [ ] Item 1 under *The hook* — whether `UserPromptSubmit` fires inside a subagent, and whether
       `agent_type` is present — is answered in writing before any code.
 - [ ] The hook writes `object` lines with no model involvement in detection.
