@@ -57,13 +57,36 @@ any prompt that does not contain an objection marker, which it already must do.
 
 ## Q2 — Does `plugin.json` need a `hooks` key for `hooks.json` to load?
 
-**Status: deferred.** This question is testable only when `hooks.json` reaches
-the marketplace-installed version of the plugin. The worktree copy is not the
-installed copy, so a local edit does not prove the load path. Resolve this when
-the plugin is next published or when a local marketplace install of the branch
-is available. Until then, follow the Claude Code plugin documentation: declare
-the hook file in `plugin.json` if the docs require it, and verify the hook
-fires from the installed plugin before closing the task.
+**Answer: no. Hooks load by auto-discovery.** A plugin's `hooks/hooks.json`
+at the default `hooks/` location loads when the plugin is enabled. The plugin
+manifest (`.claude-plugin/plugin.json`) does not need a `hooks` key.
+
+**Evidence — official documentation.** The Claude Code plugin docs state the
+manifest is optional when components use default locations, and `hooks/` is a
+default location (https://code.claude.com/docs/en/plugins.md, plugin structure).
+
+**Evidence — a working official plugin.** The installed `superpowers` plugin
+(`.../claude-plugins-official/superpowers/6.1.1/`) ships `hooks/hooks.json`
+and its `.claude-plugin/plugin.json` has no `hooks` key at all. It declares
+only `skills` as an explicit component path; commands and hooks are
+auto-discovered. This proves that a manifest can declare some components
+explicitly and still auto-discover hooks — which is exactly the review-loop
+manifest's situation (it declares `skills` and `commands`, not `hooks`).
+
+**Consequence for Task 7.** Write `hooks/hooks.json` and change nothing in
+`plugin.json`. The `hooks.json` shape follows the same official plugin:
+`{"hooks": {"<Event>": [ { "hooks": [ { "type": "command", "command": "...",
+"timeout": <seconds> } ] } ] }}`. `UserPromptSubmit` carries no `matcher`
+(matchers filter tool events, not lifecycle events). The `command` value
+quotes `${CLAUDE_PLUGIN_ROOT}` so an install path with a space still works,
+matching the official `hooks.json`.
+
+**Still to verify at runtime.** Auto-discovery is confirmed by docs and by a
+working plugin, but the review-loop hook itself was not yet observed firing
+from an installed build (the worktree is not an installed plugin). When the
+branch is published or installed locally, do the one runtime check from the
+plan's Task 7 Step 3: enable the plugin, send a prompt with `#fix` in an
+opted-in repo, and confirm one `object` line appears.
 
 ## Cleanup
 
