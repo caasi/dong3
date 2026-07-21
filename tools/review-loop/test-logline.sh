@@ -52,6 +52,11 @@ REVIEW_LOOP_LOG=0 ll_append "three"
 [ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 2 ] && pass "off switch" || fail "off switch wrote"
 ll_append "$(printf 'x%.0s' $(seq 1 2000))"
 [ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 2 ] && pass "over-1024 not written" || fail "bound"
+# Boundary edge cases: exactly 1024 on-disk (1023 content + newline) and exactly 1025 (1024 content + newline)
+ll_append "$(printf 'x%.0s' $(seq 1 1023))"
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 3 ] && pass "1023-byte content (1024 on-disk) written" || fail "1023-byte edge"
+ll_append "$(printf 'x%.0s' $(seq 1 1024))"
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 3 ] && pass "1024-byte content (1025 on-disk) not written" || fail "1024-byte edge"
 # guard: log dir inside a work tree
 wt="$(mk_plain_repo)"; REVIEW_LOOP_LOG_FILE="$wt/review-loop.log" ll_append "guarded"
 [ ! -f "$wt/review-loop.log" ] && pass "guard refuses inside work tree" || fail "guard"

@@ -61,7 +61,7 @@ ll_append() { # $1=line. All failure paths return 0 and write nothing.
   # guard: refuse if the log's own directory is inside a work tree (printed value, not exit status)
   if [ "$(git -C "$dir" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]; then return 0; fi
   # bound: reject a line that would exceed 1024 bytes (line + newline)
-  [ "$(printf '%s' "$line" | wc -c)" -ge 1024 ] && return 0
+  [ "$(printf '%s\n' "$line" | wc -c)" -gt 1024 ] && return 0
   mkdir -p "$dir" 2>/dev/null || return 0       # default ~/.claude may not exist; give up quietly
   # append-create, never truncate: two writers racing on a missing file must not
   # each run `: > "$f"` and wipe the other's already-appended line.
