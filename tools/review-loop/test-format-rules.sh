@@ -11,6 +11,11 @@ grep -Eq ' {3,}' "$REVIEW_LOOP_LOG_FILE" && fail "padding: 3+ spaces present" ||
 # UTC sortability: string sort == chronological (single host proxy: lines already in order)
 LC_ALL=C sort -c "$REVIEW_LOOP_LOG_FILE" && pass "byte-sorts chronologically" || fail "not sortable"
 # spec says plain string comparison = C/byte order; UTF-8 collation folds the separator spaces
+# UTC-sortable BY CONSTRUCTION: the timestamp is ISO-8601 UTC (YYYY-MM-DDTHH:MM:SSZ), which
+# byte-sorts chronologically. The sort -c above only proves two same-second lines keep write
+# order; this regex proves the format itself. A day-first or unpadded stamp fails it.
+head -1 "$REVIEW_LOOP_LOG_FILE" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z  ' \
+  && pass "timestamp is ISO-8601 UTC (byte-sortable by construction)" || fail "timestamp not ISO-8601 UTC"
 # key order on a review line
 head -1 "$REVIEW_LOOP_LOG_FILE" | grep -Eq '  review  project=[^ ]+  run=[^ ]+  round=' || fail "key order"
 pass "key order"
