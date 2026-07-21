@@ -44,3 +44,28 @@ ll_line() { # $1=event, rest = key=value tokens already formed by caller
   local kv; for kv in "$@"; do out="$out  $kv"; done
   printf '%s' "$out"
 }
+
+# Log file path resolver
+ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.log}"; }
+
+# Append a line to the observation log with guards: off switch, work-tree check, size bound.
+# All failure paths return 0 and write nothing.
+# Note: the guard forks `git` once per call. In production each writer is invoked once
+# per line (one review line per round, one object line per objection), so that is one
+# fork per line written — fine. The 2000-line concurrency test below forks git 2000
+# times and so runs for a few seconds; that is a test artifact, not the real write rate.
+ll_append() { # $1=line. All failure paths return 0 and write nothing.
+  [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && return 0
+  local line="$1" f dir
+  f="$(ll_logfile)"; dir="$(dirname "$f")"
+  # guard: refuse if the log's own directory is inside a work tree (printed value, not exit status)
+  if [ "$(git -C "$dir" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]; then return 0; fi
+  # bound: reject a line that would exceed 1024 bytes (line + newline)
+  [ "$(printf '%s' "$line" | wc -c)" -ge 1024 ] && return 0
+  mkdir -p "$dir" 2>/dev/null || return 0       # default ~/.claude may not exist; give up quietly
+  # append-create, never truncate: two writers racing on a missing file must not
+  # each run `: > "$f"` and wipe the other's already-appended line.
+  [ -e "$f" ] || (umask 177; : >> "$f") 2>/dev/null || return 0
+  printf '%s\n' "$line" >> "$f" 2>/dev/null || return 0   # one write(), O_APPEND
+  return 0
+}

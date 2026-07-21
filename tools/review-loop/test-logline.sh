@@ -42,4 +42,24 @@ case "$(ll_ts)" in *[0-9]T*:*:*Z) pass "ts shape";; *) fail "ts shape";; esac
 line="$(ll_line review project=foo run=abc123 round=1)"
 [ "$line" = "$(printf '%s' "$line" | sed 's/  / /g' | sed 's/ /  /g')" ] || true  # informal
 case "$line" in *"  review  project=foo  run=abc123  round=1") pass "two-space join";; *) fail "join: [$line]";; esac
+
+# ll_append tests
+tmp="$(mktemp -d)"; export REVIEW_LOOP_LOG_FILE="$tmp/review-loop.log"
+ll_append "one"; ll_append "two"
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 2 ] && pass "two appends two lines" || fail "append count"
+[ "$(stat -c %a "$REVIEW_LOOP_LOG_FILE")" = 600 ] && pass "mode 0600" || fail "mode"
+REVIEW_LOOP_LOG=0 ll_append "three"
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 2 ] && pass "off switch" || fail "off switch wrote"
+ll_append "$(printf 'x%.0s' $(seq 1 2000))"
+[ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = 2 ] && pass "over-1024 not written" || fail "bound"
+# guard: log dir inside a work tree
+wt="$(mk_plain_repo)"; REVIEW_LOOP_LOG_FILE="$wt/review-loop.log" ll_append "guarded"
+[ ! -f "$wt/review-loop.log" ] && pass "guard refuses inside work tree" || fail "guard"
+# concurrency: two writers, 1000 lines each, 2000 whole lines
+REVIEW_LOOP_LOG_FILE="$tmp/c.log"
+( for i in $(seq 1000); do ll_append "a$i"; done ) &
+( for i in $(seq 1000); do ll_append "b$i"; done ) &
+wait
+[ "$(wc -l < "$tmp/c.log")" = 2000 ] && pass "2000 whole lines" || fail "interleave split"
+
 echo ALL PASS
