@@ -45,6 +45,6 @@ case "${1:-}" in
     [ -n "$endv" ]  && fields+=("end=$endv")
     ll_append "$(ll_line review "${fields[@]}")" || true
     ;;
-  *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewers=...] [end=...]}" >&2; exit 0 ;;
+  *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewer=<id>:<count> ...] [end=...]}" >&2; exit 0 ;;
   # exit 0, not 2: acceptance §424 makes non-zero exit forbidden for either writer.
 esac
