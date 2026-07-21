@@ -340,6 +340,14 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 
 "Done" for a reviewer means any of: a `converged` verdict, **or** that reviewer was unavailable this run — for Codex: the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (the "Codex failed" path — surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on the remaining reviewers; only an *available, not-yet-converged* reviewer blocks. Only after K consecutive dry rounds, proceed.
 
+**Log each round, after the dry decision, not before.** After the facilitator aggregates the round's verdicts and decides whether the round is dry, call `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh` for that round:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ...
+```
+
+Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
 **B0. Ensure a PR exists.** If the target is a branch with no PR yet, open it now with `gh pr create` — **only after Phase A is clean** (the local gate comes before opening a PR). If a PR number was given, skip creation.

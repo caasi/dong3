@@ -77,6 +77,48 @@ Or the slash command:
 - The Copilot path is GitHub-only; on other forges the local reviewer gate (the
   enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies.
 
+## Observation log
+
+`review-loop` ships an always-on `UserPromptSubmit` hook. Once the plugin is enabled, the hook
+runs on every message you send, in every project — not only ones under review. By itself it does
+nothing: it writes a line only once `observation-log: yes` is recorded in
+`~/.claude/review-loop.local.md` (or a project override at
+`<project-root>/.claude/review-loop.local.md`). Until then, and while the answer is `no`, the hook
+still runs on every message, and still writes nothing.
+
+`/review-loop:init` asks before it writes `yes`. It explains what the hook matches, what one line
+contains, where the file goes, and how to turn it off, before you decide.
+
+**What the hook matches.** The marker `#redo`, `#again`, or `#fix`, as a separate word in a message
+you send — at the start or end of the message, or with whitespace around it. A marker glued to
+other characters, like `#fix.` or `#fixed`, does not match. `#redo` means the whole output was unusable; `#again` means this was already corrected
+once; `#fix` means one specific error. A marker inside a code block or an inline code span does
+not count.
+
+**What it writes.** One line per objection, to `~/.claude/review-loop.log` — a project slug, your
+session id, and the matched tier. It never writes your message text. The file is global, one file
+for every project on this host, so `grep` across it answers "when did I object, and how often" —
+nothing more.
+
+**Off, and how to turn it off.** Answer `no` at `/review-loop:init`, or set
+`observation-log: no` in `review-loop.local.md` directly. Either way the hook keeps running on
+every message — it must run to check the answer — but writes nothing. To silence it without editing
+the config, export `REVIEW_LOOP_LOG=0` in your shell, or set it under `env` in `settings.json` to
+cover every session.
+
+**It travels with your dotfiles.** `review-loop.local.md` lives under `~/.claude/`. If that
+directory is under a dotfiles repository you sync to a second host, a recorded `yes` arrives there
+too. `init` treats that the same as an answer given locally: it does not ask again, and the hook
+starts writing on that host as soon as the file lands.
+
+`init` records the answer as `observation-log: yes` or `observation-log: no` in the file's
+frontmatter. It does not bump `review-loop-config` — the key's absence is itself a meaningful
+state, so no migration is needed — and it never asks twice once the key is present, whether that
+answer is `yes` or `no`.
+
+The hook needs `jq` to read its JSON payload. If `jq` is missing, `init` reports it at enrolment:
+without `jq` the hook writes nothing, on every host, regardless of the answer you gave.
+
 ## `/review-loop:init` (optional)
 
 Discovers which coding CLIs this host has, works out **how to call each one by actually calling

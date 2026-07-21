@@ -54,8 +54,8 @@
     {
       "name": "review-loop",
       "source": "./plugins/review-loop",
-      "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); roster enrolled per host via /review-loop:init; never merges autonomously",
-      "version": "0.6.0"
+      "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); roster enrolled per host via /review-loop:init; never merges autonomously; ships an always-on UserPromptSubmit hook that writes nothing until you opt in via /review-loop:init",
+      "version": "0.7.0"
     },
     {
       "name": "tsugu",
