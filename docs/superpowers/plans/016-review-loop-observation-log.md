@@ -98,16 +98,18 @@ LIBDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOGLINE="$LIBDIR/../../plugins/review-loop/skills/review-loop/scripts/logline.sh"
 
 # Build a throwaway clone with a given origin URL; echo its path.
+# Local identity so --allow-empty commits work in a clean environment (no global git config).
+git_id=(-c user.name=t -c user.email=t@t)
 mk_repo_with_origin() { # $1=origin-url
   local d; d="$(mktemp -d)"; git -C "$d" init -q
   git -C "$d" remote add origin "$1"
-  git -C "$d" commit -q --allow-empty -m x
+  git "${git_id[@]}" -C "$d" commit -q --allow-empty -m x
   echo "$d"
 }
 # Plain clone, no remote.
 mk_plain_repo() {
   local d; d="$(mktemp -d)"; git -C "$d" init -q
-  git -C "$d" commit -q --allow-empty -m x
+  git "${git_id[@]}" -C "$d" commit -q --allow-empty -m x
   echo "$d"
 }
 # A linked worktree of $1; echo the worktree path.
@@ -245,7 +247,7 @@ Expected: FAIL — `ll_scrub: command not found`.
 ll_encode_id() { # percent-encode; % first so the mapping is injective
   local v="$1"
   v="${v//%/%25}"
-  v="${v// /%20}"; v="${v//$'\t'/%09}"; v="${v//$'\n'/%0A}"   # all whitespace, not only space
+  v="${v// /%20}"; v="${v//$'\t'/%09}"; v="${v//$'\n'/%0A}"; v="${v//$'\r'/%0D}"   # whitespace
   v="${v//=/%3D}"; v="${v//\//%2F}"; v="${v//,/%2C}"; v="${v//:/%3A}"
   printf '%s' "$v"
 }
@@ -327,11 +329,11 @@ ll_append() { # $1=line. All failure paths return 0 and write nothing.
   if [ "$(git -C "$dir" rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ]; then return 0; fi
   # bound: reject a line that would exceed 1024 bytes (line + newline)
   [ "$(printf '%s' "$line" | wc -c)" -ge 1024 ] && return 0
-  mkdir -p "$dir" 2>/dev/null || true          # default ~/.claude may not exist yet
+  mkdir -p "$dir" 2>/dev/null || return 0       # default ~/.claude may not exist; give up quietly
   # append-create, never truncate: two writers racing on a missing file must not
   # each run `: > "$f"` and wipe the other's already-appended line.
-  [ -e "$f" ] || (umask 177; : >> "$f")
-  printf '%s\n' "$line" >> "$f"   # one write(), O_APPEND; atomic under PIPE_BUF for <1024 bytes
+  [ -e "$f" ] || (umask 177; : >> "$f") 2>/dev/null || return 0
+  printf '%s\n' "$line" >> "$f" 2>/dev/null || return 0   # one write(), O_APPEND
   return 0
 }
 ```
@@ -360,7 +362,7 @@ git commit -m "feat(review-loop): logline.sh guarded, bounded, atomic append wit
 - Consumes: `logline.sh` (`ll_*`).
 - Produces the CLI in spec 016 §"Where it goes":
   - `log.sh new-run` → prints a 6-char `[a-z0-9]` token from `/dev/urandom`, nothing else.
-  - `log.sh review run=<tok> round=<n> reviewers=<list> [end=<reason>]` → one `review` line.
+  - `log.sh review run=<tok> round=<n> reviewer=<id>:<count> reviewer=<id>:<count> ... [end=<reason>]` → one `review` line. Each reviewer is a separate arg (a model id can contain a comma); `log.sh` encodes each id and assembles the one `reviewers=` value.
   - `log.sh review run=<tok> end=stopped` → the no-`round` stop line.
   - Supplies `ts` and `project` itself; never takes `session`.
 
@@ -380,7 +382,7 @@ case "$tok" in *[!a-z0-9]*) fail "charset [$tok]";; *) pass "lowercase alnum";; 
 
 repo="$(mk_repo_with_origin https://github.com/caasi/dong3.git)"
 tmp="$(mktemp -d)"; export REVIEW_LOOP_LOG_FILE="$tmp/l.log"
-( cd "$repo" && REVIEW_LOOP_LOG_FILE="$tmp/l.log" bash "$LOG" review run=x7k2p9 round=1 reviewers=claude-opus-4-8:19,gpt-5.5:5 )
+( cd "$repo" && REVIEW_LOOP_LOG_FILE="$tmp/l.log" bash "$LOG" review run=x7k2p9 round=1 reviewer=claude-opus-4-8:19 reviewer=gpt-5.5:5 )
 line="$(cat "$tmp/l.log")"
 case "$line" in
   *"  review  project=github.com-caasi-dong3  run=x7k2p9  round=1  reviewers=claude-opus-4-8:19,gpt-5.5:5") pass "review line" ;;
@@ -412,9 +414,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "${1:-}" in
   new-run)
-    # Read a bounded chunk and slice with the shell — no `head -c 6` closing a live
-    # pipe, which would SIGPIPE `tr` and fail the pipeline under `set -o pipefail`.
-    s="$(head -c 96 /dev/urandom | LC_ALL=C tr -dc 'a-z0-9')"
+    # Accumulate until at least 6 survivors: 96 filtered bytes usually suffice, but about
+    # 0.7% of draws yield fewer than 6, so loop. No `head -c 6` on a live pipe — that would
+    # SIGPIPE tr and fail the pipeline under `set -o pipefail`.
+    s=""
+    while [ "${#s}" -lt 6 ]; do s="$s$(head -c 96 /dev/urandom | LC_ALL=C tr -dc 'a-z0-9')"; done
     printf '%s\n' "${s:0:6}"
     ;;
   review)
@@ -513,11 +517,16 @@ grep -q '  object  project=github.com-caasi-dong3  session=S1  tier=fix$' "$LOG"
 # observation-log: no → nothing
 printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "no → silent" || fail "wrote against no"
-# project no overrides a global yes
+# project no overrides a global yes — including from a subdirectory of the repo
+mkdir -p "$repo/deep/sub"
 printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md" 2>/dev/null || { mkdir -p "$tmp/.claude"; printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md"; }
 printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "project no overrides global yes" || fail "override failed"
+# same, but the session cwd is a subdirectory — project config still found at the root
+run_sub() { printf '{"session_id":"S1","cwd":"%s","prompt":%s}' "$repo/deep/sub" "$1" | REVIEW_LOOP_LOG_FILE="$LOG" HOME="$tmp" bash "$HOOK"; }
+: > "$LOG"; run_sub '"#fix"'; [ ! -s "$LOG" ] && pass "subdir sees project no" || fail "subdir bypassed decline"
 # a key only in the ## Notes body, not the frontmatter, is read as absent
+rm -f "$tmp/.claude/review-loop.local.md"   # reset the global set by the override test above
 printf -- '---\nreview-loop-config: 1\n---\n## Notes\nobservation-log: yes\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "notes-body not read" || fail "read body key"
 say_yes
@@ -560,7 +569,12 @@ resolve() { # $1=file
   [ -f "$1" ] || return 1
   awk 'NR==1&&$0=="---"{f=1;next} f&&$0=="---"{exit} f&&/^observation-log:/{sub(/^observation-log:[[:space:]]*/,"");print;exit}' "$1"
 }
-ans="$(resolve "$cwd/.claude/review-loop.local.md" || true)"
+# project config lives at the checkout root's .claude/, not necessarily $cwd — a session
+# in a subdirectory must still see a project-level `no`. --show-toplevel gives the worktree
+# root (where .claude/ lives); it is the right root here, unlike the slug, which uses
+# --git-common-dir. Fall back to $cwd if not in a repo.
+root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$cwd")"
+ans="$(resolve "$root/.claude/review-loop.local.md" || true)"
 [ -n "$ans" ] || ans="$(resolve "$HOME/.claude/review-loop.local.md" || true)"
 [ "$ans" = "yes" ] || exit 0
 
@@ -646,7 +660,7 @@ git commit -m "feat(review-loop): declare the UserPromptSubmit hook with a 5s ti
 
 This is prose in system prompts — wording is behaviour. Its test is Task 10's content anchors, so this task ends at Task 10's green, not its own.
 
-- [ ] **Step 1: SKILL.md §A3** — add the round-logging instruction: after aggregating the round's verdicts and deciding whether the round is dry, call `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review run=<tok> round=<n> reviewers=<model:count,...>`, minting `<tok>` with `log.sh new-run` once per run; put `end=converged` on the last round, and write `log.sh review run=<tok> end=stopped` if the author stops between rounds. State that the line is written **after** the dry decision (append-only; `end` cannot be known before).
+- [ ] **Step 1: SKILL.md §A3** — add the round-logging instruction: after aggregating the round's verdicts and deciding whether the round is dry, call `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ...` (one `reviewer=` arg per reviewer, never a comma-joined list), minting `<tok>` with `log.sh new-run` once per run; put `end=converged` on the last round, and write `log.sh review run=<tok> end=stopped` if the author stops between rounds. State that the line is written **after** the dry decision (append-only; `end` cannot be known before).
 
 - [ ] **Step 2: commands/init.md** — add the disclosure block: the plugin ships an always-on `UserPromptSubmit` hook; it runs on every message but writes nothing until `observation-log: yes` is recorded; ask before writing `yes`; state what it matches, that no message text is written, that it still executes while `no`/absent, how to remove it, and that a `yes` travels with `review-loop.local.md` through a dotfiles sync. Record the answer as `observation-log: yes|no` in the frontmatter; do not bump `review-loop-config`; do not re-ask once present. Report a missing `jq` at enrolment.
 
@@ -688,11 +702,12 @@ LOG="$LIBDIR/../../plugins/review-loop/skills/review-loop/scripts/log.sh"
 fail() { echo "FAIL: $*" >&2; exit 1; }; pass() { echo "PASS: $*"; }
 repo="$(mk_repo_with_origin https://github.com/caasi/dong3.git)"; tmp="$(mktemp -d)"
 export REVIEW_LOOP_LOG_FILE="$tmp/f.log"
-( cd "$repo" && bash "$LOG" review run=x7k2p9 round=1 reviewers=a:1 )
-( cd "$repo" && bash "$LOG" review run=x7k2p9 round=18 reviewers=a:1 )
-grep -Pq '   ' "$REVIEW_LOOP_LOG_FILE" && fail "padding: 3+ spaces present" || pass "exactly two spaces, no padding"
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=1 reviewer=a:1 )
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=18 reviewer=a:1 )
+grep -Eq ' {3,}' "$REVIEW_LOOP_LOG_FILE" && fail "padding: 3+ spaces present" || pass "exactly two spaces, no padding"
 # UTC sortability: string sort == chronological (single host proxy: lines already in order)
-sort -c "$REVIEW_LOOP_LOG_FILE" && pass "string-sorts chronologically" || fail "not sortable"
+LC_ALL=C sort -c "$REVIEW_LOOP_LOG_FILE" && pass "byte-sorts chronologically" || fail "not sortable"
+# spec says plain string comparison = C/byte order; UTF-8 collation folds the separator spaces
 # key order on a review line
 head -1 "$REVIEW_LOOP_LOG_FILE" | grep -Eq '  review  project=[^ ]+  run=[^ ]+  round=' || fail "key order"
 pass "key order"
@@ -702,12 +717,12 @@ pass "key order"
 
 ```bash
 # percent-encoding of a reviewer id reaches the log through log.sh, not just the unit
-( cd "$repo" && bash "$LOG" review run=x7k2p9 round=2 reviewers=meta-llama/Llama-3.3-70B:3 )
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=2 reviewer=meta-llama/Llama-3.3-70B:3 )
 grep -q 'reviewers=meta-llama%2FLlama-3.3-70B:3' "$REVIEW_LOOP_LOG_FILE" \
   && pass "reviewer id encoded on the writer path" || fail "id not encoded end to end"
 # a line over 1024 bytes is not written
 before=$(wc -l < "$REVIEW_LOOP_LOG_FILE")
-( cd "$repo" && bash "$LOG" review run=x7k2p9 round=3 "reviewers=$(printf 'x%.0s' $(seq 1 1100)):1" )
+( cd "$repo" && bash "$LOG" review run=x7k2p9 round=3 "reviewer=$(printf 'x%.0s' $(seq 1 1100)):1" )
 [ "$(wc -l < "$REVIEW_LOOP_LOG_FILE")" = "$before" ] && pass "over-1024 line refused" || fail "bound not enforced"
 echo ALL PASS
 ```
