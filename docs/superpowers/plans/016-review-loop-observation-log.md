@@ -226,6 +226,7 @@ git commit -m "feat(review-loop): logline.sh project slug derivation"
 ```bash
 eq "$(ll_scrub 'a b=c/d')" "abcd" "scrub drops space = /"
 eq "$(ll_encode_id 'meta-llama/Llama-3.3-70B')" "meta-llama%2FLlama-3.3-70B" "encode path sep"
+eq "$(ll_encode_id "$(printf 'a\tb')")" "a%09b" "encode tab (whitespace, not only space)"
 eq "$(ll_encode_id 'a,b')" "a%2Cb" "encode comma"
 [ "$(ll_encode_id 'a%2Cb')" != "$(ll_encode_id 'a,b')" ] && pass "encode % first keeps distinct" || fail "collision"
 case "$(ll_ts)" in *[0-9]T*:*:*Z) pass "ts shape";; *) fail "ts shape";; esac
@@ -237,7 +238,7 @@ case "$line" in *"  review  project=foo  run=abc123  round=1") pass "two-space j
 - [ ] **Step 2: Run to verify the new asserts fail**
 
 Run: `bash tools/review-loop/test-logline.sh`
-Expected: FAIL — `ll_scrub: command not found`.
+Expected: FAIL — `ll_encode_id: command not found` (`ll_scrub` is defined in Task 2 with the slug).
 
 - [ ] **Step 3: Implement**
 
@@ -423,36 +424,40 @@ case "${1:-}" in
     ;;
   review)
     shift
-    # Encode reviewer ids in place: `reviewers=model:count,model:count` — the ids can
-    # carry `/`, `:`, `,` (e.g. meta-llama/Llama-3.3-70B), which are structural here.
-    out=()
+    # Each reviewer is its OWN arg — `reviewer=<id>:<count>`. A model id can contain a
+    # comma, so a comma-joined list cannot be split back; separate args remove the
+    # ambiguity. Parse the fixed key set so the output order is project run round
+    # reviewers end regardless of input order, and skip a malformed reviewer arg
+    # (empty id or empty count) rather than write a broken field.
+    run="" round="" endkv="" revs=""
     for kv in "$@"; do
       case "$kv" in
-        reviewers=*) out+=("reviewers=$(ll_encode_reviewers "${kv#reviewers=}")") ;;
-        *)           out+=("$kv") ;;
+        run=*)   run="$kv" ;;
+        round=*) round="$kv" ;;
+        end=*)   endkv="$kv" ;;
+        reviewer=*)
+          pair="${kv#reviewer=}"
+          case "$pair" in
+            *:*) id="${pair%:*}"; c="${pair##*:}"
+                 [ -n "$id" ] && [ -n "$c" ] && revs="${revs:+$revs,}$(ll_encode_id "$id"):$c" ;;
+          esac ;;
       esac
     done
-    ll_append "$(ll_line review "project=$(ll_project_slug "$PWD")" "${out[@]}")"
+    fields=("project=$(ll_project_slug "$PWD")")
+    [ -n "$run" ]   && fields+=("$run")
+    [ -n "$round" ] && fields+=("$round")
+    [ -n "$revs" ]  && fields+=("reviewers=$revs")
+    [ -n "$endkv" ] && fields+=("$endkv")
+    ll_append "$(ll_line review "${fields[@]}")" || true
     ;;
   *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewers=...] [end=...]}" >&2; exit 0 ;;
   # exit 0, not 2: acceptance §424 makes non-zero exit forbidden for either writer.
 esac
 ```
 
-`ll_encode_reviewers` (added to `logline.sh` in Task 3) encodes only the id side of each
-`id:count` pair, leaving the `:count` and the `,` separators structural:
-
-```bash
-ll_encode_reviewers() { # $1 = "id:count,id:count,..."
-  local out="" pair id count
-  local IFS=,
-  for pair in $1; do
-    id="${pair%:*}"; count="${pair##*:}"
-    out="${out:+$out,}$(ll_encode_id "$id"):$count"
-  done
-  printf '%s' "$out"
-}
-```
+Malformed `reviewer=` args are skipped: no colon, an empty id (`reviewer=:3`), or an empty
+count (`reviewer=model:`) contributes nothing rather than a broken field. `log.sh` still
+exits 0 and the line stays well-formed.
 
 - [ ] **Step 4: Run to verify passes**
 
