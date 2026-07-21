@@ -12,8 +12,7 @@ run() { # $1=prompt-json-value, $2=extra-json (e.g. agent_type)
   printf '{"session_id":"S1","cwd":"%s","prompt":%s%s}' "$repo" "$1" "${2:-}" \
     | REVIEW_LOOP_LOG_FILE="$LOG" HOME="$tmp" bash "$HOOK"
 }
-say_yes() { printf 'observation-log: yes\n---\n' > "$cfg/review-loop.local.md.frontmatter" 2>/dev/null || true
-  printf -- '---\nobservation-log: yes\n---\n' > "$cfg/review-loop.local.md"; }
+say_yes() { printf -- '---\nobservation-log: yes\n---\n' > "$cfg/review-loop.local.md"; }
 
 # absent config → nothing
 : > "$LOG"; run '"#fix here"'; [ ! -s "$LOG" ] && pass "absent → silent" || fail "wrote without opt-in"
@@ -39,8 +38,8 @@ grep -q '  object  project=github.com-caasi-dong3  session=S1  tier=fix$' "$LOG"
 printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "no → silent" || fail "wrote against no"
 # project no overrides a global yes — including from a subdirectory of the repo
-mkdir -p "$repo/deep/sub"
-printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md" 2>/dev/null || { mkdir -p "$tmp/.claude"; printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md"; }
+mkdir -p "$repo/deep/sub" "$tmp/.claude"
+printf -- '---\nobservation-log: yes\n---\n' > "$tmp/.claude/review-loop.local.md"
 printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "project no overrides global yes" || fail "override failed"
 # same, but the session cwd is a subdirectory — project config still found at the root
@@ -53,6 +52,14 @@ printf -- '---\nreview-loop-config: 1\n---\n## Notes\nobservation-log: yes\n' > 
 say_yes
 # agent_type suppresses
 : > "$LOG"; run '"#fix"' ',"agent_type":"general"'; [ ! -s "$LOG" ] && pass "agent_type silent" || fail "agent line"
+# a hostile session_id (whitespace / = / newline) is scrubbed, so it cannot forge a second line
+: > "$LOG"; printf '{"session_id":"S1 x=y\\nFORGED","cwd":"%s","prompt":"#fix"}' "$repo" | REVIEW_LOOP_LOG_FILE="$LOG" HOME="$tmp" bash "$HOOK"
+[ "$(wc -l < "$LOG")" = 1 ] && pass "hostile session_id stays one line" || { echo "  got: $(cat "$LOG")"; fail "session_id forged extra line"; }
+grep -q 'session=S1xyFORGED  tier=fix$' "$LOG" && pass "session_id scrubbed" || { echo "  got: $(cat "$LOG")"; fail "session not scrubbed"; }
+# the hook exits 0 with no stdout even when its logline.sh library is missing (trap installed first)
+nolib="$(mktemp -d)/hooks"; mkdir -p "$nolib"; cp "$HOOK" "$nolib/object.sh"
+out="$(printf '{"session_id":"S1","cwd":"%s","prompt":"#fix"}' "$repo" | REVIEW_LOOP_LOG_FILE="$LOG" HOME="$tmp" bash "$nolib/object.sh")" && rc=0 || rc=$?
+[ "$rc" = 0 ] && [ -z "$out" ] && pass "missing logline.sh: exit 0, no stdout" || fail "missing lib rc=$rc out=[$out]"
 # exit 0 even on garbage
 echo 'not json' | REVIEW_LOOP_LOG_FILE="$LOG" bash "$HOOK"; [ $? = 0 ] && pass "exit 0 on garbage" || fail "nonzero"
 echo ALL PASS

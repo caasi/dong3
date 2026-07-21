@@ -2,9 +2,10 @@
 # object.sh — UserPromptSubmit hook: appends one `object` line per author objection.
 # Always exits 0. Never writes stdout. Inert unless observation-log: yes resolves.
 set -uo pipefail
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$DIR/../skills/review-loop/scripts/logline.sh"
-trap 'exit 0' EXIT           # rule 2: any failure path still exits 0
+trap 'exit 0' EXIT           # rule 2, installed FIRST: every failure path exits 0, including
+                             # a missing, unreadable, or unparsable logline.sh sourced below.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || exit 0
+. "$DIR/../skills/review-loop/scripts/logline.sh" 2>/dev/null || exit 0
 
 command -v jq >/dev/null 2>&1 || exit 0   # no parser → silent (init reports it)
 
@@ -48,5 +49,9 @@ fi
 [ -n "$tier" ] || exit 0
 
 proj="$(ll_project_slug "$cwd")"
-ll_append "$(ll_line object "project=$proj" "session=$sid" "tier=$tier")"
+# Scrub the session id like every other value. It is a harness UUID in practice, so ll_scrub
+# is a no-op on it and the omission check (spec line 113, exact-id match) still lines up; but a
+# session id carrying whitespace, '=' or '/' could otherwise forge a second line or break the
+# two-space field boundaries, so the value rules must apply here too (acceptance line 433).
+ll_append "$(ll_line object "project=$proj" "session=$(ll_scrub "$sid")" "tier=$tier")"
 exit 0
