@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # log.sh — the loop's writer for the review-loop observation log.
 set -euo pipefail
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$DIR/logline.sh"
+trap 'exit 0' EXIT           # acceptance §424: neither writer ever exits non-zero, on any path --
+                             # including a missing/unreadable logline.sh, which sourcing under
+                             # set -e would otherwise turn into a non-zero exit that aborts callers.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || exit 0
 
 case "${1:-}" in
   new-run)
@@ -15,6 +17,9 @@ case "${1:-}" in
     ;;
   review)
     shift
+    # Only `review` needs the shared library; `new-run` is self-contained, so it does not source
+    # (and cannot be broken by a missing library). If the library is absent, write nothing, exit 0.
+    . "$DIR/logline.sh" 2>/dev/null || exit 0
     # Each reviewer is its OWN arg — `reviewer=<id>:<count>`. A model id can contain a
     # comma, so a comma-joined list cannot be split back; separate args remove the
     # ambiguity. Parse the fixed key set so the output order is project run round
