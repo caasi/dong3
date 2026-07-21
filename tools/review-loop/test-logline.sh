@@ -32,4 +32,14 @@ eq "$(ll_project_slug "$sup/mysub")" "mysub" "submodule yields its superproject 
 # same slug from a subdirectory of the repo
 d=$(mk_repo_with_origin https://github.com/caasi/dong3.git); mkdir -p "$d/a/b"
 eq "$(ll_project_slug "$d/a/b")" "github.com-caasi-dong3" "subdirectory yields repo slug"
+# Value rules
+eq "$(ll_scrub 'a b=c/d')" "abcd" "scrub drops space = /"
+eq "$(ll_encode_id 'meta-llama/Llama-3.3-70B')" "meta-llama%2FLlama-3.3-70B" "encode path sep"
+eq "$(ll_encode_id "$(printf 'a\tb')")" "a%09b" "encode tab (whitespace, not only space)"
+eq "$(ll_encode_id 'a,b')" "a%2Cb" "encode comma"
+[ "$(ll_encode_id 'a%2Cb')" != "$(ll_encode_id 'a,b')" ] && pass "encode % first keeps distinct" || fail "collision"
+case "$(ll_ts)" in *[0-9]T*:*:*Z) pass "ts shape";; *) fail "ts shape";; esac
+line="$(ll_line review project=foo run=abc123 round=1)"
+[ "$line" = "$(printf '%s' "$line" | sed 's/  / /g' | sed 's/ /  /g')" ] || true  # informal
+case "$line" in *"  review  project=foo  run=abc123  round=1") pass "two-space join";; *) fail "join: [$line]";; esac
 echo ALL PASS
