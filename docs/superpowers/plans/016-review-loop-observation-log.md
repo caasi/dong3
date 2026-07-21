@@ -248,7 +248,8 @@ Expected: FAIL — `ll_encode_id: command not found` (`ll_scrub` is defined in T
 ll_encode_id() { # percent-encode; % first so the mapping is injective
   local v="$1"
   v="${v//%/%25}"
-  v="${v// /%20}"; v="${v//$'\t'/%09}"; v="${v//$'\n'/%0A}"; v="${v//$'\r'/%0D}"   # whitespace
+  v="${v// /%20}"; v="${v//$'\t'/%09}"; v="${v//$'\n'/%0A}"
+  v="${v//$'\r'/%0D}"; v="${v//$'\f'/%0C}"; v="${v//$'\v'/%0B}"   # every whitespace byte
   v="${v//=/%3D}"; v="${v//\//%2F}"; v="${v//,/%2C}"; v="${v//:/%3A}"
   printf '%s' "$v"
 }
@@ -429,25 +430,29 @@ case "${1:-}" in
     # ambiguity. Parse the fixed key set so the output order is project run round
     # reviewers end regardless of input order, and skip a malformed reviewer arg
     # (empty id or empty count) rather than write a broken field.
-    run="" round="" endkv="" revs=""
+    # The value rule (drop whitespace, =, path separator) applies to every value, so run,
+    # round, end and each count are scrubbed too — the reviewer id gets the stronger
+    # percent-encoding. In practice the caller passes a clean run token, an integer round
+    # and end=converged|stopped; scrubbing is defence, not an expected transform.
+    run="" round="" endv="" revs=""
     for kv in "$@"; do
       case "$kv" in
-        run=*)   run="$kv" ;;
-        round=*) round="$kv" ;;
-        end=*)   endkv="$kv" ;;
+        run=*)   run="$(ll_scrub "${kv#run=}")" ;;
+        round=*) round="$(ll_scrub "${kv#round=}")" ;;
+        end=*)   endv="$(ll_scrub "${kv#end=}")" ;;
         reviewer=*)
           pair="${kv#reviewer=}"
           case "$pair" in
-            *:*) id="${pair%:*}"; c="${pair##*:}"
+            *:*) id="${pair%:*}"; c="$(ll_scrub "${pair##*:}")"
                  [ -n "$id" ] && [ -n "$c" ] && revs="${revs:+$revs,}$(ll_encode_id "$id"):$c" ;;
           esac ;;
       esac
     done
     fields=("project=$(ll_project_slug "$PWD")")
-    [ -n "$run" ]   && fields+=("$run")
-    [ -n "$round" ] && fields+=("$round")
+    [ -n "$run" ]   && fields+=("run=$run")
+    [ -n "$round" ] && fields+=("round=$round")
     [ -n "$revs" ]  && fields+=("reviewers=$revs")
-    [ -n "$endkv" ] && fields+=("$endkv")
+    [ -n "$endv" ]  && fields+=("end=$endv")
     ll_append "$(ll_line review "${fields[@]}")" || true
     ;;
   *) echo "usage: log.sh {new-run | review run=... [round=...] [reviewers=...] [end=...]}" >&2; exit 0 ;;
