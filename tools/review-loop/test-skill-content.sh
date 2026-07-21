@@ -17,6 +17,9 @@ refute() { # $1=regex, $2=description — fails if the regex IS present
   pass "no longer present: $2"
 }
 
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+need_in() { grep -Eq -- "$2" "$ROOT/$1" || fail "$1 missing: $3"; pass "$3"; }
+
 need 'sandbox-preflight\.sh'                              "preflight script reference"
 need 'Route by sandbox state'                            "sandbox-state routing rule"
 need 'Embedded-diff form'                                "embedded-diff form"
@@ -101,5 +104,22 @@ need 'ground truth for a .judgement. finding'            "escalation-section gre
 # gone
 refute 'Are your earlier points resolved'                "leading convergence prompt"
 refute '^\*\*A2\. Codex review'                          "the old serial second gate"
+
+# observation-log content across five files
+need_in 'plugins/review-loop/skills/review-loop/SKILL.md' 'log\.sh review'          "A3 logs review lines"
+need_in 'plugins/review-loop/commands/init.md' 'observation-log'                     "init records the answer"
+need_in 'plugins/review-loop/commands/init.md' 'always-on|every message'            "init discloses the hook"
+need_in 'plugins/review-loop/skills/review-loop/README.md' 'always-on|inert'        "README discloses the hook"
+need_in '.claude-plugin/marketplace.json' 'always-on|inert'                         "marketplace description discloses"
+need_in 'plugins/review-loop/.claude-plugin/plugin.json' 'always-on|inert'          "plugin.json description discloses"
+
+# identity + version assertions
+pd="$(jq -r .description "$ROOT/plugins/review-loop/.claude-plugin/plugin.json")"
+md="$(jq -r '.plugins[]|select(.name=="review-loop").description' "$ROOT/.claude-plugin/marketplace.json")"
+[ "$pd" = "$md" ] || fail "plugin.json and marketplace descriptions differ"
+pass "descriptions identical"
+v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$ROOT/.claude-plugin/marketplace.json")"
+[ "$v" = "0.7.0" ] || fail "review-loop version is $v, not 0.7.0"
+pass "version 0.7.0"
 
 echo "All SKILL.md content checks passed."
