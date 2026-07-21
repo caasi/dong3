@@ -23,3 +23,7 @@ mk_worktree() { # $1=repo
   local w="$1-wt"; git -C "$1" worktree add -q "$w" -b wt-branch >/dev/null 2>&1
   echo "$w"
 }
+# Portable octal permission bits of a file (e.g. 600), so the suite runs on macOS too.
+# GNU coreutils uses `stat -c %a`; BSD/macOS uses `stat -f %Lp`. The script under test
+# already avoids GNU-only stat for the same reason; the tests must match.
+file_mode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"; }
