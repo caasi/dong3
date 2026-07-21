@@ -101,7 +101,7 @@ nothing more.
 
 **Off, and how to turn it off.** Answer `no` at `/review-loop:init`, or set
 `observation-log: no` in `review-loop.local.md` directly. Either way the hook keeps running on
-every message — it has to, to check the answer — but writes nothing. To silence it without editing
+every message — it must run to check the answer — but writes nothing. To silence it without editing
 the config, export `REVIEW_LOOP_LOG=0` in your shell, or set it under `env` in `settings.json` to
 cover every session.
 
