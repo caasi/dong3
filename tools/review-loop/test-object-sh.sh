@@ -31,6 +31,10 @@ grep -q '  object  project=github.com-caasi-dong3  session=S1  tier=fix$' "$LOG"
 : > "$LOG"; run '"```\n#fix\n```\nreally #redo now"'; grep -q 'tier=redo$' "$LOG" && pass "out-of-fence marker counts" || fail "out-of-fence missed"
 # adjacency does NOT match: #fixed is not #fix
 : > "$LOG"; run '"already #fixed it"'; [ ! -s "$LOG" ] && pass "adjacency no-match" || fail "#fixed matched"
+# a marker alone on its own line still counts — a newline is whitespace (C1 regression)
+: > "$LOG"; run '"broken.\n#redo"'; grep -q 'tier=redo$' "$LOG" && pass "own-line marker counts" || fail "own-line marker missed"
+: > "$LOG"; run '"one\n#again\nthree"'; grep -q 'tier=again$' "$LOG" && pass "mid own-line marker counts" || fail "mid own-line missed"
+: > "$LOG"; run '"tail\n#fix"'; grep -q 'tier=fix$' "$LOG" && pass "trailing own-line marker counts" || fail "trailing own-line missed"
 # observation-log: no → nothing
 printf -- '---\nobservation-log: no\n---\n' > "$cfg/review-loop.local.md"
 : > "$LOG"; run '"#fix"'; [ ! -s "$LOG" ] && pass "no → silent" || fail "wrote against no"

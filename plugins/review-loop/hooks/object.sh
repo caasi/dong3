@@ -31,9 +31,12 @@ ans="$(resolve "$root/.claude/review-loop.local.md" || true)"
 [ -n "$ans" ] || ans="$(resolve "$HOME/.claude/review-loop.local.md" || true)"
 [ "$ans" = "yes" ] || exit 0
 
-# Remove fenced blocks (lines between ``` fences) and inline spans (`...`),
-# then match a whitespace-delimited marker word. Priority redo > again > fix.
-stripped="$(printf '%s' "$prompt" | awk 'BEGIN{f=0} /^[[:space:]]*```/{f=!f;next} !f{print}' | sed 's/`[^`]*`//g')"
+# Remove fenced blocks (lines between ``` fences) and inline spans (`...`), then flatten
+# newlines to spaces, then match a whitespace-delimited marker word. Priority redo > again > fix.
+# The flatten matters: `has` matches on one line, so a marker that begins its own line must
+# become space-delimited. A newline is whitespace, so `#redo` alone on a line still counts.
+# Fence and span stripping run first (line by line), before the flatten, so code is still excluded.
+stripped="$(printf '%s' "$prompt" | awk 'BEGIN{f=0} /^[[:space:]]*```/{f=!f;next} !f{print}' | sed 's/`[^`]*`//g' | tr '\n' ' ')"
 has() { # $1=word — true only if it appears whitespace-delimited
   printf '%s' " $stripped " | grep -Eq "[[:space:]]#$1[[:space:]]"
 }
