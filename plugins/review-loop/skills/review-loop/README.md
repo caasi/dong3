@@ -89,8 +89,9 @@ still runs on every message, and still writes nothing.
 `/review-loop:init` asks before it writes `yes`. It explains what the hook matches, what one line
 contains, where the file goes, and how to turn it off, before you decide.
 
-**What the hook matches.** The marker `#redo`, `#again`, or `#fix`, as a whole word in a message
-you send. `#redo` means the whole output was unusable; `#again` means this was already corrected
+**What the hook matches.** The marker `#redo`, `#again`, or `#fix`, as a separate word in a message
+you send — at the start or end of the message, or with whitespace around it. A marker glued to
+other characters, like `#fix.` or `#fixed`, does not match. `#redo` means the whole output was unusable; `#again` means this was already corrected
 once; `#fix` means one specific error. A marker inside a code block or an inline code span does
 not count.
 

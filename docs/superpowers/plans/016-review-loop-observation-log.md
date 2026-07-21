@@ -640,7 +640,7 @@ git commit -m "feat(review-loop): object.sh UserPromptSubmit hook"
 {
   "hooks": {
     "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/object.sh", "timeout": 5 } ] }
+      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/object.sh\"", "timeout": 5 } ] }
     ]
   }
 }

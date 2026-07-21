@@ -50,7 +50,9 @@ Load-bearing invariants:
   always-on `UserPromptSubmit` hook. It runs on every message, in every project. It writes nothing
   until `observation-log: yes` is recorded in `~/.claude/review-loop.local.md` (or the project
   override). `init` asks before it writes `yes`. The hook matches the markers `#redo`, `#again`,
-  `#fix` as whole words in your message. It writes only `project`, `session`, and the matched
+  `#fix` as separate words — at the start or end of your message, or with whitespace around them.
+  A marker glued to other characters, like `#fix.` or `#fixed`, does not match. It writes only
+  `project`, `session`, and the matched
   tier — never your message text. It still runs, and still writes nothing, while the answer is
   `no` or absent. Set `observation-log: no`, or export `REVIEW_LOOP_LOG=0`, to stop it from
   writing. A recorded `yes` travels to another host through a dotfiles sync of

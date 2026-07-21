@@ -40,9 +40,15 @@ or any other dispatched agent).
 1. The hook does not need an `agent_type` gate to avoid double-counting from
    subagents. Subagents never trigger the event, so there is nothing to
    exclude.
-2. There is no `agent_type` field to read even if the design wanted one. Any
-   plan step that gates on `agent_type` rests on a field the harness does not
-   send. Remove that step.
+2. There is no `agent_type` field in the payload today, so the hook's
+   `agent_type` gate (rule 1 in `object.sh`, `[ -n "$agent_type" ] && exit 0`)
+   is currently a no-op. The shipped hook KEEPS it deliberately, as a
+   forward-compatibility, defense-in-depth guard: if a future harness both
+   fires `UserPromptSubmit` inside subagents and adds an `agent_type` field,
+   the gate suppresses those subagent prompts. It costs nothing while the field
+   is absent, and objection detection does not depend on it. So the gate is
+   retained, not removed — the earlier draft that said "remove that step" was
+   wrong about the shipped behavior.
 3. Objection detection must use the prompt text. The hook reads the `prompt`
    field and matches the objection markers (`#redo`, `#again`, `#fix`). It has
    no other signal to separate an objection from an ordinary prompt.
