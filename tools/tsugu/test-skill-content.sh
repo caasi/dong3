@@ -431,4 +431,8 @@ jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugi
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("post-handoff|POST-HANDOFF")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace desc notes post-handoff" || fail "marketplace.json: tsugu description missing post-handoff"
 jq -e '.description|test("schema 7")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null && pass "plugin.json description stamps schema 7" || fail "plugin.json description not at schema 7"
 
+# --- Spec 017 Task 1: ## Blindspots section in context.md template (Change A) ---
+need_in 'plugins/tsugu/skills/tsugu/templates/context.md' '^## Blindspots'  "context.md template has ## Blindspots"
+need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'material \+ grounded'  "Blindspots filter comment (single-line phrase)"
+
 echo "All tsugu SKILL.md content checks passed."
