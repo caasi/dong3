@@ -26,7 +26,7 @@ Tsugu prepares the board. Workflow skills play the game with the human. Tsugu co
 **Committed `.tsugu/` is a work-in-progress knowledge layer** — a richer, agent-maintained sibling of `AGENTS.md` / `CLAUDE.md`, pushed so any inheritor reads it from `git fetch` alone. It holds three knowledge parts, plus a one-line infrastructure file:
 
 - **`policy.md`** — the shared coordination policy (boundary, prefixes, push, merge method, public-branch mode, coordination ref, recursion, the shipped skill-use invariant).
-- **`context.md`** — per-ref narrative: each work branch tells its own story; the default branch tells the mainline's. The form ends with a **standing, byte-immutable `POST-HANDOFF CLEANUP` block** — a reminder that rides the accept rename to the **finishing agent** (routed by the agent-md pointer), who resets the branch narrative before landing; it is kept byte-for-byte and never deleted, the one immutable region in an otherwise freely-maintained file.
+- **`context.md`** — per-ref narrative: each work branch tells its own story; the default branch tells the mainline's. The form ends with a **standing, byte-immutable `POST-HANDOFF CLEANUP` block** — a reminder that rides the accept rename to the **finishing agent** (routed by the agent-md pointer), who resets the branch narrative before landing; it is kept byte-for-byte and never deleted, the one immutable region in an otherwise freely-maintained file. The skeleton also carries a `## Blindspots` section (narrative; material + grounded) — a **branch-working** section that resets with the branch story on handoff, unlike the durable `## Verification` / `## Promotion candidates`.
 - **`knowledge/`** — the durable, curated wiki: findings a coworker's agent would want.
 - **`.gitattributes`** — one line, `context.md merge=union`, so the narrative never blocks a merge/rebase.
 
@@ -246,6 +246,8 @@ The human-attention phase. **Tsugu presents and yields, then completes the decid
 
    **Invariant.** None of accept / park / drop / continue / promote sets a *status field*. Each produces a branch action (accept/drop), a narrative write (park, drop's reason), or a knowledge write (promote); state stays **derived** from refs, the DAG, containment, and recency. *Narrative informs judgment, never classification.*
 5. **Wait for approval before any public coordination** — opening/merging the PR is the human's act; **Tsugu never auto-merges**.
+
+**Verify before you route (017).** After a disposition is decided and before the human triggers a workflow skill on this branch, verify the branch's findings — the `## Blindspots` lines especially — together with the human. Where a runnable check is cheap, write disposable code to turn a claimed fact into a checked one, then delete it (the human watched it run — it is evidence, not a deliverable). This is a **reminder, not a routine step** and **not a fifth disposition verb**: it gates nothing, sets no status field, and is skipped for trivial mechanical work.
 
 The packet may **hint** which workflow skill fits ("ready for planning", "this bug needs debugging", "this can go to review-loop") but must not fire it.
 

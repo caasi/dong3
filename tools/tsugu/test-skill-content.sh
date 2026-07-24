@@ -442,4 +442,10 @@ need 'the code is the evidence'                          "prepare keeps the prob
 need 'Cleanup is deferred to the human-present'          "prepare-probe cleanup deferred to converge/finishing"
 need 'flagged and routed'                                "taste-questions flagged and routed, not mined"
 
+# --- Spec 017 Task 3: converge verify reminder + spine bullet (Change C) ---
+need 'verify .{0,20}findings|Verify before you route'   "converge verify-findings reminder present"
+need 'reminder, not a routine step'                     "verify is a reminder, not a routine step"
+need 'not a .{0,6}fifth .{0,12}(disposition|verb)'      "verify reminder is not a fifth disposition"
+need 'branch-working'                                   "spine context.md bullet names Blindspots as branch-working"
+
 echo "All tsugu SKILL.md content checks passed."
