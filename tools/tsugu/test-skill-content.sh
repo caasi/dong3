@@ -445,7 +445,7 @@ need 'flagged and routed'                                "taste-questions flagge
 # --- Spec 017 Task 3: converge verify reminder + spine bullet (Change C) ---
 need 'verify .{0,20}findings|Verify before you route'   "converge verify-findings reminder present"
 need 'reminder, not a routine step'                     "verify is a reminder, not a routine step"
-need 'not a .{0,6}fifth .{0,12}(disposition|verb)'      "verify reminder is not a fifth disposition"
+need 'not a fifth disposition'                          "verify reminder is not a fifth disposition (017-unique; the pre-existing 011 text is 'not a fifth verb')"
 need 'branch-working'                                   "spine context.md bullet names Blindspots as branch-working"
 
 # --- Spec 017 Task 4: second consumers (notes-and-packet, commands, README) ---

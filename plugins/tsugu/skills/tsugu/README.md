@@ -46,7 +46,8 @@ One lifecycle, four routines:
    **renames** the prepared `prepare/<slug>` branch to a repo-native
    `<accepted-prefix>/<slug>` and **stops** — the agent does not finish the work,
    rewrite history, push, or open a PR; **you** re-decide the design and own the
-   landing. (The one exception: a task **you** explicitly marked maintenance-type — a
+   landing. Before you trigger a workflow skill, the agent reminds you to
+   **verify the findings** together (a reminder, not a routine step). (The one exception: a task **you** explicitly marked maintenance-type — a
    security upgrade, a dependency bump — may be carried to ready-to-merge; the agent
    **never self-classifies** work as mechanical, and **never auto-merges**.) The
    other dispositions are **park** (note in `context.md` what's needed to resume) and
