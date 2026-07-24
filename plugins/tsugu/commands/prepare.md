@@ -21,3 +21,7 @@ personal-folder source config and the live MCP/connector credentials —
 typically the local homelab); an *unprovisioned* cloud/headless run is allowed
 but degrades to git-native only (it works the queue derivable from refs, with
 no tracker/source intake).
+
+`prepare` also surfaces **blindspots** (unknown unknowns) into `context.md`'s
+`## Blindspots` under a material + grounded filter, and may keep a decision-free
+probe as rerunnable evidence (spec 017).

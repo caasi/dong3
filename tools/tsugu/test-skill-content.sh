@@ -448,4 +448,12 @@ need 'reminder, not a routine step'                     "verify is a reminder, n
 need 'not a .{0,6}fifth .{0,12}(disposition|verb)'      "verify reminder is not a fifth disposition"
 need 'branch-working'                                   "spine context.md bullet names Blindspots as branch-working"
 
+# --- Spec 017 Task 4: second consumers (notes-and-packet, commands, README) ---
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' '## Blindspots'  "notes-and-packet lists ## Blindspots"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'collapses Blindspots'  "F2 reset clause (one-line phrase)"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'remaining uncertaint'  "verify reminder feeds packet remaining uncertainties"
+need_in 'plugins/tsugu/commands/prepare.md'  '[Bb]lindspot'   "prepare command mentions blindspots"
+need_in 'plugins/tsugu/commands/converge.md' 'verify findings'  "converge command names the verify reminder (not pre-existing)"
+need_in 'plugins/tsugu/skills/tsugu/README.md' '[Bb]lindspot' "README mentions blindspots"
+
 echo "All tsugu SKILL.md content checks passed."

@@ -31,7 +31,8 @@ One lifecycle, four routines:
    migrates the schema).
 2. **prepare** (human absent) — fetch, derive the queue from git branches, do
    private git work on the configured work-prefix branches (default `prepare/*`),
-   run tests, record evidence in `context.md`, and promote shareable findings into
+   run tests, record evidence in `context.md` (including **blindspots** — unknown
+   unknowns — under a material + grounded filter), and promote shareable findings into
    `knowledge/`. **External silence** — interrupt only if the task is unsafe,
    destructive, or blocked. Work stays on **local** `prepare/*` by default
    (**local-first**); pushing to the remote is a **cross-machine opt-in**
