@@ -19,9 +19,10 @@ and origin told as narrative: **no `status:`, no `claimed-*`, no recorded
 lineage** — those facts are derived from refs and the DAG.
 
 - **On a work branch:** why this branch exists, current understanding, open
-  questions, next actions, verification, promotion candidates. The branch's story
-  is **self-contained** — `## Promotion candidates` points at `knowledge/`, but
-  there are no links to per-session files (there are none on the branch).
+  questions, blindspots, next actions, verification, promotion candidates. The
+  branch's story is **self-contained** — `## Promotion candidates` points at
+  `knowledge/`, but there are no links to per-session files (there are none on
+  the branch).
   Sections: `## Why this ref exists`, `## Current understanding`,
   `## Open questions`, `## Blindspots`, `## Next actions`, `## Verification`,
   `## Promotion candidates`.
