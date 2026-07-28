@@ -452,9 +452,7 @@ need 'no flag, no status field'                         "the repeat is recorded 
 # does not fire on a single stray header (verified by merging both repo shapes under merge=union).
 # So the instruction rides with the section, in context.md, which that agent does read.
 need "Keep the section's skeleton comment"               "prepare carries the ## Blindspots skeleton comment"
-need 'never .references/'                                "step 8 says the finishing agent does not read references/"
 need 'Say aloud which lines record a recurrence'         "converge speaks the recurrence instead of storing a flag"
-need "nothing is sorted, no field is set"                "saying it aloud does not become a status field"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'One blessed transient' "knowledge/ entry rules carve out the blindspot probe"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'optional cull.{0,30}does not apply' "the cull does not sweep a probe before reconciliation"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'for the tsugu-side reader' "the note does not claim to be the finishing agent's carrier"

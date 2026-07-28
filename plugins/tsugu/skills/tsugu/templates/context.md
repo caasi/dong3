@@ -20,7 +20,7 @@
      Runnable evidence lives in knowledge/; a line here only indexes it.
      A branch-working section. If you are the finishing agent resetting this
      file to the mainline form before landing, collapse THIS section too, with
-     the rest of the branch's story — the standing block below cannot name it.
+     the rest of the branch's story.
      (Not a question list — that is Open questions.) -->
 ## Next actions
 ## Verification

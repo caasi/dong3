@@ -299,18 +299,13 @@ Expected: `FAIL: plugins/tsugu/skills/tsugu/references/notes-and-packet.md missi
 
 - [ ] **Step 3: Edit `notes-and-packet.md`**
 
-(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections. (b) In the
-reset paragraph (the finish-time collapse guidance), add the **F2 clause** — write it so the words
-**`collapses Blindspots`** stay adjacent on one line, e.g. *"the finishing agent collapses Blindspots together
-with the branch's own story before landing."* The byte-immutable 015 POST-HANDOFF block cannot name the new
-section under the no-bump decision. This mutable file carries the instruction for the tsugu-side reader; the
-finishing agent's copy is the section's own skeleton comment in `context.md` (it never loads `references/`).
-Without either, a literal reset leaves `## Blindspots` polluting the mainline, and **nothing self-heals it** —
-the 015 BACKSTOP fires on duplicate `##` headers, and a missed Blindspots collapse produces a single header,
-not a duplicate. The instruction must therefore also travel with the section itself: `prepare` keeps the `##
-Blindspots` skeleton comment, which lives in `context.md` where the finishing agent reads it. (c) Add one
-clause noting the **converge verify-findings reminder feeds the packet's "remaining uncertainties"** (the
-spec's notes-and-packet row).
+(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections. (b) In
+the reset paragraph add the **F2 clause**, written so the words **`collapses Blindspots`** stay adjacent on
+one line, e.g. *"the finishing agent collapses Blindspots together with the branch's own story before
+landing."* Note in it that this file carries the instruction for the tsugu-side reader and the finishing
+agent's copy is the section's own skeleton comment in `context.md`. (c) Add one clause noting the **converge
+verify-findings reminder feeds the packet's "remaining uncertainties"**. Rationale for all three is in the
+spec; do not restate it here.
 
 - [ ] **Step 4: Edit the command files**
 
@@ -321,14 +316,11 @@ routing to a skill. No chain-string / schema change.
 
 - [ ] **Step 5: Edit `templates/agent-md-pointer.md` (routing prose)**
 
-The pointer is the finishing agent's only always-loaded channel, and it names a *region* — "read that
-file's POST-HANDOFF CLEANUP block". A section added after that block was written cannot be named inside
-it without a schema bump, so the pointer must also send the agent to the section comments. Add that,
-keeping the `## tsugu — post-handoff cleanup` heading byte-identical (`init` and the `6→7` migration
-are idempotent on that marker) and keeping `public coordination` and `approval` on **one line** — that
-anchor is a line-based `grep -Eq`. Note the consequence for the record: `init` skips a pointer already
-present, so an **existing** repo keeps the old text and never receives this routing. That is failure
-path 4 in the spec, not something this step fixes.
+Add the section comments to what the pointer tells the finishing agent to read, alongside the
+`POST-HANDOFF CLEANUP` block. Two constraints: keep the `## tsugu — post-handoff cleanup` heading
+byte-identical (`init` and the `6→7` migration are idempotent on that marker), and keep `public coordination`
+and `approval` on **one line** (that anchor is a line-based `grep -Eq`). This does not reach an existing
+repo — that is failure path 4 in the spec, not something this step fixes.
 
 - [ ] **Step 6: Edit `README.md` (prose only)**
 

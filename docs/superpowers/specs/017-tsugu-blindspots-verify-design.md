@@ -287,47 +287,22 @@ finishing agent does read. `notes-and-packet.md` keeps the same instruction for 
 Neither path needs a bump, and the immutable block is untouched.
 
 **What is left uncovered, stated plainly.** The repair depends on two agents: `prepare` must write the
-comment, and the finishing agent must be routed to it and then obey it. There are four ways that fails —
-three of instruction-following, and one of delivery:
+comment, and the finishing agent must be routed to it and then obey it. Four ways that fails:
 
-1. **`prepare` does not write the comment.** In an already-initialized repo no migration adds `## Blindspots`
-   and `init` at the current stamp repairs missing *paths*, not sections inside a curated `context.md` — so the
-   section and its comment exist only because that run's `prepare` authored them. This is the default state in
-   every existing repo, not the exception.
-2. **The comment drifts.** Unlike 015's block it is **not** byte-immutable and has **no normalizer**: an
-   `init` re-run does not restore it. Under `merge=union` a drifted retype does not duplicate, it silently
-   replaces the mainline copy, so the erosion propagates and every later branch inherits it.
+1. **`prepare` does not write the comment.** No migration adds `## Blindspots`, and `init` at the current
+   stamp repairs missing paths, not sections inside a curated `context.md`. This is the default state in
+   every existing repo.
+2. **The comment drifts.** It is not byte-immutable and has no normalizer. Under `merge=union` a drifted
+   retype silently replaces the mainline copy rather than duplicating it, so the erosion propagates.
 3. **The finishing agent ignores it**, and never reads the `references/` copy either.
-4. **An existing repository keeps the pre-017 pointer.** `init` appends the pointer only when the agent md
-   lacks the `## tsugu — post-handoff cleanup` marker, and the `6→7` migration has the same condition, so
-   nothing rewrites one already present. In such a repo the finishing agent is routed to the POST-HANDOFF
-   block alone and never told to read the section comments — the comment can be present, undrifted, and the
-   agent diligent, and the instruction still does not reach it.
+4. **An existing repository keeps the pre-017 pointer**, which routes to the block alone. `init` and the
+   `6→7` migration both append only when the marker is absent, so nothing rewrites one already present.
+   An owner may hand-edit it; that is legitimate but is not a delivered fix, and discharges nothing.
 
-   This path is **not** discharged by the argument that an agent resetting the file must read it anyway and
-   will pass the comment. That argument is inference, not routing, and it is precisely the argument this spec
-   rejected when it made the pointer edit for fresh repositories. It cannot be rejected there and relied on
-   here. The honest position is that an existing repository is left where it was before this change, which is
-   the state the rest of this section describes.
-
-   A note on what is possible, not a recommended step: **`init`'s pointer write is append-only** and will not
-   rewrite a section already carrying the marker, so a repository's owner may replace that section by hand
-   and the next `init` stays a no-op. (Scope matters here: `init` is not append-only in general — migration
-   6→7 strips and re-appends the `POST-HANDOFF CLEANUP` block in an existing curated `context.md`.) The agent
-   md is a human-facing doc that tsugu only ever writes with approval, so a human editing it is legitimate,
-   not a violation. What it is not is a **delivered** fix: a repair that reaches an existing repository only
-   when its owner performs a manual step has not reached it. And tsugu exists so an agent carries work
-   forward without the human doing the workspace's maintenance, so leaning on that step inverts the premise.
-   This is therefore not the answer to path 4 and must not be written into any routine, recipe or later spec
-   as one. It also inherits path 2's exposure: migration 6→7 normalizes the `context.md` block but has **no**
-   normalizer for the pointer, so a hand-delivered one is never restored or checked.
-
-Any of the four leaves the blindspot lines on the mainline with **no detector at all**: single-header
-pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
-no-bump constraint — strictly better than a `references/` file that agent never opens — but it is a weaker
-guarantee than the block it is modelled on, and calling it load-bearing describes its role, not its strength.
-The residual is accepted because closing it properly needs a schema bump, and because removing `merge=union`
-(issue #71) deletes the whole failure class rather than adding another detector to it.
+Any of the four leaves the blindspot lines on the mainline with **no detector at all** — single-header
+pollution is invisible to every mechanism 015 ships. The comment is the best carrier available without a
+bump, and the residual is accepted because issue #71 removes `merge=union` and deletes the failure class
+rather than adding another detector to it.
 
 ## State model (unchanged invariant, restated)
 

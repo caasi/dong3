@@ -67,13 +67,10 @@ before landing** — prompted by the standing `POST-HANDOFF CLEANUP`
 block and the always-loaded agent-md pointer (spec 015). That
 reset also **collapses Blindspots** together with the branch's own
 story: the byte-immutable 015 block cannot name the new `##
-Blindspots` section without a schema bump. This note carries the
-instruction **for the tsugu-side reader only** — the finishing
-agent works outside the lifecycle and never loads `references/`.
-Its copy is the section's own skeleton comment in `context.md`,
-which `prepare` keeps and writes in when it is missing; that
-comment is the load-bearing carrier, not scaffolding to be tidied
-away (spec 017). The converge verify-findings reminder feeds the
+Blindspots` section without a schema bump. This note carries the instruction for the tsugu-side reader; the
+finishing agent's copy is the section's own skeleton comment in
+`context.md`, which `prepare` keeps (spec 017).
+The converge verify-findings reminder feeds the
 packet's **remaining uncertainties**. `converge` itself never
 rewrites the mainline. If the PR is instead rejected, the branch
 narrative is rewritten again at the next decision — narrative is
@@ -108,15 +105,10 @@ is still shareable; the split is audience, not maturity.
 **One blessed transient: the blindspot probe.** `prepare` may
 write decision-free disposable code to ground a blindspot and
 keeps it here as rerunnable evidence (SKILL.md, `prepare` step 8).
-It passes the audience test — the reader is the inheritor, who
-re-runs instead of re-trusting — so it is not the session-specific
-scratch the rule above excludes. It is nonetheless **meant to be
-transient**: the POST-HANDOFF `knowledge/` reconciliation prunes
-it or promotes it. Until that reconciliation runs, leave it alone
-— the optional cull below does not apply to it, and neither does
-the write-gate — it is admitted by the reconciliation, not by the
-entry check. Promote-as-move still applies: the reconciliation may
-promote it.
+It is disposed of by the POST-HANDOFF `knowledge/` reconciliation.
+Until then leave it alone:
+the optional cull below does not apply to it, and neither
+does the write-gate. Promote-as-move still applies.
 
 **No prescribed structure.** Agents organize, reorganize, and prune as they judge
 (each a `.tsugu/`-only commit). There is no fixed **layout** — smarter future models
