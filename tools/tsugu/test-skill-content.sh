@@ -459,6 +459,18 @@ need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'One blessed
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'optional cull.{0,30}does not apply' "the cull does not sweep a probe before reconciliation"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'for the tsugu-side reader' "the note does not claim to be the finishing agent's carrier"
 need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'If you are the finishing agent' "the carrier comment addresses the agent that must act on it"
+
+# Negative guards for the WITHDRAWN backstop claim. The harness never scanned docs/, which is
+# where that claim lived, so the withdrawal had nothing holding it. Patterns are chosen not to
+# false-fail on the withdrawal text itself, which legitimately quotes the old wording.
+need_in 'docs/superpowers/specs/017-tsugu-blindspots-verify-design.md' 'BACKSTOP does not cover this case' "spec states the BACKSTOP does not cover a missed Blindspots collapse"
+for f in docs/superpowers/specs/017-tsugu-blindspots-verify-design.md \
+         docs/superpowers/plans/017-tsugu-blindspots-verify-plan.md; do
+  ! grep -Eq 'BACKSTOP (still )?self-heals this' "$ROOT/$f" \
+    || fail "$f revives the withdrawn claim that the 015 BACKSTOP self-heals a missed Blindspots collapse"
+done
+pass "no doc revives the withdrawn BACKSTOP self-heal claim"
+need_in 'plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md' 'comments under its section headers' "the pointer routes the finishing agent to the section comments, not only the block"
 # positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
 # and a whole-file grep cannot see position — so anchor on step 3's own opening text:
 need '3\. Regenerate the \*\*personal packet\*\*.*## Blindspots' "converge step 3 (pre-decision) surfaces the blindspot lines"

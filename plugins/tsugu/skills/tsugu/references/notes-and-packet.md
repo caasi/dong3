@@ -114,7 +114,9 @@ session-specific scratch the rule above excludes. It is nonetheless **meant to
 be transient**: the POST-HANDOFF `knowledge/` reconciliation prunes it or
 promotes it. Until that reconciliation runs, leave it alone —
 the optional cull below does not apply to it, and neither does
-lean discipline.
+the write-gate — it is admitted by the reconciliation, not by the
+entry check. Promote-as-move still applies: the reconciliation may
+promote it.
 
 **No prescribed structure.** Agents organize, reorganize, and prune as they judge
 (each a `.tsugu/`-only commit). There is no fixed **layout** — smarter future models

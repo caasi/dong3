@@ -162,8 +162,10 @@ Two existing steps gain a blindspot intent; no new numbered step is added.
   A blindspot the list already carries, from this run or an earlier one, **is not worked again**. The
   recurrence says the answer is not in territory a sweep can read, so no further sweep can produce it — a
   human can. `prepare` writes that in the line **in prose**, with what was tried, and leaves it for the
-  human at `converge`, whose pre-decision view (step 3) surfaces the `## Blindspots` lines **unordered** —
-  the human reads them and judges. **No marker, no flag, no lineage field**: the state-model invariant below
+  human at `converge`, whose pre-decision view (step 3) surfaces the `## Blindspots` lines **unordered**, and
+  **says aloud which of them record a recurrence**, read from each line's own prose. Speaking it is what makes
+  the escalation land: a status view is skimmed, so a silent dump would leave the requirement resting on the
+  human reading every line. **No marker, no flag, no lineage field**: the state-model invariant below
   holds unchanged, and an agent that sorted the view by a recurrence marker would be classifying, which the
   spine forbids. **External silence holds**: the escalation is the record, not an interrupt. Recurrence is
   detectable across runs precisely because `context.md` carries the record on the branch.
@@ -244,7 +246,9 @@ it needs neither a migration nor a stamp change.
   keeps its current section set: 015's POST-HANDOFF reset collapses a branch's own-story sections (including
   `## Blindspots`) back to the mainline form *before* landing, so in the designed flow the section never rides
   onto default. That permanent mainline divergence (an old repo's mainline has no `## Blindspots` header) is
-  harmless — the section is a branch-level working section, and no reader depends on the mainline carrying it.
+  **not** harmless after the collapse instruction moved into the section's own comment: the finishing agent is
+  now a reader of it. In an old repo the comment reaches a branch only when that run's `prepare` authors the
+  section, so the carrier is branch-local and re-authored, not inherited. See *What is left uncovered*.
   No migration touches the mainline file; no stamp moves. (Concatenation onto the mainline happens only on a
   *missed* reset, which nothing self-heals — see *015's BACKSTOP does not cover this case* below.)
 
@@ -278,11 +282,24 @@ comment when it writes the section (SKILL.md, `prepare` step 8). The comment sit
 finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader. Neither
 path needs a bump, and the immutable block is untouched.
 
-**What is left uncovered, stated plainly.** With the BACKSTOP claim withdrawn, a *double* miss — the finishing
-agent ignores the section comment *and* never reads the note — leaves the blindspot lines on the mainline with
-**no detector at all**. Single-header pollution is invisible to every mechanism 015 ships. The residual risk is
-accepted here because closing it needs a schema bump, and because removing `merge=union` (issue #71) deletes
-the whole failure class rather than adding another detector to it.
+**What is left uncovered, stated plainly.** The repair chains **two** instruction-following steps across
+**two** agents, and there are three ways it fails:
+
+1. **`prepare` does not write the comment.** In an already-initialized repo no migration adds `## Blindspots`
+   and `init` at the current stamp repairs missing *paths*, not sections inside a curated `context.md` — so the
+   section and its comment exist only because that run's `prepare` authored them. This is the default state in
+   every existing repo, not the exception.
+2. **The comment drifts.** Unlike 015's block it is **not** byte-immutable and has **no normalizer**: an
+   `init` re-run does not restore it. Under `merge=union` a drifted retype does not duplicate, it silently
+   replaces the mainline copy, so the erosion propagates and every later branch inherits it.
+3. **The finishing agent ignores it**, and never reads the `references/` copy either.
+
+Any of the three leaves the blindspot lines on the mainline with **no detector at all**: single-header
+pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
+no-bump constraint — strictly better than a `references/` file that agent never opens — but it is a weaker
+guarantee than the block it is modelled on, and calling it load-bearing describes its role, not its strength.
+The residual is accepted because closing it properly needs a schema bump, and because removing `merge=union`
+(issue #71) deletes the whole failure class rather than adding another detector to it.
 
 ## State model (unchanged invariant, restated)
 
@@ -305,7 +322,7 @@ renders `context.md` by reference from the template, so it needs no section edit
 | `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8) | step 7 gains the **blindspot-sweep intent** **and the recurrence stopping rule** (read `## Blindspots` first; a blindspot the list already carries is not worked again, the repeat recorded in prose — no flag); step 8 records surviving blindspots under `## Blindspots` with the **material + grounded** filter; taste-questions are flagged + routed, never mined (Change B) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (`converge` — step 3, and after step 4's disposition at the step 5 → packet-hint region, SKILL.md:248–250) | add the **verify-findings reminder** (verify with the human before a skill runs; disposable code as evidence; reminder-not-step; skip trivial work) (Change C); and, in **step 3's pre-decision view**, surface the branch's `## Blindspots` lines **unordered** — a recurrence may change the disposition, so it must be visible before one is chosen, and the ordering stays the human's (Change B) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (spine `context.md` bullet) | one clause: the skeleton now carries `## Blindspots` (narrative, material+grounded) — no schema note |
-| `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | add `## Blindspots` to the `context.md` section list at lines ~25–27 (it enumerates all six current sections — verified); **add the reset clause** — the finishing agent collapses `## Blindspots` **together with** the branch's own story before landing (the byte-immutable 015 block cannot name it under the no-bump decision, so this mutable file carries it **for the tsugu-side reader**; the finishing agent's copy is the section's own skeleton comment in `context.md` — F2); note the verify-findings reminder feeds the packet's "remaining uncertainties" |
+| `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | add `## Blindspots` to the `context.md` section list at lines ~25–27 (it enumerates all six current sections — verified); **add the reset clause** — the finishing agent collapses `## Blindspots` **together with** the branch's own story before landing (the byte-immutable 015 block cannot name it under the no-bump decision, so this mutable file carries it **for the tsugu-side reader**; the finishing agent's copy is the section's own skeleton comment in `context.md` — F2); and **carve the blindspot probe out of the `knowledge/` entry rules** — it is a blessed transient that the POST-HANDOFF reconciliation disposes of, so the optional cull and the write-gate do not apply to it before then; note the verify-findings reminder feeds the packet's "remaining uncertainties" |
 | `plugins/tsugu/commands/prepare.md` | one clause: `prepare` surfaces blindspots into `context.md`'s `## Blindspots` (material + grounded) |
 | `plugins/tsugu/commands/converge.md` | one clause: `converge` reminds the agent to verify findings with the human before routing to a skill (no chain-string / schema change) |
 | `plugins/tsugu/skills/tsugu/README.md` | user-facing prose only (**no stamp change**): `prepare` now surfaces blindspots (unknown unknowns) into `## Blindspots`; `converge` reminds the agent to verify findings with the human before a skill runs — the small-loop check pulled one phase earlier |

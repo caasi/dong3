@@ -79,8 +79,11 @@ In `plugins/tsugu/skills/tsugu/templates/context.md`, add `## Blindspots` **afte
      pitfalls, unnamed consumers, patterns to follow).
      Filter: material + grounded — it changes architecture/data/security/scope
      AND is rooted in observed source, not a generic preference.
-     A branch-working section: it resets with this branch's story on handoff
-     (not a question list — that is Open questions). -->
+     Runnable evidence lives in knowledge/; a line here only indexes it.
+     A branch-working section. If you are the finishing agent resetting this
+     file to the mainline form before landing, collapse THIS section too, with
+     the rest of the branch's story — the standing block below cannot name it.
+     (Not a question list — that is Open questions.) -->
 ## Next actions
 ```
 
@@ -299,8 +302,8 @@ Expected: `FAIL: plugins/tsugu/skills/tsugu/references/notes-and-packet.md missi
 with the branch's own story before landing."* The byte-immutable 015 POST-HANDOFF block cannot name the new
 section under the no-bump decision. This mutable file carries the instruction for the tsugu-side reader; the
 finishing agent's copy is the section's own skeleton comment in `context.md` (it never loads `references/`).
-Without either, a literal reset
-leaves `## Blindspots` polluting the mainline, and **nothing self-heals it** — the 015 BACKSTOP fires on
+Without either, a literal reset leaves `## Blindspots` polluting the mainline, and **nothing self-heals it**
+— the 015 BACKSTOP fires on
 duplicate `##` headers, and a missed Blindspots collapse produces a single header, not a duplicate. The
 instruction must therefore also travel with the section itself: `prepare` keeps the `## Blindspots` skeleton
 comment, which lives in `context.md` where the finishing agent reads it.
