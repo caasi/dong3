@@ -275,13 +275,13 @@ claim was wrong and is withdrawn.
 
 So the instruction must reach the finishing agent by a path it actually reads. That agent works **outside**
 tsugu's lifecycle and loads only the agent-md pointer and, through it, `context.md` — the POST-HANDOFF block
-and the comments under the section headers, which the pointer now names explicitly
-— never `references/notes-and-packet.md`. Recording the instruction only there leaves it without a reader.
-**The instruction therefore travels with the section it governs**: the `## Blindspots` skeleton comment in
+and the comments under the section headers, which the pointer now names explicitly — never
+`references/notes-and-packet.md`. Recording the instruction only there leaves it without a reader. **The
+instruction therefore travels with the section it governs**: the `## Blindspots` skeleton comment in
 `templates/context.md` already states that the section resets with the branch story, and `prepare` keeps that
 comment when it writes the section (SKILL.md, `prepare` step 8). The comment sits in `context.md`, which the
-finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader. Neither
-path needs a bump, and the immutable block is untouched.
+finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader.
+Neither path needs a bump, and the immutable block is untouched.
 
 **What is left uncovered, stated plainly.** The repair depends on two agents: `prepare` must write the
 comment, and the finishing agent must be routed to it and then obey it. There are four ways that fails —
@@ -344,8 +344,8 @@ renders `context.md` by reference from the template, so it needs no section edit
 | `.claude-plugin/marketplace.json` | bump tsugu `0.9.0 → 0.10.0` (feature bump, **re-verify current version**); description notes `## Blindspots` + the converge verify reminder (**no schema mention**) |
 | `tools/tsugu/test-skill-content.sh` | content anchors: the `## Blindspots` header in the template, the material+grounded filter clause, `prepare`'s blindspot-sweep intent, `converge`'s verify-findings reminder + disposable-code clause; and the recurrence stopping rule. Refutes guard the **superseded** wordings only — the probe's old `## Verification` placement, the withdrawn one-sweep bound, and any `re-raised` marker (which would be the status flag this spec forbids). The no-status-field, not-a-routine-step and no-taste-mining invariants are guarded by `need` anchors on the positive wording, not by refutes. **No schema-stamp anchors — the stamp does not move** |
 
-**No schema migration.** 015's POST-HANDOFF block, the 011 handoff model, 012 local-first,
-and 013 freshness-rebase are all unchanged, and the `tsugu-schema` stamp stays at **7**.
+**No schema migration.** 015's POST-HANDOFF block, the 011 handoff model, 012 local-first, and 013
+freshness-rebase are all unchanged, and the `tsugu-schema` stamp stays at **7**.
 
 ## Explicitly rejected (from issue #67)
 

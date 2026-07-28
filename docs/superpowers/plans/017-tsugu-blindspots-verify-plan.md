@@ -268,6 +268,8 @@ git commit -m "feat(tsugu): converge verify-findings reminder before skills fire
 - Modify: `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` (section list ~25–27; reset paragraph)
 - Modify: `plugins/tsugu/commands/prepare.md`, `plugins/tsugu/commands/converge.md`
 - Modify: `plugins/tsugu/skills/tsugu/README.md` (prose only — **no stamp change**)
+- Modify: `plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md` (routing prose only — **no stamp
+  change**, and the `## tsugu — post-handoff cleanup` marker line stays byte-identical)
 - Test: `tools/tsugu/test-skill-content.sh`
 
 **Interfaces:**
@@ -282,6 +284,7 @@ need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'remaining u
 need_in 'plugins/tsugu/commands/prepare.md'  '[Bb]lindspot'   "prepare command mentions blindspots"
 need_in 'plugins/tsugu/commands/converge.md' 'verify findings'  "converge command names the verify reminder (not pre-existing)"
 need_in 'plugins/tsugu/skills/tsugu/README.md' '[Bb]lindspot' "README mentions blindspots"
+need_in 'plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md' 'comments under its section headers' "the pointer routes the finishing agent to the section comments, not only the block"
 ```
 
 Anchor notes: `converge.md` already contains the bare word "verify" (line 18, a 013-vintage phrase), so the
@@ -316,13 +319,24 @@ spec's notes-and-packet row).
 `commands/converge.md`: one clause — `converge` reminds the agent to verify findings with the human before
 routing to a skill. No chain-string / schema change.
 
-- [ ] **Step 5: Edit `README.md` (prose only)**
+- [ ] **Step 5: Edit `templates/agent-md-pointer.md` (routing prose)**
+
+The pointer is the finishing agent's only always-loaded channel, and it names a *region* — "read that
+file's POST-HANDOFF CLEANUP block". A section added after that block was written cannot be named inside
+it without a schema bump, so the pointer must also send the agent to the section comments. Add that,
+keeping the `## tsugu — post-handoff cleanup` heading byte-identical (`init` and the `6→7` migration
+are idempotent on that marker) and keeping `public coordination` and `approval` on **one line** — that
+anchor is a line-based `grep -Eq`. Note the consequence for the record: `init` skips a pointer already
+present, so an **existing** repo keeps the old text and never receives this routing. That is failure
+path 4 in the spec, not something this step fixes.
+
+- [ ] **Step 6: Edit `README.md` (prose only)**
 
 Add user-facing prose (no `tsugu-schema` edit): `prepare` now surfaces blindspots (unknown unknowns) into
 `## Blindspots`; `converge` reminds the agent to verify findings with the human before a skill runs — the
 small-loop check pulled one phase earlier.
 
-- [ ] **Step 6: Run the test to verify it passes, then commit**
+- [ ] **Step 7: Run the test to verify it passes, then commit**
 
 Run: `bash tools/tsugu/test-skill-content.sh` → all new anchors `PASS`.
 
