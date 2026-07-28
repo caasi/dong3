@@ -308,6 +308,13 @@ three of instruction-following, and one of delivery:
    here. The honest position is that an existing repository is left where it was before this change, which is
    the state the rest of this section describes.
 
+   **A migration is not the only delivery channel — the human is one.** `init` is append-only and will not
+   rewrite a pointer section that is already present, but the repository's owner may replace that section by
+   hand. The `## tsugu — post-handoff cleanup` marker keeps the next `init` idempotent either way, so a
+   hand-edited pointer is not undone and does not need a stamp. This discharges path 4 in practice for a
+   repository whose owner does it, without a bump and without an agent rewriting a human-facing file on its
+   own. It does not discharge the path in general: an owner who does nothing keeps the old routing.
+
 Any of the four leaves the blindspot lines on the mainline with **no detector at all**: single-header
 pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
 no-bump constraint — strictly better than a `references/` file that agent never opens — but it is a weaker
