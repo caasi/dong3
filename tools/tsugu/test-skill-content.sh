@@ -440,6 +440,19 @@ need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'material \+ grounded'
 
 # --- Spec 017 Task 2: prepare blindspot sweep + decision-free probe (Change B) ---
 need 'blindspot sweep|blindspot intent'                 "prepare step 7 names the blindspot sweep"
+need 'a repeat is the stop signal'                      "re-sweeping is encouraged; a repeat is what stops it"
+need 'read .## Blindspots. before sweeping'             "the identity test is list membership, so the list is read first"
+need 'the list already carries'                         "the trigger is a blindspot already on the list, not a pass count"
+need 'this run or an earlier one'                       "the repeat trigger spans runs, not just one prepare run"
+need 'leave it for the human at converge'               "a repeated blindspot is escalated to the human, not swept again"
+need 'no flag, no status field'                         "the repeat is recorded as prose — the 017 state-model invariant holds"
+# positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
+# and a whole-file grep cannot see position — so anchor on step 3's own opening text:
+need '3\. Regenerate the \*\*personal packet\*\*.*## Blindspots' "converge step 3 (pre-decision) surfaces the blindspot lines"
+# supersession guards — 21711a0's one-sweep bound was replaced by the recurrence rule:
+refute 'one sweep, then stop'                           "the superseded one-sweep bound is gone"
+refute 'never earns a second sweep'                     "re-sweeping is no longer forbidden"
+refute 're-raised'                                      "no re-raised marker — that would be the recorded flag 017 forbids"
 need 'material \+ grounded'                              "step 8 material+grounded filter bar (SKILL.md)"
 need 'the code is the evidence'                          "prepare keeps the probe as evidence"
 need 'rides 015.{0,20}reconciliation'                    "prepare-probe cleanup rides 015's knowledge/ reconciliation (no rule of its own)"

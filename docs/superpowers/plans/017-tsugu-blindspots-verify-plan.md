@@ -108,7 +108,8 @@ git commit -m "feat(tsugu): add ## Blindspots section to context.md template (01
 ### Task 2: `prepare` blindspot sweep + decision-free disposable-code grounding (Change B)
 
 **Files:**
-- Modify: `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8, lines ~159–160)
+- Modify: `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8, lines ~159–160; and `converge`
+  step 3, line ~190 — the stopping rule's escalation has to be visible before a disposition is chosen)
 - Test: `tools/tsugu/test-skill-content.sh`
 
 **Interfaces:**
@@ -124,14 +125,23 @@ Add under `# --- Task: 017 prepare blindspot sweep (Change B) ---`:
 need 'blindspot sweep|blindspot intent'                 "prepare step 7 names the blindspot sweep"
 need 'material \+ grounded'                              "step 8 material+grounded filter bar"
 need 'the code is the evidence'                          "prepare keeps the probe as evidence"
-need 'Cleanup is deferred to the human-present'          "prepare-probe cleanup deferred to converge/finishing"
+need 'rides 015.{0,20}reconciliation'                    "prepare-probe cleanup rides 015's knowledge/ reconciliation"
+refute 'repro script under .## Verification'             "the probe does not land in the narrative"
 need 'flagged and routed'                                "taste-questions flagged and routed, not mined"
+need 'a repeat is the stop signal'                       "re-sweeping is encouraged; a repeat is what stops it"
+need 'read .## Blindspots. before sweeping'              "the identity test is list membership"
+need 'the list already carries'                          "the trigger is a blindspot already on the list"
+need 'this run or an earlier one'                        "the repeat trigger spans runs"
+need 'leave it for the human at converge'                "a repeated blindspot escalates to the human"
+need 'no flag, no status field'                          "the repeat is prose — the state-model invariant holds"
+refute 're-raised'                                       "no marker — that would be the flag 017 forbids"
 ```
 
 (`need 'decision-free'` already exists at test line 24 — **do not duplicate it**. SKILL.md is one long
 physical line per step, so single-line phrases are safe — but when writing Step 4 keep each anchored phrase
-(`material + grounded`, `the code is the evidence`, `Cleanup is deferred to the human-present`, `flagged and
-routed`) **contiguous on one line** and **lowercase-exact**; the anchors match Step 4 verbatim.)
+(`material + grounded`, `the code is the evidence`, `rides 015's knowledge/ reconciliation`, `flagged and
+routed`, `a repeat is the stop signal`, `the list already carries`, `no flag, no status field`) **contiguous
+on one line** and **lowercase-exact**; the anchors match Step 4 verbatim.)
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -145,24 +155,42 @@ Append one sentence to step 7 (the "dispatch your own review/investigate subagen
 traps, historical pitfalls, the second consumer nobody enumerated, the pattern the codebase already follows).
 It is a blindspot *intent* on the existing subagents, not a new subagent.
 
+Also add the sweep's **stopping rule** to the same step: it is **recurrence, not a count**. Re-sweeping is
+encouraged, but the sweep **reads `## Blindspots` first**, and a blindspot the list already carries — this run
+or an earlier one — is not worked again. The repeat is written into the line **in prose**, with what was
+tried; **no flag, no status field**, because 017's own state model forbids a recorded marker on a blindspot.
+Then it is left for the human at `converge`.
+
 - [ ] **Step 4: Edit `prepare` step 8 (SKILL.md ~line 160)**
 
 Add to step 8 (the "maintain `context.md`" step): each surviving blindspot is recorded under `## Blindspots`
 with the **material + grounded** filter (a line earns its place only if it changes architecture / data /
 security / scope AND is rooted in observed source). A blindspot that is really a *taste*-question is **flagged
 and routed** to brainstorming at converge, never mined in `prepare`. `prepare` MAY write **decision-free**
-disposable code to ground a blindspot and **keeps it** as rerunnable evidence — a committed repro script under
-`## Verification`, or `knowledge/` if reusable — because the code is the evidence; it does **not** delete it
-while the human is absent. Cleanup is **deferred to the human-present phase** (`converge` / finishing), where
-the probe is removed once the real work has **landed** or is **confirmed useless** (riding 015's POST-HANDOFF
-reset + `prune`). Keep the prose within the ASD-STE house rules.
+disposable code to ground a blindspot and **keeps it** as rerunnable evidence — it lands in `knowledge/`,
+never in the narrative, and `## Blindspots` carries the one-line index — because the code is the evidence; it
+does **not** delete it while the human is absent, and there is **no reusability bar at write time** (keep or
+prune is the human's judgement at merge). Cleanup is **deferred to the human-present phase** (`converge` /
+finishing), where the probe is pruned or promoted once the real work has **landed** or is **confirmed
+useless**, riding 015's **`knowledge/` reconciliation** — *not* `prune`, which deletes branches and never
+files. Keep the prose within the ASD-STE house rules.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [ ] **Step 5: Surface `## Blindspots` in `converge` step 3 (SKILL.md ~line 190)**
+
+Step 3 is the **pre-decision** view. Add the branch's `## Blindspots` lines to what it surfaces, **unordered**
+— a line that says the blindspot came back may change the disposition, so it has to be readable before
+accept/park/drop is chosen. Do **not** rank or flag them: ordering by a recurrence marker would be the agent
+classifying, which the spine forbids ("narrative informs judgment, never classification"). Keep the existing
+`(including any personal config unconfigured on this machine)` parenthetical attached to `open questions`.
+
+- [ ] **Step 6: Run the test to verify it passes**
 
 Run: `bash tools/tsugu/test-skill-content.sh`
-Expected: all five new anchors `PASS`; every pre-existing line still `PASS` (esp. the `refute` lines untouched).
+Expected: every new anchor in the Task-2 block `PASS`; every pre-existing line still `PASS` (esp. the
+`refute` lines untouched). Count them from the block above rather than from a number written here — the
+set grew during review.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add plugins/tsugu/skills/tsugu/SKILL.md tools/tsugu/test-skill-content.sh
