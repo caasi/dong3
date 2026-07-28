@@ -262,7 +262,7 @@ git commit -m "feat(tsugu): converge verify-findings reminder before skills fire
 
 ---
 
-### Task 4: Second consumers — notes-and-packet, commands, README (Change A/B/C sync + F2 reset clause)
+### Task 4: Second consumers — notes-and-packet, commands, README, agent-md pointer (Change A/B/C sync + F2 reset clause)
 
 **Files:**
 - Modify: `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` (section list ~25–27; reset paragraph)
@@ -342,7 +342,8 @@ Run: `bash tools/tsugu/test-skill-content.sh` → all new anchors `PASS`.
 
 ```bash
 git add plugins/tsugu/skills/tsugu/references/notes-and-packet.md plugins/tsugu/commands/prepare.md \
-        plugins/tsugu/commands/converge.md plugins/tsugu/skills/tsugu/README.md tools/tsugu/test-skill-content.sh
+        plugins/tsugu/commands/converge.md plugins/tsugu/skills/tsugu/README.md \
+        plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md tools/tsugu/test-skill-content.sh
 git commit -m "feat(tsugu): sync second consumers + F2 reset clause for ## Blindspots (017)"
 ```
 
