@@ -470,6 +470,15 @@ for f in docs/superpowers/specs/017-tsugu-blindspots-verify-design.md \
     || fail "$f revives the withdrawn claim that the 015 BACKSTOP self-heals a missed Blindspots collapse"
 done
 pass "no doc revives the withdrawn BACKSTOP self-heal claim"
+# Same shape, second instance: a hand-edited agent-md pointer was briefly written up as discharging
+# failure path 4, then withdrawn — a human step that reaches only the repos whose owner performs it is
+# not a delivered fix. Guard the discharge wording, not the word "hand", which the note uses legitimately.
+for f in docs/superpowers/specs/017-tsugu-blindspots-verify-design.md \
+         docs/superpowers/plans/017-tsugu-blindspots-verify-plan.md; do
+  ! grep -Eq 'discharges path 4|closing path 4 in practice' "$ROOT/$f" \
+    || fail "$f revives the withdrawn claim that a manual pointer edit discharges failure path 4"
+done
+pass "no doc revives the withdrawn manual-pointer discharge"
 need_in 'plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md' 'comments under its section headers' "the pointer routes the finishing agent to the section comments, not only the block"
 # positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
 # and a whole-file grep cannot see position — so anchor on step 3's own opening text:

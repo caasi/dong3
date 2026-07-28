@@ -252,10 +252,12 @@ it needs neither a migration nor a stamp change.
   No migration touches the mainline file; no stamp moves. (Concatenation onto the mainline happens only on a
   *missed* reset, which nothing self-heals — see *015's BACKSTOP does not cover this case* below.)
 
-**The one honest tension.** After 017, a freshly-`init`-ed repo and an older repo can both read
-`tsugu-schema: 7` yet carry a different `context.md` skeleton (seven sections vs six). This is deliberate and
-harmless: the schema contract governs the migration-owned layout, not the free-narrative section list, and a
-missing narrative section blocks nothing (`merge=union` tolerates it). A bump to 8 *only* to record "the
+**The honest tensions.** After 017, a freshly-`init`-ed repo and an older repo can both read
+`tsugu-schema: 7` yet differ in two ways. The first is the `context.md` skeleton (seven sections vs six),
+and it is deliberate and harmless: the schema contract governs the migration-owned layout, not the
+free-narrative section list, and a missing narrative section blocks nothing (`merge=union` tolerates it).
+The second is the agent-md pointer, which *is* migration-owned, and it is **not** harmless — it is failure
+path 4 below, and closing it is what needs the bump. A bump to 8 *only* to record "the
 template grew one narrative section" would be stamp ceremony with no migration behind it. If a future change
 adds a section the **state model actually reads**, that earns a bump; a narrative section does not.
 
@@ -308,13 +310,17 @@ three of instruction-following, and one of delivery:
    here. The honest position is that an existing repository is left where it was before this change, which is
    the state the rest of this section describes.
 
-   A note on what is possible, not a recommended step: `init` is append-only and will not rewrite a pointer
-   section that is already present, and nothing stops a repository's owner from replacing that section by
-   hand — the marker keeps the next `init` idempotent either way. But `.tsugu/` and the sections tsugu owns
-   are a workspace **agents** maintain. A human editing them is allowed and is not the normal path, so this
-   is not the answer to path 4 and should not be written into any routine as one. The answer is a schema
-   bump, and the reason to accept the path in the meantime is that issue #71 removes the failure class
-   instead.
+   A note on what is possible, not a recommended step: **`init`'s pointer write is append-only** and will not
+   rewrite a section already carrying the marker, so a repository's owner may replace that section by hand
+   and the next `init` stays a no-op. (Scope matters here: `init` is not append-only in general — migration
+   6→7 strips and re-appends the `POST-HANDOFF CLEANUP` block in an existing curated `context.md`.) The agent
+   md is a human-facing doc that tsugu only ever writes with approval, so a human editing it is legitimate,
+   not a violation. What it is not is a **delivered** fix: a repair that reaches an existing repository only
+   when its owner performs a manual step has not reached it. And tsugu exists so an agent carries work
+   forward without the human doing the workspace's maintenance, so leaning on that step inverts the premise.
+   This is therefore not the answer to path 4 and must not be written into any routine, recipe or later spec
+   as one. It also inherits path 2's exposure: migration 6→7 normalizes the `context.md` block but has **no**
+   normalizer for the pointer, so a hand-delivered one is never restored or checked.
 
 Any of the four leaves the blindspot lines on the mainline with **no detector at all**: single-header
 pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
