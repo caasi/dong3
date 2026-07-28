@@ -283,8 +283,9 @@ comment when it writes the section (SKILL.md, `prepare` step 8). The comment sit
 finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader. Neither
 path needs a bump, and the immutable block is untouched.
 
-**What is left uncovered, stated plainly.** The repair chains **two** instruction-following steps across
-**two** agents, and there are four ways it fails:
+**What is left uncovered, stated plainly.** The repair depends on two agents: `prepare` must write the
+comment, and the finishing agent must be routed to it and then obey it. There are four ways that fails —
+three of instruction-following, and one of delivery:
 
 1. **`prepare` does not write the comment.** In an already-initialized repo no migration adds `## Blindspots`
    and `init` at the current stamp repairs missing *paths*, not sections inside a curated `context.md` — so the
@@ -297,7 +298,7 @@ path needs a bump, and the immutable block is untouched.
 4. **An existing repository keeps the pre-017 pointer.** `init` appends the pointer only when the agent md
    lacks the `## tsugu — post-handoff cleanup` marker, and the `6→7` migration has the same condition, so
    nothing rewrites one already present. In such a repo the finishing agent is routed to the POST-HANDOFF
-   block alone and never told to read the section comments — the comment can be present, unadrifted, and the
+   block alone and never told to read the section comments — the comment can be present, undrifted, and the
    agent diligent, and the instruction still does not reach it.
 
    This path is **not** discharged by the argument that an agent resetting the file must read it anyway and
@@ -306,7 +307,7 @@ path needs a bump, and the immutable block is untouched.
    here. The honest position is that an existing repository is left where it was before this change, which is
    the state the rest of this section describes.
 
-Any of the three leaves the blindspot lines on the mainline with **no detector at all**: single-header
+Any of the four leaves the blindspot lines on the mainline with **no detector at all**: single-header
 pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
 no-bump constraint — strictly better than a `references/` file that agent never opens — but it is a weaker
 guarantee than the block it is modelled on, and calling it load-bearing describes its role, not its strength.
