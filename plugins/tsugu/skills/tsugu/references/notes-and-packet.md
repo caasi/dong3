@@ -32,10 +32,13 @@ lineage** — those facts are derived from refs and the DAG.
 
 The mainline form ends with a **standing, byte-immutable
 `POST-HANDOFF CLEANUP` block** (an HTML comment, the
-finishing-agent reminder). It is **inert in `exclude` mode** — the
-human strips `.tsugu/` before the public PR, so no branch narrative
-reaches default and there is nothing to reset — and does real work
-only in `include` mode.
+finishing-agent reminder). Its **narrative reset** is
+**inert in `exclude` mode** — the human strips `.tsugu/` before the
+public PR, so no branch narrative reaches default and there is
+nothing to reset — and does real work only in `include` mode. Its
+`knowledge/` **reconciliation applies in both modes**, because
+`knowledge/` lands on the coordination ref either way (spec 017:
+that reconciliation is what disposes of a kept blindspot probe).
 
 **Prefer runnable evidence.** Verification should point at runnable artifacts — a
 committed repro script, a failing test, a probe — over prose claims (extending
