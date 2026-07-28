@@ -17,6 +17,7 @@
      pitfalls, unnamed consumers, patterns to follow).
      Filter: material + grounded — it changes architecture/data/security/scope
      AND is rooted in observed source, not a generic preference.
+     Runnable evidence lives in knowledge/; a line here only indexes it.
      A branch-working section: it resets with this branch's story on handoff
      (not a question list — that is Open questions). -->
 ## Next actions

@@ -439,7 +439,8 @@ need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'material \+ grounded'
 need 'blindspot sweep|blindspot intent'                 "prepare step 7 names the blindspot sweep"
 need 'material \+ grounded'                              "step 8 material+grounded filter bar (SKILL.md)"
 need 'the code is the evidence'                          "prepare keeps the probe as evidence"
-need 'Cleanup is deferred to the human-present'          "prepare-probe cleanup deferred to converge/finishing"
+need 'rides 015.{0,20}reconciliation'                    "prepare-probe cleanup rides 015's knowledge/ reconciliation (no rule of its own)"
+refute 'repro script under .## Verification'             "probe no longer lands in the narrative under ## Verification"
 need 'flagged and routed'                                "taste-questions flagged and routed, not mined"
 
 # --- Spec 017 Task 3: converge verify reminder + spine bullet (Change C) ---
