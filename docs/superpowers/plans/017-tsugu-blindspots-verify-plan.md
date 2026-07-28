@@ -296,19 +296,18 @@ Expected: `FAIL: plugins/tsugu/skills/tsugu/references/notes-and-packet.md missi
 
 - [ ] **Step 3: Edit `notes-and-packet.md`**
 
-(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections.
-(b) In the reset paragraph (the finish-time collapse guidance), add the **F2 clause** — write it so the words
+(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections. (b) In the
+reset paragraph (the finish-time collapse guidance), add the **F2 clause** — write it so the words
 **`collapses Blindspots`** stay adjacent on one line, e.g. *"the finishing agent collapses Blindspots together
 with the branch's own story before landing."* The byte-immutable 015 POST-HANDOFF block cannot name the new
 section under the no-bump decision. This mutable file carries the instruction for the tsugu-side reader; the
 finishing agent's copy is the section's own skeleton comment in `context.md` (it never loads `references/`).
-Without either, a literal reset leaves `## Blindspots` polluting the mainline, and **nothing self-heals it**
-— the 015 BACKSTOP fires on
-duplicate `##` headers, and a missed Blindspots collapse produces a single header, not a duplicate. The
-instruction must therefore also travel with the section itself: `prepare` keeps the `## Blindspots` skeleton
-comment, which lives in `context.md` where the finishing agent reads it.
-(c) Add one clause noting the **converge verify-findings reminder feeds the packet's "remaining
-uncertainties"** (the spec's notes-and-packet row).
+Without either, a literal reset leaves `## Blindspots` polluting the mainline, and **nothing self-heals it** —
+the 015 BACKSTOP fires on duplicate `##` headers, and a missed Blindspots collapse produces a single header,
+not a duplicate. The instruction must therefore also travel with the section itself: `prepare` keeps the `##
+Blindspots` skeleton comment, which lives in `context.md` where the finishing agent reads it. (c) Add one
+clause noting the **converge verify-findings reminder feeds the packet's "remaining uncertainties"** (the
+spec's notes-and-packet row).
 
 - [ ] **Step 4: Edit the command files**
 
