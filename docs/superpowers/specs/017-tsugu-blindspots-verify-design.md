@@ -278,8 +278,9 @@ tsugu's lifecycle and loads only the agent-md pointer and, through it, `context.
 and the comments under the section headers, which the pointer now names explicitly — never
 `references/notes-and-packet.md`. Recording the instruction only there leaves it without a reader. **The
 instruction therefore travels with the section it governs**: the `## Blindspots` skeleton comment in
-`templates/context.md` already states that the section resets with the branch story, and `prepare` keeps that
-comment when it writes the section (SKILL.md, `prepare` step 8). The comment sits in `context.md`, which the
+`templates/context.md` tells the finishing agent, in the imperative, to collapse the section together with the
+rest of the branch's story, and `prepare` keeps that comment when it writes the section (SKILL.md, `prepare`
+step 8). The comment sits in `context.md`, which the
 finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader.
 Neither path needs a bump, and the immutable block is untouched.
 
