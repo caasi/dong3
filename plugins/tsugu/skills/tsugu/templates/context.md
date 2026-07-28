@@ -18,8 +18,10 @@
      Filter: material + grounded — it changes architecture/data/security/scope
      AND is rooted in observed source, not a generic preference.
      Runnable evidence lives in knowledge/; a line here only indexes it.
-     A branch-working section: it resets with this branch's story on handoff
-     (not a question list — that is Open questions). -->
+     A branch-working section. If you are the finishing agent resetting this
+     file to the mainline form before landing, collapse THIS section too, with
+     the rest of the branch's story — the standing block below cannot name it.
+     (Not a question list — that is Open questions.) -->
 ## Next actions
 ## Verification
 <!-- prefer runnable evidence — a committed repro script, a failing test, a

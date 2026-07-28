@@ -457,6 +457,8 @@ need 'Say aloud which lines record a recurrence'         "converge speaks the re
 need "nothing is sorted, no field is set"                "saying it aloud does not become a status field"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'One blessed transient' "knowledge/ entry rules carve out the blindspot probe"
 need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'optional cull.{0,30}does not apply' "the cull does not sweep a probe before reconciliation"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'for the tsugu-side reader' "the note does not claim to be the finishing agent's carrier"
+need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'If you are the finishing agent' "the carrier comment addresses the agent that must act on it"
 # positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
 # and a whole-file grep cannot see position — so anchor on step 3's own opening text:
 need '3\. Regenerate the \*\*personal packet\*\*.*## Blindspots' "converge step 3 (pre-decision) surfaces the blindspot lines"

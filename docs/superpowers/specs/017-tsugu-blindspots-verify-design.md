@@ -278,6 +278,12 @@ comment when it writes the section (SKILL.md, `prepare` step 8). The comment sit
 finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader. Neither
 path needs a bump, and the immutable block is untouched.
 
+**What is left uncovered, stated plainly.** With the BACKSTOP claim withdrawn, a *double* miss — the finishing
+agent ignores the section comment *and* never reads the note — leaves the blindspot lines on the mainline with
+**no detector at all**. Single-header pollution is invisible to every mechanism 015 ships. The residual risk is
+accepted here because closing it needs a schema bump, and because removing `merge=union` (issue #71) deletes
+the whole failure class rather than adding another detector to it.
+
 ## State model (unchanged invariant, restated)
 
 017 sets **no status field**. `## Blindspots` is narrative; the verify reminder produces a
@@ -299,7 +305,7 @@ renders `context.md` by reference from the template, so it needs no section edit
 | `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8) | step 7 gains the **blindspot-sweep intent** **and the recurrence stopping rule** (read `## Blindspots` first; a blindspot the list already carries is not worked again, the repeat recorded in prose — no flag); step 8 records surviving blindspots under `## Blindspots` with the **material + grounded** filter; taste-questions are flagged + routed, never mined (Change B) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (`converge` — step 3, and after step 4's disposition at the step 5 → packet-hint region, SKILL.md:248–250) | add the **verify-findings reminder** (verify with the human before a skill runs; disposable code as evidence; reminder-not-step; skip trivial work) (Change C); and, in **step 3's pre-decision view**, surface the branch's `## Blindspots` lines **unordered** — a recurrence may change the disposition, so it must be visible before one is chosen, and the ordering stays the human's (Change B) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (spine `context.md` bullet) | one clause: the skeleton now carries `## Blindspots` (narrative, material+grounded) — no schema note |
-| `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | add `## Blindspots` to the `context.md` section list at lines ~25–27 (it enumerates all six current sections — verified); **add the reset clause** — the finishing agent collapses `## Blindspots` **together with** the branch's own story before landing (the byte-immutable 015 block cannot name it under the no-bump decision, so this mutable file carries it — F2); note the verify-findings reminder feeds the packet's "remaining uncertainties" |
+| `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | add `## Blindspots` to the `context.md` section list at lines ~25–27 (it enumerates all six current sections — verified); **add the reset clause** — the finishing agent collapses `## Blindspots` **together with** the branch's own story before landing (the byte-immutable 015 block cannot name it under the no-bump decision, so this mutable file carries it **for the tsugu-side reader**; the finishing agent's copy is the section's own skeleton comment in `context.md` — F2); note the verify-findings reminder feeds the packet's "remaining uncertainties" |
 | `plugins/tsugu/commands/prepare.md` | one clause: `prepare` surfaces blindspots into `context.md`'s `## Blindspots` (material + grounded) |
 | `plugins/tsugu/commands/converge.md` | one clause: `converge` reminds the agent to verify findings with the human before routing to a skill (no chain-string / schema change) |
 | `plugins/tsugu/skills/tsugu/README.md` | user-facing prose only (**no stamp change**): `prepare` now surfaces blindspots (unknown unknowns) into `## Blindspots`; `converge` reminds the agent to verify findings with the human before a skill runs — the small-loop check pulled one phase earlier |

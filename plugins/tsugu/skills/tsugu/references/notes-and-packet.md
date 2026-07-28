@@ -67,7 +67,13 @@ before landing** — prompted by the standing `POST-HANDOFF CLEANUP`
 block and the always-loaded agent-md pointer (spec 015). That reset
 also **collapses Blindspots** together with the branch's own story:
 the byte-immutable 015 block cannot name the new `## Blindspots`
-section, so this note carries the instruction (spec 017). The
+section without a schema bump. This note carries the instruction
+**for the tsugu-side reader only** — the finishing agent works
+outside the lifecycle and never loads `references/`. Its copy is
+the section's own skeleton comment in `context.md`, which
+`prepare` keeps and writes in when it is missing; that comment is
+the load-bearing carrier, not scaffolding to be tidied away
+(spec 017). The
 converge verify-findings reminder feeds the packet's
 **remaining uncertainties**.
 `converge` itself never rewrites the mainline. If the PR is
