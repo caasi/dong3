@@ -308,12 +308,13 @@ three of instruction-following, and one of delivery:
    here. The honest position is that an existing repository is left where it was before this change, which is
    the state the rest of this section describes.
 
-   **A migration is not the only delivery channel — the human is one.** `init` is append-only and will not
-   rewrite a pointer section that is already present, but the repository's owner may replace that section by
-   hand. The `## tsugu — post-handoff cleanup` marker keeps the next `init` idempotent either way, so a
-   hand-edited pointer is not undone and does not need a stamp. This discharges path 4 in practice for a
-   repository whose owner does it, without a bump and without an agent rewriting a human-facing file on its
-   own. It does not discharge the path in general: an owner who does nothing keeps the old routing.
+   A note on what is possible, not a recommended step: `init` is append-only and will not rewrite a pointer
+   section that is already present, and nothing stops a repository's owner from replacing that section by
+   hand — the marker keeps the next `init` idempotent either way. But `.tsugu/` and the sections tsugu owns
+   are a workspace **agents** maintain. A human editing them is allowed and is not the normal path, so this
+   is not the answer to path 4 and should not be written into any routine as one. The answer is a schema
+   bump, and the reason to accept the path in the meantime is that issue #71 removes the failure class
+   instead.
 
 Any of the four leaves the blindspot lines on the mainline with **no detector at all**: single-header
 pollution is invisible to every mechanism 015 ships. So the comment is the *best available* carrier under the
