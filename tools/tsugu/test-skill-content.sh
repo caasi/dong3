@@ -466,7 +466,7 @@ need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'If you are the finish
 need_in 'docs/superpowers/specs/017-tsugu-blindspots-verify-design.md' 'BACKSTOP does not cover this case' "spec states the BACKSTOP does not cover a missed Blindspots collapse"
 for f in docs/superpowers/specs/017-tsugu-blindspots-verify-design.md \
          docs/superpowers/plans/017-tsugu-blindspots-verify-plan.md; do
-  ! grep -Eq 'BACKSTOP (still )?self-heals this' "$ROOT/$f" \
+  ! grep -Eq 'BACKSTOP (still )?self-heals(,| this)' "$ROOT/$f" \
     || fail "$f revives the withdrawn claim that the 015 BACKSTOP self-heals a missed Blindspots collapse"
 done
 pass "no doc revives the withdrawn BACKSTOP self-heal claim"
