@@ -298,8 +298,10 @@ Expected: `FAIL: plugins/tsugu/skills/tsugu/references/notes-and-packet.md missi
 **`collapses Blindspots`** stay adjacent on one line, e.g. *"the finishing agent collapses Blindspots together
 with the branch's own story before landing."* The byte-immutable 015 POST-HANDOFF block cannot name the new
 section under the no-bump decision, so this mutable file carries the instruction; without it a literal reset
-leaves `## Blindspots` polluting the mainline (the 015 duplicate-`##` BACKSTOP still self-heals, one landing
-late).
+leaves `## Blindspots` polluting the mainline, and **nothing self-heals it** — the 015 BACKSTOP fires on
+duplicate `##` headers, and a missed Blindspots collapse produces a single header, not a duplicate. The
+instruction must therefore also travel with the section itself: `prepare` keeps the `## Blindspots` skeleton
+comment, which lives in `context.md` where the finishing agent reads it.
 (c) Add one clause noting the **converge verify-findings reminder feeds the packet's "remaining
 uncertainties"** (the spec's notes-and-packet row).
 

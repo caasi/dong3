@@ -100,6 +100,16 @@ private-source details, **not** session-specific scratch — those are personal 
 ephemeral, never the committed wiki. A **half-formed** insight meant for the team
 is still shareable; the split is audience, not maturity.
 
+**One blessed transient: the blindspot probe.** `prepare` may write decision-free
+disposable code to ground a blindspot and keeps it here as rerunnable evidence
+(SKILL.md, `prepare` step 8). It passes the audience test — the reader is the
+inheritor, who re-runs instead of re-trusting — so it is not the
+session-specific scratch the rule above excludes. It is nonetheless **meant to
+be transient**: the POST-HANDOFF `knowledge/` reconciliation prunes it or
+promotes it. Until that reconciliation runs, leave it alone —
+the optional cull below does not apply to it, and neither does
+lean discipline.
+
 **No prescribed structure.** Agents organize, reorganize, and prune as they judge
 (each a `.tsugu/`-only commit). There is no fixed **layout** — smarter future models
 inherit the freedom, not a frozen taxonomy. It absorbs the shareable findings a

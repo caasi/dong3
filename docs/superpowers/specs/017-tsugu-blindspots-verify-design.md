@@ -246,7 +246,7 @@ it needs neither a migration nor a stamp change.
   onto default. That permanent mainline divergence (an old repo's mainline has no `## Blindspots` header) is
   harmless — the section is a branch-level working section, and no reader depends on the mainline carrying it.
   No migration touches the mainline file; no stamp moves. (Concatenation onto the mainline happens only on a
-  *missed* reset — 015's backstop path, not the mechanism.)
+  *missed* reset, which nothing self-heals — see *015's BACKSTOP does not cover this case* below.)
 
 **The one honest tension.** After 017, a freshly-`init`-ed repo and an older repo can both read
 `tsugu-schema: 7` yet carry a different `context.md` skeleton (seven sections vs six). This is deliberate and
@@ -259,11 +259,24 @@ adds a section the **state model actually reads**, that earns a bump; a narrativ
 **byte-immutable** (only a migration may rewrite it), and its collapse instruction enumerates the sections the
 finishing agent resets — "Why this ref exists / Open questions / Next actions". Without a bump, that block
 cannot be extended to name `## Blindspots`, so a literal reset could collapse the three named sections and
-leave `## Blindspots` riding onto the mainline — the pollution 015 exists to prevent (its duplicate-`##`
-BACKSTOP self-heals this, but one landing late). 017 therefore records the instruction in a **mutable** second
-consumer — the finishing agent collapses `## Blindspots` **together with** the branch's own story — in
-`notes-and-packet.md`'s reset paragraph (and the agent-md pointer prose), never in the immutable block. This is
-the one real consequence of declining the bump, and it costs one clause, not a stamp sweep.
+leave `## Blindspots` riding onto the mainline — the pollution 015 exists to prevent.
+
+**015's BACKSTOP does not cover this case.** The BACKSTOP fires on duplicate `##` headers. A missed
+`## Blindspots` collapse does not produce one: the mainline note never writes that section, so only the branch
+side changed it since the merge-base, and the merge takes the branch's version as a *single* header. This holds
+whether the mainline carries an empty `## Blindspots` (a post-017 repo) or none at all (an older repo).
+Verified by merging both shapes under `merge=union`: the blindspot lines land on the mainline and no header is
+duplicated. An earlier draft of this spec claimed the BACKSTOP self-heals the case "one landing late"; that
+claim was wrong and is withdrawn.
+
+So the instruction must reach the finishing agent by a path it actually reads. That agent works **outside**
+tsugu's lifecycle and loads only the agent-md pointer and, through it, the POST-HANDOFF block in `context.md`
+— never `references/notes-and-packet.md`. Recording the instruction only there leaves it without a reader.
+**The instruction therefore travels with the section it governs**: the `## Blindspots` skeleton comment in
+`templates/context.md` already states that the section resets with the branch story, and `prepare` keeps that
+comment when it writes the section (SKILL.md, `prepare` step 8). The comment sits in `context.md`, which the
+finishing agent does read. `notes-and-packet.md` keeps the same instruction for the tsugu-side reader. Neither
+path needs a bump, and the immutable block is untouched.
 
 ## State model (unchanged invariant, restated)
 

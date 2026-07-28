@@ -446,6 +446,17 @@ need 'the list already carries'                         "the trigger is a blinds
 need 'this run or an earlier one'                       "the repeat trigger spans runs, not just one prepare run"
 need 'leave it for the human at converge'               "a repeated blindspot is escalated to the human, not swept again"
 need 'no flag, no status field'                         "the repeat is recorded as prose — the 017 state-model invariant holds"
+
+# --- Spec 017 follow-up: the collapse instruction must reach the finishing agent ---
+# The immutable block cannot name ## Blindspots without a bump, and its duplicate-## BACKSTOP
+# does not fire on a single stray header (verified by merging both repo shapes under merge=union).
+# So the instruction rides with the section, in context.md, which that agent does read.
+need "Keep the section's skeleton comment"               "prepare carries the ## Blindspots skeleton comment"
+need 'never .references/'                                "step 8 says the finishing agent does not read references/"
+need 'Say aloud which lines record a recurrence'         "converge speaks the recurrence instead of storing a flag"
+need "nothing is sorted, no field is set"                "saying it aloud does not become a status field"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'One blessed transient' "knowledge/ entry rules carve out the blindspot probe"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'optional cull.{0,30}does not apply' "the cull does not sweep a probe before reconciliation"
 # positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
 # and a whole-file grep cannot see position — so anchor on step 3's own opening text:
 need '3\. Regenerate the \*\*personal packet\*\*.*## Blindspots' "converge step 3 (pre-decision) surfaces the blindspot lines"
