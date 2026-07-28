@@ -20,3 +20,6 @@ only when the human has explicitly **marked the task as maintenance** (the agent
 never self-classifies); merging/opening the PR is the human's act — Tsugu never
 auto-merges; staleness is shown as a flag on the candidate list, and the
 queue-wide cleanup of settled / leftover branches is pointed at `/tsugu:prune`.
+
+Before the human triggers a workflow skill, `converge` reminds the agent to
+**verify findings** with the human — a reminder, not a routine step (spec 017).

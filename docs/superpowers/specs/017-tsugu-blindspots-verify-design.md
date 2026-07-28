@@ -88,14 +88,14 @@ Consequences, each a design guard:
   turns a claimed fact into a checked one. Trivial mechanical work skips it, same right-sizing as the rest of
   tsugu.
 - **Disposable code has two homes, split by the same axis.** `prepare` (human-absent) may write disposable
-  code for **decision-free** grounding and **keeps it** as rerunnable evidence (a committed repro script under
-  `## Verification`, or `knowledge/` if reusable) so the handoff starts richer — the code *is* the evidence, so
-  `prepare` does not delete it. `converge` (human-present) writes disposable code to **verify** a finding live
-  with the human, then deletes it — the human watched it run, so nothing needs to survive. **Cleanup of the
-  prepare-side probe is deferred to the human-present phase** — deleted at `converge` / finishing once the real
-  work landed or is confirmed useless (rides 015's reset + `prune`). Same tool, two phases, divided by tsugu's
-  **existing** human-absent / human-present axis (SKILL.md already names the decision-free-vs-needs-the-human
-  split) — the probe reuses that line, it does not move it.
+  code for **decision-free** grounding and **keeps it** as rerunnable evidence — it lands in `knowledge/`, never
+  in the narrative, and `## Blindspots` carries the one-line index — so the handoff starts richer; the code *is*
+  the evidence, so `prepare` does not delete it. `converge` (human-present) writes disposable code to **verify**
+  a finding live with the human, then deletes it — the human watched it run, so nothing needs to survive.
+  **Cleanup of the prepare-side probe is deferred to the human-present phase** — kept or pruned once the real
+  work landed or is confirmed useless, riding 015's **`knowledge/` reconciliation**. Same tool, two phases,
+  divided by tsugu's **existing** human-absent / human-present axis (SKILL.md already names the
+  decision-free-vs-needs-the-human split) — the probe reuses that line, it does not move it.
 - **`## Blindspots` is narrative, `merge=union`-safe, no status field.** Like every `context.md` section it
   is pure prose the state model already permits ("narrative informs judgment, never classification"). It is
   **not** a four-quadrant ledger — only this one section is tsugu's. No `answered/open` field, no lineage —
@@ -106,7 +106,7 @@ Consequences, each a design guard:
 | Line | Change | What it supersedes | Issue |
 | --- | --- | --- | --- |
 | A | **`init` adds a `## Blindspots` section to the `context.md` skeleton.** A new narrative section — the home for the unknown unknowns the `prepare` territory sweep surfaces. Sits among the existing `##` sections (proposed placement: right after `## Open questions`, since the two are the known/unknown pair), **above** the byte-immutable POST-HANDOFF CLEANUP block (015). Opening comment gains a one-line note. `merge=union`-safe, no status field | The skeleton had `## Open questions` (known unknowns) but no place for unknown unknowns; blindspots were lost in prose or never surfaced | #67 |
-| B | **`prepare` names the blindspot sweep as an explicit intent on steps 7–8, with a `material` + `grounded` filter bar.** Step 7's investigate subagents gain a **blindspot intent** ("sweep for convention traps, historical pitfalls, unnamed consumers, patterns to follow — what we do not know we do not know"); step 8 records each surviving blindspot as a line under `## Blindspots`. The bar is **material + grounded** (not *answerable* — that is the `## Open questions` test). Discovering a *taste*-question is flagged and routed to brainstorming at converge, never mined in `prepare` | Step 7 dispatched investigate subagents with no blindspot intent and no home to record what they found | #67 |
+| B | **`prepare` names the blindspot sweep as an explicit intent on steps 7–8, with a `material` + `grounded` filter bar.** Step 7's investigate subagents gain a **blindspot intent** ("sweep for convention traps, historical pitfalls, unnamed consumers, patterns to follow — what we do not know we do not know"); step 8 records each surviving blindspot as a line under `## Blindspots`. The bar is **material + grounded** (not *answerable* — that is the `## Open questions` test). Discovering a *taste*-question is flagged and routed to brainstorming at converge, never mined in `prepare`. The sweep's **stopping rule is recurrence, not a count**: it reads `## Blindspots` first, and a blindspot the list already carries is not worked again — the repeat is written into the line in prose and handed to the human at converge | Step 7 dispatched investigate subagents with no blindspot intent, no home to record what they found, and no stopping rule | #67 |
 | C | **`converge` gains a verify-findings reminder — verify with the human before routing to a skill.** After a disposition is decided (step 4) and before the human triggers a workflow skill (after step 4's disposition, at the step 5 → packet-hint region, SKILL.md:248–250), the handoff context reminds the agent to **verify the branch's findings (blindspots especially) together with the human**, using **disposable code** where a runnable check is cheap (deleted after — evidence, not a deliverable). A **reminder in the handoff context, not a routine step**; skipped for trivial mechanical work | `converge` routed and hinted but never reminded the agent to verify a finding before a downstream skill inherited it | #67 (comment) |
 Everything in 004–015 not named here is unchanged. There is **no schema bump** — `## Blindspots` is a
 narrative section that grows organically under `merge=union` (see *Why 017 does not bump the schema*), so
@@ -148,6 +148,31 @@ Two existing steps gain a blindspot intent; no new numbered step is added.
   blindspot sweep** — read the territory for the unknown unknowns (convention traps, historical pitfalls,
   the second consumer nobody enumerated, the pattern the codebase already follows). This gives the
   already-dispatched subagent work a *blindspot intent*, not a new subagent.
+
+  **The sweep's stopping rule is recurrence, not a count.** Re-sweeping is encouraged — a second look is
+  where a sweep finds what the first missed, and bounding it by a pass count would buy the stopping rule by
+  removing the re-checking that makes the sweep worth running. What is worth acting on is the *repeat*.
+
+  **The identity test is list membership**, which is why the sweep **reads `## Blindspots` first**. Nothing
+  finer is needed, and nothing finer is available: by step 8's bar every line on that list is already
+  material and still unclosed, so "a blindspot the list already carries" is the whole trigger. Stating it as
+  three conditions would be false precision — a sweep has no defined act that *closes* a blindspot (closing
+  is human-present, at the verify reminder), so "could not close" would qualify nothing.
+
+  A blindspot the list already carries, from this run or an earlier one, **is not worked again**. The
+  recurrence says the answer is not in territory a sweep can read, so no further sweep can produce it — a
+  human can. `prepare` writes that in the line **in prose**, with what was tried, and leaves it for the
+  human at `converge`, whose pre-decision view (step 3) surfaces the `## Blindspots` lines **unordered** —
+  the human reads them and judges. **No marker, no flag, no lineage field**: the state-model invariant below
+  holds unchanged, and an agent that sorted the view by a recurrence marker would be classifying, which the
+  spine forbids. **External silence holds**: the escalation is the record, not an interrupt. Recurrence is
+  detectable across runs precisely because `context.md` carries the record on the branch.
+
+  This is the shape `review-loop` uses in its repeat-comment guard — trigger on a concern that came back,
+  not on a counter — with one honest difference: B5 keys on `file:line` and fires only after *a fix commit
+  was already tried*, so its repeat proves an intervention failed. A sweep re-reads unchanged territory, so
+  its repeat proves less. That is the reason the rule stops the sweep and hands over, rather than
+  attempting anything itself.
 - **Step 8 (maintain `context.md`).** Each surviving blindspot is recorded as a line under `## Blindspots`.
   The **filter bar is `material` + `grounded`** — a line earns its place only if it changes something that
   matters (architecture / data / security / scope) *and* is rooted in observed source, not a generic
@@ -159,16 +184,19 @@ Two existing steps gain a blindspot intent; no new numbered step is added.
 The sweep is **discovery plus decision-free grounding**. `prepare` MAY write **disposable code** to ground a
 blindspot — but only for **investigation that needs no human decision** (a probe, a `grep` that confirms "the
 second consumer exists", a feasibility test). Its purpose is to hand `converge` **rerunnable evidence**, not
-just a claim: **keep the probe** — commit it as a small repro script (the template already blesses this under
-`## Verification`), or promote it to `knowledge/` if it is reusable — so the inheritor **re-runs instead of
-re-trusting**. `prepare` does **not** delete it: the code *is* the evidence, and deleting it while the human is
-absent throws away exactly the richer information the probe existed to carry. **Cleanup is deferred to the
-human-present phase** — at `converge` / finishing the probe is deleted once the real work has **landed** (now
-superseded) or is **confirmed useless**, which rides 015's POST-HANDOFF reset and `prune`, not a new mechanism.
-This
-reuses tsugu's own existing axis — SKILL.md already foregrounds "the decision-free vs needs-the-human split"
-(`prepare`, ~:105) and "decision-free code is still reference/proof, still handed off" (~:109), and the spine
-already "runs builds/tests as evidence during `prepare`/`converge`" — so a disposable probe is a strict subset
+just a claim: **keep the probe** — it lands in **`knowledge/`**, never in the narrative, and `## Blindspots`
+carries the one-line index and how to re-run it — so the inheritor **re-runs instead of re-trusting**.
+`prepare` does **not** delete it: the code *is* the evidence, and deleting it while the human is absent
+throws away exactly the richer information the probe existed to carry. There is **no reusability bar at
+write time**: keep-or-prune is a judgement the human owns, deliberately deferred to merge time. **Cleanup
+is deferred to the human-present phase** — the probe is pruned or promoted once the real work has
+**landed** (now superseded) or is **confirmed useless**, which rides 015's **`knowledge/` reconciliation**
+(the POST-HANDOFF block's second half: "prune the transient ones; a durable one is promoted to the agent
+md … with the human's approval"), not a new mechanism. It does **not** ride `prune`, which deletes
+branches and never files. This reuses tsugu's own existing axis — SKILL.md already foregrounds
+"the decision-free vs needs-the-human split" (`prepare`, ~:105) and "decision-free code is still
+reference/proof, still handed off" (~:109), and the spine already "runs builds/tests as evidence
+during `prepare`/`converge`" — so a disposable probe is a strict subset
 of `prepare`'s existing charter, not new machinery. What `prepare` does **not** do is **verify** in the
 converge sense: any check whose result needs a human's judgment about what counts as settled waits for the
 human. A blindspot line is `material + grounded` — and possibly decision-free-probed — but explicitly **not
@@ -255,8 +283,8 @@ renders `context.md` by reference from the template, so it needs no section edit
 | File | Change |
 | --- | --- |
 | `plugins/tsugu/skills/tsugu/templates/context.md` | add the **`## Blindspots` section** after `## Open questions` (above the POST-HANDOFF block); opening comment gains a one-line note on what the section holds and the material+grounded filter (Change A) |
-| `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8) | step 7 gains the **blindspot-sweep intent**; step 8 records surviving blindspots under `## Blindspots` with the **material + grounded** filter; taste-questions are flagged + routed, never mined (Change B) |
-| `plugins/tsugu/skills/tsugu/SKILL.md` (`converge` — after step 4's disposition, at the step 5 → packet-hint region, SKILL.md:248–250) | add the **verify-findings reminder** (verify with the human before a skill runs; disposable code as evidence; reminder-not-step; skip trivial work) (Change C) |
+| `plugins/tsugu/skills/tsugu/SKILL.md` (`prepare` steps 7–8) | step 7 gains the **blindspot-sweep intent** **and the recurrence stopping rule** (read `## Blindspots` first; a blindspot the list already carries is not worked again, the repeat recorded in prose — no flag); step 8 records surviving blindspots under `## Blindspots` with the **material + grounded** filter; taste-questions are flagged + routed, never mined (Change B) |
+| `plugins/tsugu/skills/tsugu/SKILL.md` (`converge` — step 3, and after step 4's disposition at the step 5 → packet-hint region, SKILL.md:248–250) | add the **verify-findings reminder** (verify with the human before a skill runs; disposable code as evidence; reminder-not-step; skip trivial work) (Change C); and, in **step 3's pre-decision view**, surface the branch's `## Blindspots` lines **unordered** — a recurrence may change the disposition, so it must be visible before one is chosen, and the ordering stays the human's (Change B) |
 | `plugins/tsugu/skills/tsugu/SKILL.md` (spine `context.md` bullet) | one clause: the skeleton now carries `## Blindspots` (narrative, material+grounded) — no schema note |
 | `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` | add `## Blindspots` to the `context.md` section list at lines ~25–27 (it enumerates all six current sections — verified); **add the reset clause** — the finishing agent collapses `## Blindspots` **together with** the branch's own story before landing (the byte-immutable 015 block cannot name it under the no-bump decision, so this mutable file carries it — F2); note the verify-findings reminder feeds the packet's "remaining uncertainties" |
 | `plugins/tsugu/commands/prepare.md` | one clause: `prepare` surfaces blindspots into `context.md`'s `## Blindspots` (material + grounded) |
@@ -264,7 +292,7 @@ renders `context.md` by reference from the template, so it needs no section edit
 | `plugins/tsugu/skills/tsugu/README.md` | user-facing prose only (**no stamp change**): `prepare` now surfaces blindspots (unknown unknowns) into `## Blindspots`; `converge` reminds the agent to verify findings with the human before a skill runs — the small-loop check pulled one phase earlier |
 | `CLAUDE.md` (dong3 root) | tsugu paragraph: lineage `… → 015 → 017`, spec-list adds `017-tsugu-blindspots-verify-design.md`, a clause on `## Blindspots` + the converge verify reminder. **Schema stays 7.** Rides straight to `main` per the docs convention, enumerated here so the second consumer stays consistent |
 | `.claude-plugin/marketplace.json` | bump tsugu `0.9.0 → 0.10.0` (feature bump, **re-verify current version**); description notes `## Blindspots` + the converge verify reminder (**no schema mention**) |
-| `tools/tsugu/test-skill-content.sh` | content anchors: the `## Blindspots` header in the template, the material+grounded filter clause, `prepare`'s blindspot-sweep intent, `converge`'s verify-findings reminder + disposable-code clause; refute that `## Blindspots` carries a status field, that the verify reminder is a routine step / fifth disposition, and that `prepare` mines taste (it flags + routes only). **No schema-stamp anchors — the stamp does not move** |
+| `tools/tsugu/test-skill-content.sh` | content anchors: the `## Blindspots` header in the template, the material+grounded filter clause, `prepare`'s blindspot-sweep intent, `converge`'s verify-findings reminder + disposable-code clause; and the recurrence stopping rule. Refutes guard the **superseded** wordings only — the probe's old `## Verification` placement, the withdrawn one-sweep bound, and any `re-raised` marker (which would be the status flag this spec forbids). The no-status-field, not-a-routine-step and no-taste-mining invariants are guarded by `need` anchors on the positive wording, not by refutes. **No schema-stamp anchors — the stamp does not move** |
 
 **No schema migration.** 015's POST-HANDOFF block + agent-md pointer, the 011 handoff model, 012 local-first,
 and 013 freshness-rebase are all unchanged, and the `tsugu-schema` stamp stays at **7**.

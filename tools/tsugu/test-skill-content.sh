@@ -134,10 +134,11 @@ grep -rEn '^## Completion tail|swept .{0,30}completion tail|completion tail[^.]{
   && fail "a live 'completion tail' sweep reference survives (should be prune)" \
   || pass "no live completion-tail sweep reference"
 
-# --- Task 11: version + descriptions (superseded by Task 8 spec 012 bump to 0.7.0, then Task 9 spec 013 bump to 0.8.0) ---
+# --- Task 11: version + descriptions. The version literal below is NOT this task's: it tracks the
+# current bump, last moved by spec 017 to 0.10.0 (0.7.0 spec 012 -> 0.8.0 spec 013 -> 0.9.0 spec 015 -> 0.10.0 spec 017) ---
 # jq is primary (portable; grep -Pz is GNU-only and can leak across plugin blocks):
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu version 0.9.0 (bumped by spec 015)" || fail "marketplace.json: tsugu not at 0.9.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.10.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu version 0.10.0 (bumped by spec 017)" || fail "marketplace.json: tsugu not at 0.10.0"
 # guard the DESCRIPTION content too (a stale description with the new version would otherwise pass):
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("prune")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace: tsugu description names prune" || fail "marketplace.json: tsugu description missing prune"
@@ -227,9 +228,9 @@ RM='plugins/tsugu/skills/tsugu/README.md'
 need_in "$RM" 'local-first|local by default'          "README explains local-first prepare"
 need_in "$RM" 'cross-machine opt-in'                  "README notes the cross-machine push opt-in (bigram — bare tokens already present in README)"
 
-# --- Task 8: version 0.7.0 + descriptions (superseded by Task 9 spec 013 bump to 0.8.0) ---
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
-  && pass "marketplace: tsugu 0.9.0" || fail "marketplace.json: tsugu not at 0.9.0"
+# --- Task 8: version + descriptions. The version literal below tracks the current bump (0.10.0, spec 017), not this task's 0.7.0 ---
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.10.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
+  && pass "marketplace: tsugu 0.10.0" || fail "marketplace.json: tsugu not at 0.10.0"
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("local-first|local by default")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null \
   && pass "marketplace desc notes local-first" || fail "marketplace.json: tsugu description missing local-first"
 jq -e '.description|test("local-first|local by default")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null \
@@ -354,9 +355,10 @@ need_in 'plugins/tsugu/commands/init.md' 'tsugu-schema: 7'                    "i
 need_in 'plugins/tsugu/skills/tsugu/README.md' 'tsugu-schema: 7'              "README policy illustration stamps schema 7"
 need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6'                        "init.md migration chain includes schema 6"
 
-# --- Spec 013 Task 9: version bump 0.7.0 -> 0.8.0 (marketplace only; plugin.json has no version field) ---
-[ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.9.0" ] \
-  || fail "marketplace tsugu entry not at 0.9.0"; pass "marketplace tsugu == 0.9.0"
+# --- Spec 013 Task 9: version bump (marketplace only; plugin.json has no version field). The literal
+# below tracks the current bump (0.10.0, spec 017), not this task's 0.8.0 ---
+[ "$(jq -r '.plugins[]|select(.name=="tsugu")|.version' "$ROOT/.claude-plugin/marketplace.json")" = "0.10.0" ] \
+  || fail "marketplace tsugu entry not at 0.10.0"; pass "marketplace tsugu == 0.10.0"
 
 # --- Spec 015 ---
 need_in 'plugins/tsugu/skills/tsugu/README.md' 'POST-HANDOFF|post-handoff cleanup' "README explains the post-handoff cleanup"
@@ -417,7 +419,8 @@ need_in "$MG" 'reserved'                                 "6->7 relies on the res
 need_in "$MG" 'agent-md-pointer|agent md.*pointer|## tsugu — post-handoff cleanup' "6->7 adds the agent-md pointer"
 need_in "$MG" 'tsugu-schema: 7|tsugu-schema. 7'         "6->7 stamps schema 7 last"
 
-# --- Spec 015 Task 10: stamp schema 6->7 + version 0.9.0 everywhere (stale-stamp guard) ---
+# --- Spec 015 Task 10: stamp schema 6->7 everywhere (stale-stamp guard). The version literal below is
+# not 015's: it tracks the current bump, moved to 0.10.0 by spec 017 ---
 need_in 'plugins/tsugu/skills/tsugu/templates/policy.md' 'tsugu-schema: 7'    "policy template stamps schema 7"
 need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' 'current: .7.|schema . 7' "policy-and-intake current schema 7"
 need_in 'plugins/tsugu/commands/init.md' '1→2→3→4→5→6→7'                       "init.md migration chain includes schema 7"
@@ -427,8 +430,57 @@ need_in 'plugins/tsugu/skills/tsugu/SKILL.md' '1→2→3→4→5→6→7'       
 need_in 'plugins/tsugu/skills/tsugu/references/policy-and-intake.md' '1→2→3→4→5→6→7' "policy-and-intake chain includes schema 7"
 need_in 'plugins/tsugu/skills/tsugu/references/migrations.md' '1→2→3→4→5→6→7'  "migrations chain includes schema 7"
 need_in 'CLAUDE.md' '015-tsugu'                                                "dong3 CLAUDE.md references spec 015"
-jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.9.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace tsugu 0.9.0" || fail "marketplace.json: tsugu not at 0.9.0"
+jq -e '.plugins[]|select(.name=="tsugu")|.version=="0.10.0"' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace tsugu 0.10.0" || fail "marketplace.json: tsugu not at 0.10.0"
 jq -e '.plugins[]|select(.name=="tsugu")|.description|test("post-handoff|POST-HANDOFF")' "$ROOT/.claude-plugin/marketplace.json" >/dev/null && pass "marketplace desc notes post-handoff" || fail "marketplace.json: tsugu description missing post-handoff"
 jq -e '.description|test("schema 7")' "$ROOT/plugins/tsugu/.claude-plugin/plugin.json" >/dev/null && pass "plugin.json description stamps schema 7" || fail "plugin.json description not at schema 7"
+
+# --- Spec 017 Task 1: ## Blindspots section in context.md template (Change A) ---
+need_in 'plugins/tsugu/skills/tsugu/templates/context.md' '^## Blindspots'  "context.md template has ## Blindspots"
+need_in 'plugins/tsugu/skills/tsugu/templates/context.md' 'material \+ grounded'  "Blindspots filter comment (single-line phrase)"
+
+# --- Spec 017 Task 2: prepare blindspot sweep + decision-free probe (Change B) ---
+need 'blindspot sweep|blindspot intent'                 "prepare step 7 names the blindspot sweep"
+need 'a repeat is the stop signal'                      "re-sweeping is encouraged; a repeat is what stops it"
+need 'read .## Blindspots. before sweeping'             "the identity test is list membership, so the list is read first"
+need 'the list already carries'                         "the trigger is a blindspot already on the list, not a pass count"
+need 'this run or an earlier one'                       "the repeat trigger spans runs, not just one prepare run"
+need 'leave it for the human at converge'               "a repeated blindspot is escalated to the human, not swept again"
+need 'no flag, no status field'                         "the repeat is recorded as prose — the 017 state-model invariant holds"
+# positional: F3's content IS the position (pre-decision step 3, not the post-decision line ~250),
+# and a whole-file grep cannot see position — so anchor on step 3's own opening text:
+need '3\. Regenerate the \*\*personal packet\*\*.*## Blindspots' "converge step 3 (pre-decision) surfaces the blindspot lines"
+# supersession guards — 21711a0's one-sweep bound was replaced by the recurrence rule:
+refute 'one sweep, then stop'                           "the superseded one-sweep bound is gone"
+refute 'never earns a second sweep'                     "re-sweeping is no longer forbidden"
+refute 're-raised'                                      "no re-raised marker — that would be the recorded flag 017 forbids"
+need 'material \+ grounded'                              "step 8 material+grounded filter bar (SKILL.md)"
+need 'the code is the evidence'                          "prepare keeps the probe as evidence"
+need 'rides 015.{0,20}reconciliation'                    "prepare-probe cleanup rides 015's knowledge/ reconciliation (no rule of its own)"
+refute 'repro script under .## Verification'             "probe no longer lands in the narrative under ## Verification"
+need 'flagged and routed'                                "taste-questions flagged and routed, not mined"
+
+# --- Spec 017 Task 3: converge verify reminder + spine bullet (Change C) ---
+need 'verify .{0,20}findings|Verify before you route'   "converge verify-findings reminder present"
+need 'reminder, not a routine step'                     "verify is a reminder, not a routine step"
+need 'not a fifth disposition'                          "verify reminder is not a fifth disposition (017-unique; the pre-existing 011 text is 'not a fifth verb')"
+need 'branch-working'                                   "spine context.md bullet names Blindspots as branch-working"
+
+# --- Spec 017 Task 4: second consumers (notes-and-packet, commands, README) ---
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' '## Blindspots'  "notes-and-packet lists ## Blindspots"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'collapses Blindspots'  "F2 reset clause (one-line phrase)"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'remaining uncertaint'  "verify reminder feeds packet remaining uncertainties"
+need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'reconciliation applies in both modes'  "knowledge/ reconciliation is not inert in exclude mode (the probe's disposal path)"
+need_in 'plugins/tsugu/commands/prepare.md'  '[Bb]lindspot'   "prepare command mentions blindspots"
+need_in 'plugins/tsugu/commands/converge.md' 'verify findings'  "converge command names the verify reminder (not pre-existing)"
+need_in 'plugins/tsugu/skills/tsugu/README.md' '[Bb]lindspot' "README mentions blindspots"
+
+# --- Spec 017 Task 5: metadata + no-bump guards ---
+need_in 'CLAUDE.md' '017-tsugu-blindspots-verify'            "root CLAUDE.md lists spec 017"
+refute 'tsugu-schema: 8'                                     "no schema-8 stamp in SKILL.md"
+# tree-wide no-bump gate — the stamp lives in templates/policy.md, migrations.md, README.md, commands/init.md,
+# policy-and-intake.md, NOT only SKILL.md; guard the whole tree with a REAL check (never a comment):
+! grep -rn 'tsugu-schema: 8' "$ROOT/plugins/tsugu" >/dev/null 2>&1 \
+  || fail "tsugu-schema: 8 leaked — 017 is a no-bump change"
+pass "no-bump invariant: no tsugu-schema: 8 anywhere under plugins/tsugu"
 
 echo "All tsugu SKILL.md content checks passed."

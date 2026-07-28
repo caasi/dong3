@@ -5,11 +5,21 @@
      what recently landed — init writes the first version). A new work branch
      inherits the mainline form; rewriting it into the branch's own story is
      the first act of real work, and that rewrite commit is the claim. The
+     `## Blindspots` section records the prepare sweep's unknown unknowns and is a
+     branch-working section (reset with the branch story on handoff). The
      trailing POST-HANDOFF CLEANUP block is a standing instruction, not part
      of the narrative skeleton; keep it verbatim. -->
 ## Why this ref exists
 ## Current understanding
 ## Open questions
+## Blindspots
+<!-- unknown unknowns the territory sweep surfaced (convention traps, historical
+     pitfalls, unnamed consumers, patterns to follow).
+     Filter: material + grounded — it changes architecture/data/security/scope
+     AND is rooted in observed source, not a generic preference.
+     Runnable evidence lives in knowledge/; a line here only indexes it.
+     A branch-working section: it resets with this branch's story on handoff
+     (not a question list — that is Open questions). -->
 ## Next actions
 ## Verification
 <!-- prefer runnable evidence — a committed repro script, a failing test, a

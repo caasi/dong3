@@ -31,7 +31,8 @@ One lifecycle, four routines:
    migrates the schema).
 2. **prepare** (human absent) — fetch, derive the queue from git branches, do
    private git work on the configured work-prefix branches (default `prepare/*`),
-   run tests, record evidence in `context.md`, and promote shareable findings into
+   run tests, record evidence in `context.md` (including **blindspots** — unknown
+   unknowns — under a material + grounded filter), and promote shareable findings into
    `knowledge/`. **External silence** — interrupt only if the task is unsafe,
    destructive, or blocked. Work stays on **local** `prepare/*` by default
    (**local-first**); pushing to the remote is a **cross-machine opt-in**
@@ -47,17 +48,18 @@ One lifecycle, four routines:
    rewrite history, push, or open a PR; **you** re-decide the design and own the
    landing. (The one exception: a task **you** explicitly marked maintenance-type — a
    security upgrade, a dependency bump — may be carried to ready-to-merge; the agent
-   **never self-classifies** work as mechanical, and **never auto-merges**.) The
-   other dispositions are **park** (note in `context.md` what's needed to resume) and
-   **drop** (record *why*, then clean up). A branch you don't act on just
-   **continues** — the implicit default. **Findings curation** rides alongside any of
-   these: the agent surfaces durable findings + existing `knowledge/` entries and
-   asks which to organise into the agent md (`CLAUDE.md` / `AGENTS.md`) — agent
-   drafts, you approve. Tsugu presents and yields; it invokes no skill (you trigger
-   any workflow skill by keyword). Running it just to look is a first-class use — the
-   read-only pass is your **morning status view**: how many prepared branches are
-   workable today, what awaits merge, what's stale. Looking and leaving is a valid
-   outcome.
+   **never self-classifies** work as mechanical, and **never auto-merges**.) Before
+   you trigger a workflow skill, the agent reminds you to **verify the findings**
+   together (a reminder, not a routine step). The other dispositions are **park**
+   (note in `context.md` what's needed to resume) and **drop** (record *why*, then
+   clean up). A branch you don't act on just **continues** — the implicit default.
+   **Findings curation** rides alongside any of these: the agent surfaces durable
+   findings + existing `knowledge/` entries and asks which to organise into the
+   agent md (`CLAUDE.md` / `AGENTS.md`) — agent drafts, you approve. Tsugu presents
+   and yields; it invokes no skill (you trigger any workflow skill by keyword).
+   Running it just to look is a first-class use — the read-only pass is your
+   **morning status view**: how many prepared branches are workable today, what
+   awaits merge, what's stale. Looking and leaving is a valid outcome.
 
 **Post-handoff cleanup.** After `converge` hands a branch off, the human finishes it with an agent **outside tsugu's lifecycle**. Because `context.md` carries `merge=union`, landing would concatenate the branch's story onto the mainline note. So the mainline `context.md` ends with a standing **`POST-HANDOFF CLEANUP`** block, and `init` writes a matching pointer into the repo's **`CLAUDE.md`/`AGENTS.md`** (always-loaded) — together they remind the finishing agent to reset the narrative before landing. Passive, best-effort, out-of-lifecycle.
 

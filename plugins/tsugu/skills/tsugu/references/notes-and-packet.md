@@ -19,11 +19,12 @@ and origin told as narrative: **no `status:`, no `claimed-*`, no recorded
 lineage** — those facts are derived from refs and the DAG.
 
 - **On a work branch:** why this branch exists, current understanding, open
-  questions, next actions, verification, promotion candidates. The branch's story
-  is **self-contained** — `## Promotion candidates` points at `knowledge/`, but
-  there are no links to per-session files (there are none on the branch).
+  questions, blindspots, next actions, verification, promotion candidates. The
+  branch's story is **self-contained** — `## Promotion candidates` points at
+  `knowledge/`, but there are no links to per-session files (there are none on
+  the branch).
   Sections: `## Why this ref exists`, `## Current understanding`,
-  `## Open questions`, `## Next actions`, `## Verification`,
+  `## Open questions`, `## Blindspots`, `## Next actions`, `## Verification`,
   `## Promotion candidates`.
 - **On the default branch:** the mainline's current situation — what this repo
   is, where the mainline stands, what recently landed. `init` writes the first
@@ -31,10 +32,13 @@ lineage** — those facts are derived from refs and the DAG.
 
 The mainline form ends with a **standing, byte-immutable
 `POST-HANDOFF CLEANUP` block** (an HTML comment, the
-finishing-agent reminder). It is **inert in `exclude` mode** — the
-human strips `.tsugu/` before the public PR, so no branch narrative
-reaches default and there is nothing to reset — and does real work
-only in `include` mode.
+finishing-agent reminder). Its **narrative reset** is
+**inert in `exclude` mode** — the human strips `.tsugu/` before the
+public PR, so no branch narrative reaches default and there is
+nothing to reset — and does real work only in `include` mode. Its
+`knowledge/` **reconciliation applies in both modes**, because
+`knowledge/` lands on the coordination ref either way (spec 017:
+that reconciliation is what disposes of a kept blindspot probe).
 
 **Prefer runnable evidence.** Verification should point at runnable artifacts — a
 committed repro script, a failing test, a probe — over prose claims (extending
@@ -60,7 +64,12 @@ unchanged; the human and a finishing agent complete the work
 whole story onto the mainline note (duplicate `##` headers). So
 the **finishing agent resets `context.md` to the mainline form
 before landing** — prompted by the standing `POST-HANDOFF CLEANUP`
-block and the always-loaded agent-md pointer (spec 015).
+block and the always-loaded agent-md pointer (spec 015). That reset
+also **collapses Blindspots** together with the branch's own story:
+the byte-immutable 015 block cannot name the new `## Blindspots`
+section, so this note carries the instruction (spec 017). The
+converge verify-findings reminder feeds the packet's
+**remaining uncertainties**.
 `converge` itself never rewrites the mainline. If the PR is
 instead rejected, the branch narrative is rewritten again at the
 next decision — narrative is maintained freely.
