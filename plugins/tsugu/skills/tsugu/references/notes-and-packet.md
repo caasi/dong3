@@ -64,15 +64,17 @@ unchanged; the human and a finishing agent complete the work
 whole story onto the mainline note (duplicate `##` headers). So
 the **finishing agent resets `context.md` to the mainline form
 before landing** — prompted by the standing `POST-HANDOFF CLEANUP`
-block and the always-loaded agent-md pointer (spec 015). That reset
-also **collapses Blindspots** together with the branch's own story:
-the byte-immutable 015 block cannot name the new `## Blindspots`
-section, so this note carries the instruction (spec 017). The
-converge verify-findings reminder feeds the packet's
-**remaining uncertainties**.
-`converge` itself never rewrites the mainline. If the PR is
-instead rejected, the branch narrative is rewritten again at the
-next decision — narrative is maintained freely.
+block and the always-loaded agent-md pointer (spec 015). That
+reset also **collapses Blindspots** together with the branch's own
+story: the byte-immutable 015 block cannot name the new `##
+Blindspots` section without a schema bump. This note carries the instruction for the tsugu-side reader; the
+finishing agent's copy is the section's own skeleton comment in
+`context.md`, which `prepare` keeps (spec 017).
+The converge verify-findings reminder feeds the
+packet's **remaining uncertainties**. `converge` itself never
+rewrites the mainline. If the PR is instead rejected, the branch
+narrative is rewritten again at the next decision — narrative is
+maintained freely.
 
 **No lineage.** Lineage *to the mainline* is an ancestry question the DAG answers
 while history is preserved. Cross-work-branch lineage is **scratch-grade** — a
@@ -99,6 +101,14 @@ coworker's agent would want. Kept to the audience boundary: **not**
 private-source details, **not** session-specific scratch — those are personal or
 ephemeral, never the committed wiki. A **half-formed** insight meant for the team
 is still shareable; the split is audience, not maturity.
+
+**One blessed transient: the blindspot probe.** `prepare` may
+write decision-free disposable code to ground a blindspot and
+keeps it here as rerunnable evidence (SKILL.md, `prepare` step 8).
+It is disposed of by the POST-HANDOFF `knowledge/` reconciliation.
+Until then leave it alone:
+the optional cull below does not apply to it, and neither
+does the write-gate. Promote-as-move still applies.
 
 **No prescribed structure.** Agents organize, reorganize, and prune as they judge
 (each a `.tsugu/`-only commit). There is no fixed **layout** — smarter future models

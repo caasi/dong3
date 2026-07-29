@@ -79,8 +79,11 @@ In `plugins/tsugu/skills/tsugu/templates/context.md`, add `## Blindspots` **afte
      pitfalls, unnamed consumers, patterns to follow).
      Filter: material + grounded — it changes architecture/data/security/scope
      AND is rooted in observed source, not a generic preference.
-     A branch-working section: it resets with this branch's story on handoff
-     (not a question list — that is Open questions). -->
+     Runnable evidence lives in knowledge/; a line here only indexes it.
+     A branch-working section. If you are the finishing agent resetting this
+     file to the mainline form before landing, collapse THIS section too, with
+     the rest of the branch's story — the standing block below cannot name it.
+     (Not a question list — that is Open questions.) -->
 ## Next actions
 ```
 
@@ -259,12 +262,14 @@ git commit -m "feat(tsugu): converge verify-findings reminder before skills fire
 
 ---
 
-### Task 4: Second consumers — notes-and-packet, commands, README (Change A/B/C sync + F2 reset clause)
+### Task 4: Second consumers — notes-and-packet, commands, README, agent-md pointer (Change A/B/C sync + F2 reset clause)
 
 **Files:**
 - Modify: `plugins/tsugu/skills/tsugu/references/notes-and-packet.md` (section list ~25–27; reset paragraph)
 - Modify: `plugins/tsugu/commands/prepare.md`, `plugins/tsugu/commands/converge.md`
 - Modify: `plugins/tsugu/skills/tsugu/README.md` (prose only — **no stamp change**)
+- Modify: `plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md` (routing prose only — **no stamp
+  change**, and the `## tsugu — post-handoff cleanup` marker line stays byte-identical)
 - Test: `tools/tsugu/test-skill-content.sh`
 
 **Interfaces:**
@@ -279,6 +284,7 @@ need_in 'plugins/tsugu/skills/tsugu/references/notes-and-packet.md' 'remaining u
 need_in 'plugins/tsugu/commands/prepare.md'  '[Bb]lindspot'   "prepare command mentions blindspots"
 need_in 'plugins/tsugu/commands/converge.md' 'verify findings'  "converge command names the verify reminder (not pre-existing)"
 need_in 'plugins/tsugu/skills/tsugu/README.md' '[Bb]lindspot' "README mentions blindspots"
+need_in 'plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md' 'comments under its section headers' "the pointer routes the finishing agent to the section comments, not only the block"
 ```
 
 Anchor notes: `converge.md` already contains the bare word "verify" (line 18, a 013-vintage phrase), so the
@@ -293,15 +299,13 @@ Expected: `FAIL: plugins/tsugu/skills/tsugu/references/notes-and-packet.md missi
 
 - [ ] **Step 3: Edit `notes-and-packet.md`**
 
-(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections.
-(b) In the reset paragraph (the finish-time collapse guidance), add the **F2 clause** — write it so the words
-**`collapses Blindspots`** stay adjacent on one line, e.g. *"the finishing agent collapses Blindspots together
-with the branch's own story before landing."* The byte-immutable 015 POST-HANDOFF block cannot name the new
-section under the no-bump decision, so this mutable file carries the instruction; without it a literal reset
-leaves `## Blindspots` polluting the mainline (the 015 duplicate-`##` BACKSTOP still self-heals, one landing
-late).
-(c) Add one clause noting the **converge verify-findings reminder feeds the packet's "remaining
-uncertainties"** (the spec's notes-and-packet row).
+(a) In the `context.md` section list (lines ~25–27) add `## Blindspots` to the enumerated sections. (b) In
+the reset paragraph add the **F2 clause**, written so the words **`collapses Blindspots`** stay adjacent on
+one line, e.g. *"the finishing agent collapses Blindspots together with the branch's own story before
+landing."* Note in it that this file carries the instruction for the tsugu-side reader and the finishing
+agent's copy is the section's own skeleton comment in `context.md`. (c) Add one clause noting the **converge
+verify-findings reminder feeds the packet's "remaining uncertainties"**. Rationale for all three is in the
+spec; do not restate it here.
 
 - [ ] **Step 4: Edit the command files**
 
@@ -310,19 +314,28 @@ uncertainties"** (the spec's notes-and-packet row).
 `commands/converge.md`: one clause — `converge` reminds the agent to verify findings with the human before
 routing to a skill. No chain-string / schema change.
 
-- [ ] **Step 5: Edit `README.md` (prose only)**
+- [ ] **Step 5: Edit `templates/agent-md-pointer.md` (routing prose)**
+
+Add the section comments to what the pointer tells the finishing agent to read, alongside the
+`POST-HANDOFF CLEANUP` block. Two constraints: keep the `## tsugu — post-handoff cleanup` heading
+byte-identical (`init` and the `6→7` migration are idempotent on that marker), and keep `public coordination`
+and `approval` on **one line** (that anchor is a line-based `grep -Eq`). This does not reach an existing
+repo — that is failure path 4 in the spec, not something this step fixes.
+
+- [ ] **Step 6: Edit `README.md` (prose only)**
 
 Add user-facing prose (no `tsugu-schema` edit): `prepare` now surfaces blindspots (unknown unknowns) into
 `## Blindspots`; `converge` reminds the agent to verify findings with the human before a skill runs — the
 small-loop check pulled one phase earlier.
 
-- [ ] **Step 6: Run the test to verify it passes, then commit**
+- [ ] **Step 7: Run the test to verify it passes, then commit**
 
 Run: `bash tools/tsugu/test-skill-content.sh` → all new anchors `PASS`.
 
 ```bash
 git add plugins/tsugu/skills/tsugu/references/notes-and-packet.md plugins/tsugu/commands/prepare.md \
-        plugins/tsugu/commands/converge.md plugins/tsugu/skills/tsugu/README.md tools/tsugu/test-skill-content.sh
+        plugins/tsugu/commands/converge.md plugins/tsugu/skills/tsugu/README.md \
+        plugins/tsugu/skills/tsugu/templates/agent-md-pointer.md tools/tsugu/test-skill-content.sh
 git commit -m "feat(tsugu): sync second consumers + F2 reset clause for ## Blindspots (017)"
 ```
 
