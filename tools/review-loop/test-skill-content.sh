@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.7.0
+VERSION=0.8.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -22,6 +22,18 @@ pd="$(jq -r .description "$PLG")"
 md="$(jq -r '.plugins[]|select(.name=="review-loop").description' "$MKT")"
 [ "$pd" = "$md" ] || fail "plugin.json and marketplace descriptions differ"
 pass "descriptions identical"
+
+# Both descriptions must state how a finding is settled, which is the fact 0.8.0
+# added. This is a presence claim and a grep settles it: the string is the
+# compliance act, so the check is complete for what it asserts. It replaces a
+# pinned digest that could not catch the failure it was named after — a digest
+# re-derived from the file it checks passes on the very no-op edit that motivated
+# it, because the author reads the stale value back out and pastes it in.
+jq -e '.description|test("five independent simulation runs")' "$PLG" >/dev/null \
+  || fail "plugin.json description does not say how a runtime-prompt finding is settled"
+jq -e '.plugins[]|select(.name=="review-loop")|.description|test("five independent simulation runs")' "$MKT" >/dev/null \
+  || fail "marketplace review-loop description does not say how a runtime-prompt finding is settled"
+pass "both descriptions state the settlement rule"
 
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"

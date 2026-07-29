@@ -16,9 +16,11 @@ Run the `review-loop` skill against a target.
 
 **Target:**
 
-The change under review may be code or design artifacts (specs, plans, docs). For
-document targets the loop reviews clarity, consistency, structure, and factual
-accuracy; TDD / one-commit-per-item discipline applies only to executable changes.
+The change under review may be code or design artifacts (specs, plans, docs). How a finding is settled follows who reads the target. For a **runtime prompt** — a
+`SKILL.md`, an agent-md file, a subagent brief — a claim about behaviour is settled by
+running it, never by a string comparison. For a document a human reads, the loop reviews
+clarity, consistency, structure and factual accuracy, and the TDD / one-commit-per-item
+discipline applies only to executable changes.
 
 **Behavior:**
 
