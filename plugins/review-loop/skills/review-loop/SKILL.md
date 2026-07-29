@@ -112,7 +112,7 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed, T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
 ### Reviewers are asked what would show a finding wrong; reproduction is the rule
 
@@ -128,10 +128,13 @@ is just the thing reproduction *checks*, and a reviewer who names it up front sa
 from reverse-engineering it; where it is left out, the facilitator reproduces anyway. A request, not a
 contract — codifying it as required would be new machinery the roster split does not need.
 
-**Reproduce before you accept.** On executable code, a failing test settles it. On prose there is
-nothing to run, so reproduction is **a citation the facilitator verifies with a command** — the
-quotation, its location, and a `grep`. "A reader can check it" is a capability, not a check. A
-finding nobody could reproduce is still surfaced, and said to be unreproduced.
+**Reproduce before you accept.** On executable code, a failing test settles it. On a **runtime
+prompt** a claim about behaviour needs a run, because its text is the behaviour — see § *Prompt
+outputs are run*; a claim that a literal string is present is still settled by a `grep`.
+On prose a human reads, there is nothing to run, so reproduction is **a citation the facilitator
+verifies with a command** — the quotation, its location, and a `grep`. "A reader can check it" is a
+capability, not a check. A finding nobody could reproduce is still surfaced, and said to be
+unreproduced.
 
 A reviewer may give a **confidence**. It informs the author and nothing else: it is a self-report by
 the same weights that produced the finding. **The facilitator never imputes a confidence or a
@@ -139,6 +142,50 @@ falsification condition onto another reviewer's finding** — that would be Clau
 Codex's finding is true and dressing the judgement as Codex's.
 
 Codex's text is quoted **verbatim**, never paraphrased into Claude's voice.
+
+### Prompt outputs are run. Code outputs are tested.
+
+A **runtime prompt** — a `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent,
+and its text is the behaviour. A `grep` over it shows that the source is the source. It cannot show
+that an agent who reads it acts. Deterministic output keeps the rule it already has at § Tiers: a
+test, written first.
+
+**Route by the claim, not by the file.** A runtime prompt also carries claims where the string *is*
+the property — does this file contain the command block it says it runs — and a `grep` settles
+those. Not because a `grep` is cheap: because for that claim the check is complete. Completeness is
+not automatic, so read the match — a substring can match a longer string that means the opposite.
+The test: could the agent comply without the string appearing? If yes it is a **behaviour claim**,
+and **a string comparison is not evidence for it**.
+
+**A behaviour claim is settled by five independent simulation runs.** Build an environment, give it
+to a subagent as a natural task, and read what it did. Five, not one: one run is a single draw, and
+a claim resting on it is an anecdote. The number is fixed here so no episode has to negotiate it.
+(A *simulation run* is one subagent executing the artifact. It is not the `run=` token § A3 logs,
+which names a whole episode.)
+
+The subagent is never told what is under test, and is never asked whether it complied — a fixture
+that says "output `COMPLIED` if you followed the rule" collects a self-report behind a deterministic
+parser. **Intent** — what the artifact is for and who reads it — reaches reviewers and whoever
+builds the environment, and never the subagent that runs. A reviewer that cannot run, such as a
+read-only CLI, says so; the facilitator runs the claim and reports what it saw.
+
+**A run is evidence only if the transcript shows the moment the instruction was exercised.** If
+nobody can point at that moment, the environment never reached the decision the instruction governs,
+and the run says nothing — pass or fail.
+
+**When the agents behaved well, a control arm is what makes that mean anything.** Run the same
+environment with the instruction deleted. If behaviour changes, the good result is attributable to
+the text. If it does not, this environment does not separate the two — which is not the same as the
+text doing nothing, and no run tells you which. Report that and stop; the author decides whether a
+harder environment is worth building.
+
+**Change one thing between runs, never two** — a result that follows a change to both the
+environment and the text is attributable to neither. To try a repair, change a **private copy** of
+the prompt and never the tree, so § A1 holds.
+
+**The run says what to change**: what the subagent did instead, where it stopped reading, what it
+invented to fill a gap. Text added because a run showed a gap is a correction. Text added because a
+reviewer could imagine a gap is accretion.
 
 ## Flow
 
@@ -157,7 +204,8 @@ How each is invoked:
 
 - **Claude subagents** — one `Task` dispatch per enrolled routine Claude reviewer, each under its
   own `model`. The brief stands alone (the subagent sees none of this conversation): the diff, the
-  tier definitions, the falsification-condition instruction, "state your model id on the first
+  tier definitions, the falsification-condition instruction, **the author's intent — what the
+  artifact is for and who reads it** (§ *Prompt outputs are run*), "state your model id on the first
   line", and "your final message is the review record; no preamble". The brief **always** requires
   the reviewer to end with its explicit `{ converged, still_open, reason }` verdict (and
   `suspected_drift` if the review looks aimed off-target) — on **every** round, including the first
@@ -175,7 +223,7 @@ How each is invoked:
   Then a findings list, most-severe first; for each finding give: your claim, its file:location,
   a tier (T1 mechanical / T2 local refactor / T3 architectural), and a concrete falsification
   condition ('not a defect if X'). END with one line: 'CONVERGED' if you found nothing open,
-  else 'NOT CONVERGED' followed by the open items — your per-round convergence verdict (§ A3);
+  else 'STILL-OPEN' followed by the open items — your per-round convergence verdict (§ A3);
   a finding-free blind pass ends 'CONVERGED'. No preamble; your final message is the review record."
   printf '%s\n' "$brief" | codex exec --json --sandbox read-only review -
   ```
@@ -290,7 +338,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here. END with one line: 'CONVERGED' if nothing is open, else 'NOT CONVERGED' with the open items — your per-round convergence verdict (§ A3)." \
+  printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here. END with one line: 'CONVERGED' if nothing is open, else 'STILL-OPEN' with the open items — your per-round convergence verdict (§ A3)." \
     | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.
@@ -309,7 +357,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
       :  # zero command_execution items ⇒ non-review (handle per below)
     fi
     ```
-    Corroborate with text markers `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`; treat a bare `confidence is low` as a non-review **only** alongside one of those markers. **Embedded-diff rounds are exempt** — the diff is in the prompt, so zero `command_execution` is expected and *not* a failure; judge them by reading the review (text markers only as a sanity check). On a **non-review**, retry with the embedded-diff form; if that still can't produce a real review, **degrade to Claude-only with a surfaced note** ("Codex couldn't read the target locally — proceeding Claude-only for the Codex gate") — never a silent clean. Otherwise Claude reads the review and classifies its findings into T1/T2/T3. The facilitator does **not** judge cleanliness itself on any round — it reads Codex's explicit `CONVERGED` / `NOT CONVERGED` line (§ A3) as the verdict. This holds on the **first blind round** too: Codex's `$brief` now ends with that verdict line (a finding-free blind pass ends `CONVERGED`), so a clean round 1 with Codex live is a legitimate dry round like any other — the verdict is *read*, never inferred from an empty findings list.
+    Corroborate with text markers `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`; treat a bare `confidence is low` as a non-review **only** alongside one of those markers. **Embedded-diff rounds are exempt** — the diff is in the prompt, so zero `command_execution` is expected and *not* a failure; judge them by reading the review (text markers only as a sanity check). On a **non-review**, retry with the embedded-diff form; if that still can't produce a real review, **degrade to Claude-only with a surfaced note** ("Codex couldn't read the target locally — proceeding Claude-only for the Codex gate") — never a silent clean. Otherwise Claude reads the review and classifies its findings into T1/T2/T3. The facilitator does **not** judge cleanliness itself on any round — it reads Codex's explicit `CONVERGED` / `STILL-OPEN` line (§ A3) as the verdict. This holds on the **first blind round** too: Codex's `$brief` now ends with that verdict line (a finding-free blind pass ends `CONVERGED`), so a clean round 1 with Codex live is a legitimate dry round like any other — the verdict is *read*, never inferred from an empty findings list.
   - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
   - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
 
@@ -317,7 +365,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  printf '%s\n' "The fixes are applied. For each point you raised, verify it AGAINST THE CODE and state resolved or unresolved, with the evidence you used. Do not treat the author's description of the fix as evidence. Then state any new concerns. If the review seems to be drifting off-target, say 'SUSPECTED DRIFT' and why. END with one line: 'CONVERGED' if nothing remains open, else 'NOT CONVERGED' followed by the still-open items — this is your convergence verdict (§ A3). The loop stops on the reviewers' verdicts (K consecutive dry rounds), not on a round-count guess by the facilitator." \
+  printf '%s\n' "The fixes are applied. For each point you raised, verify it AGAINST THE CODE and state resolved or unresolved, with the evidence you used. Do not treat the author's description of the fix as evidence. Then state any new concerns. If the review seems to be drifting off-target, say 'SUSPECTED DRIFT' and why. END with one line: 'CONVERGED' if nothing remains open, else 'STILL-OPEN' followed by the still-open items — this is your convergence verdict (§ A3). The loop stops on the reviewers' verdicts (K consecutive dry rounds), not on a round-count guess by the facilitator." \
     | codex exec --json --sandbox read-only resume "$thread_id" - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"   # feed the watch pane; Claude reads "$round" (this round only)
   ```
@@ -325,7 +373,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 
 - **Sticky embedded-diff convergence.** If the run is on the embedded-diff path (routed there, or moved there by the detector), keep **all** convergence rounds on it — re-embed the *complete* current target diff each round (`git show <sha>` / `git diff "$base"...HEAD`), **not** just the latest fix commit (a delta would hide regressions in earlier hunks). Resume against `thread_id` is fine only when the full current diff is embedded. **On the embedded path, the resume-failure fallback is a *fresh embedded-diff* call carrying the complete diff — not the generic fresh native `review -`** (which would re-trigger the sandbox false-clean on a broken host). Keep `--json` for `thread_id` + parsing; the structural detector does not apply to embedded-diff rounds (their guarantee is inherent — the diff is in the prompt). Any unavoidably plain-text round falls back to text markers alone.
 
-- **Codex returns a convergence verdict each round, like every other reviewer — no self-terminating sub-loop.** Each facilitator round: `resume` Codex, classify its findings into tiers, resolve picks, fix, and read its `CONVERGED` / `NOT CONVERGED` line (§ A3) as its verdict for that round. Do **not** run a private Codex loop that stops at its *first* clean and then sits out rounds 2..K — the loop-until-dry check in § A3 needs a *live* Codex verdict in every dry round, and a Codex that terminated early leaves the facilitator inferring convergence from its absence, the exact thing A3 forbids. A **clean verdict never retires Codex** — it keeps returning a verdict each round. Codex drops from the live set only when it becomes **unavailable**: the usage-limit outcome, a non-limit failure, or a non-review (the *Three outcomes* above), each of which degrades to Claude-only per § A3.
+- **Codex returns a convergence verdict each round, like every other reviewer — no self-terminating sub-loop.** Each facilitator round: `resume` Codex, classify its findings into tiers, resolve picks, fix, and read its `CONVERGED` / `STILL-OPEN` line (§ A3) as its verdict for that round. Do **not** run a private Codex loop that stops at its *first* clean and then sits out rounds 2..K — the loop-until-dry check in § A3 needs a *live* Codex verdict in every dry round, and a Codex that terminated early leaves the facilitator inferring convergence from its absence, the exact thing A3 forbids. A **clean verdict never retires Codex** — it keeps returning a verdict each round. Codex drops from the live set only when it becomes **unavailable**: the usage-limit outcome, a non-limit failure, or a non-review (the *Three outcomes* above), each of which degrades to Claude-only per § A3.
 
 - **Freeform plain-exec fallback (rare).** Drop to `codex exec "<instructions + diff>"` only when (a) the installed `codex` is too old to have `exec review`, or (b) the target is **not** a git diff (e.g. a pasted artifact outside any repo) — in case (b) **only**, add `--skip-git-repo-check` (unnecessary on the normal `review`/`resume` paths).
 
@@ -334,7 +382,9 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 
 **A3. Converge the local gate — convergence is the reviewers' verdict, never the facilitator's eyeball.** On **every** round — the first blind pass (§ A1) and every re-dispatch after fixes — each live reviewer returns, alongside its findings, an explicit per-round **convergence verdict** — `{ converged: bool, still_open: [...], reason }` (a reviewer may also flag `suspected_drift`). A finding-free blind pass therefore ends with `converged: true` — a verdict that was *asked for*, so a clean first round is a legitimate dry round and the exit is reachable without ever inferring convergence from the absence of findings. **The reviewer owns this call**: it is the only party that read the diff and the findings, so it is the only one that can say whether another pass still surfaces anything new. The facilitator **aggregates** these verdicts — it never re-derives "clean" from a round count or a glance at the tree. Round-counting misses the tail; that is the reason the decision lives with the reviewer, not here.
 
-**The verdict format differs by reviewer, and that is fine.** A Claude subagent returns the `{ converged, still_open, reason }` object; Codex returns its final `CONVERGED` / `NOT CONVERGED` line (§ Codex mechanics, convergence rounds). Read each in its own form — and **never substring-match `CONVERGED`**, since `NOT CONVERGED` contains it. Aggregate on the *meaning* the reviewer stated, not a token.
+**The verdict format differs by reviewer, and that is fine.** A Claude subagent returns the `{ converged, still_open, reason }` object; Codex returns its final `CONVERGED` / `STILL-OPEN` line (§ Codex mechanics, convergence rounds). Read each in its own form, and aggregate on the *meaning* the reviewer stated, not a token.
+
+**The two tokens do not share a prefix, and that is the point.** The earlier pair was `CONVERGED` / `NOT CONVERGED`, where a substring match on the first silently accepted the second — a reviewer that had not converged was read as converged, and the loop stopped early. Do not restore a symmetric pair because it reads better. The asymmetry removes the collision; it does not remove the echo, since a reviewer that quotes this brief back still contains a token. That is why the rule above is to read the meaning.
 
 **Loop-until-dry, not loop-until-N.** A round is *dry* only when **every** live reviewer reports `converged` (Codex converged **and** Claude converged **and** any other enrolled reviewer converged). Stop only after **K consecutive dry rounds**. **K is not a constant, and it is not the reviewer's to set** — the **facilitator** sets it from the ground-truth axis (§ *When adversarial review is the point*). **K is sticky, not recomputed per round:** fix it at the **last round that actually resolved findings**, and hold it across the dry rounds that follow — a dry round resolves nothing, so it must never recompute K to a vacuous `K = 1`. Concretely, **K is the running max of a per-round signal** across the episode's fix-rounds — it only ratchets up, never down. Each fix-round contributes a signal: **1** when every finding it resolved was settled by a runnable check that passes (a test, a `grep` for a *mechanical text-presence* claim, `fxrank`, a type check — a greppable citation for a **judgement** finding is not ground truth for the judgement, so that finding stays in the no-runnable-check branch); **≥ 2** when a resolved finding rested on pure judgement with nothing runnable behind it. **K is the max of those signals**, so a judgement-backed fix-round holds **K ≥ 2** even if a *later* fix-round's signal is 1 — the earlier judgement risk does not evaporate because the last fix happened to be check-backed. An episode that resolved **no findings at all** (clean from the first blind pass) has no signals, so **K = 1** — no judgement debt to hold. On the **≥ 2** branch you may instead **propose a direction-guard round** (proposed, never auto-run — § *When adversarial review is the point*) to audit the convergence before the loop trusts it. A clean audit **discharges the ≥ 2 hold** and **counts as one dry round** (not an instant stop), and the direction guard is a **one-shot auditor for that claim** — it does not join the live set for subsequent rounds. If the author declines the proposal, hold **K ≥ 2**. This is the one place the two decisions meet: the reviewer says *whether* this pass is dry; the facilitator says *how many* dry passes it takes on trust.
 
