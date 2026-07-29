@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on — and reproduction follows the reader: a behaviour claim about a runtime prompt is settled by five independent simulation runs, never by a string comparison. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -112,7 +112,7 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
 ### Reviewers are asked what would show a finding wrong; reproduction is the rule
 
@@ -338,7 +338,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"
   rc=0
-  printf '%s\n' "Review the changes against main as a design artifact: clarity, consistency, factual accuracy, gaps. No tests here. END with one line: 'CONVERGED' if nothing is open, else 'STILL-OPEN' with the open items — your per-round convergence verdict (§ A3)." \
+  printf '%s\n' "Review the changes against main as a design artifact. Route by the claim: for a runtime prompt (a SKILL.md, an agent-md file, a command file) a claim about behaviour is settled by running it, not by a string comparison; for a document a human reads, review clarity, consistency, factual accuracy, gaps. END with one line: 'CONVERGED' if nothing is open, else 'STILL-OPEN' with the open items — your per-round convergence verdict (§ A3)." \
     | codex exec --json --sandbox read-only review - >"$round" 2>"$err" || rc=$?
   cat "$round" >>"$log"
   [ "$rc" = 0 ] && thread_id=$(jq -r 'select(.type=="thread.started") | .thread_id' "$round" 2>/dev/null | head -1) || true   # parse only on success; non-fatal (no id → --last fallback). jq, not regex.

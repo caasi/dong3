@@ -58,7 +58,8 @@ How a finding is settled follows who reads the artifact. A **runtime prompt** �
 is the behaviour, so a claim about that behaviour is settled by **five independent
 simulation runs** and never by a string comparison: a `grep` shows the source is the
 source, not that an agent who reads it acts. A claim that a string is present is still
-settled by a `grep`, because for that claim the check is complete. **Deterministic
+settled by a `grep`, because for that claim the check is complete — read the match, since a
+substring can match a longer string that means the opposite. **Deterministic
 output** — a script, a parser, a schema — keeps test-driven development. For a document
 a human reads, findings are about clarity, consistency, structure and factual accuracy.
 

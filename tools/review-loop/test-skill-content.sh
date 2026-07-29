@@ -14,14 +14,6 @@ ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
 VERSION=0.8.0
-# Digest of the description both files must carry, pinned so that changing the
-# version forces someone to look at the description. It does not check that the
-# description is *right* — no data check can. It catches the case this suite used
-# to miss: an edit to the description that silently does nothing, which the
-# identical-descriptions check below reports green for, because two files that
-# both failed to change still agree with each other. Re-pin deliberately when the
-# description changes, including re-pinning the same value when it should not.
-DESC_SHA=d38c90106f77d214
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -31,9 +23,17 @@ md="$(jq -r '.plugins[]|select(.name=="review-loop").description' "$MKT")"
 [ "$pd" = "$md" ] || fail "plugin.json and marketplace descriptions differ"
 pass "descriptions identical"
 
-ds="$(jq -r .description "$PLG" | sha256sum | cut -c1-16)"
-[ "$ds" = "$DESC_SHA" ] || fail "description digest is $ds, not the pinned $DESC_SHA — re-pin DESC_SHA if the change was intended"
-pass "description digest $DESC_SHA"
+# Both descriptions must state how a finding is settled, which is the fact 0.8.0
+# added. This is a presence claim and a grep settles it: the string is the
+# compliance act, so the check is complete for what it asserts. It replaces a
+# pinned digest that could not catch the failure it was named after — a digest
+# re-derived from the file it checks passes on the very no-op edit that motivated
+# it, because the author reads the stale value back out and pastes it in.
+jq -e '.description|test("five independent simulation runs")' "$PLG" >/dev/null \
+  || fail "plugin.json description does not say how a runtime-prompt finding is settled"
+jq -e '.plugins[]|select(.name=="review-loop")|.description|test("five independent simulation runs")' "$MKT" >/dev/null \
+  || fail "marketplace review-loop description does not say how a runtime-prompt finding is settled"
+pass "both descriptions state the settlement rule"
 
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"
