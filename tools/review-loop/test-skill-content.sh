@@ -14,6 +14,14 @@ ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
 VERSION=0.8.0
+# Digest of the description both files must carry, pinned so that changing the
+# version forces someone to look at the description. It does not check that the
+# description is *right* — no data check can. It catches the case this suite used
+# to miss: an edit to the description that silently does nothing, which the
+# identical-descriptions check below reports green for, because two files that
+# both failed to change still agree with each other. Re-pin deliberately when the
+# description changes, including re-pinning the same value when it should not.
+DESC_SHA=d38c90106f77d214
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -22,6 +30,10 @@ pd="$(jq -r .description "$PLG")"
 md="$(jq -r '.plugins[]|select(.name=="review-loop").description' "$MKT")"
 [ "$pd" = "$md" ] || fail "plugin.json and marketplace descriptions differ"
 pass "descriptions identical"
+
+ds="$(jq -r .description "$PLG" | sha256sum | cut -c1-16)"
+[ "$ds" = "$DESC_SHA" ] || fail "description digest is $ds, not the pinned $DESC_SHA — re-pin DESC_SHA if the change was intended"
+pass "description digest $DESC_SHA"
 
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"
