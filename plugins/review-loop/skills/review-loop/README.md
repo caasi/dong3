@@ -53,9 +53,14 @@ enrollment.
 - **T2 local refactor** — extraction, naming, validation — resolved with you first.
 - **T3 architectural** — module moves, API shape, "should this exist" — your call.
 
-For document targets, findings are about clarity, consistency, structure, and
-factual accuracy; the TDD / one-commit-per-item discipline applies only where there
-is executable behavior.
+How a finding is settled follows who reads the artifact. A **runtime prompt** — a
+`SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent, and its text
+is the behaviour, so a claim about that behaviour is settled by **five independent
+simulation runs** and never by a string comparison: a `grep` shows the source is the
+source, not that an agent who reads it acts. A claim that a string is present is still
+settled by a `grep`, because for that claim the check is complete. **Deterministic
+output** — a script, a parser, a schema — keeps test-driven development. For a document
+a human reads, findings are about clarity, consistency, structure and factual accuracy.
 
 ## How to use
 

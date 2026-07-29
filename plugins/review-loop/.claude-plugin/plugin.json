@@ -1,6 +1,6 @@
 {
   "name": "review-loop",
-  "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); roster enrolled per host via /review-loop:init; never merges autonomously; ships an always-on UserPromptSubmit hook that writes nothing until you opt in via /review-loop:init",
+  "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); a behaviour claim about a runtime prompt is settled by five independent simulation runs, not by a string comparison; roster enrolled per host via /review-loop:init; never merges autonomously; ships an always-on UserPromptSubmit hook that writes nothing until you opt in via /review-loop:init",
   "author": {
     "name": "caasi"
   },
