@@ -112,7 +112,7 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed, T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes; for prose/doc targets there are no tests to write first — prefer one logical edit per finding and review for clarity, consistency, structure, and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
 ### Reviewers are asked what would show a finding wrong; reproduction is the rule
 
@@ -128,10 +128,13 @@ is just the thing reproduction *checks*, and a reviewer who names it up front sa
 from reverse-engineering it; where it is left out, the facilitator reproduces anyway. A request, not a
 contract — codifying it as required would be new machinery the roster split does not need.
 
-**Reproduce before you accept.** On executable code, a failing test settles it. On prose there is
-nothing to run, so reproduction is **a citation the facilitator verifies with a command** — the
-quotation, its location, and a `grep`. "A reader can check it" is a capability, not a check. A
-finding nobody could reproduce is still surfaced, and said to be unreproduced.
+**Reproduce before you accept.** On executable code, a failing test settles it. On a **runtime
+prompt** a claim about behaviour needs a run, because its text is the behaviour — see § *Prompt
+outputs are run*; a claim that a literal string is present is still settled by a `grep`.
+On prose a human reads, there is nothing to run, so reproduction is **a citation the facilitator
+verifies with a command** — the quotation, its location, and a `grep`. "A reader can check it" is a
+capability, not a check. A finding nobody could reproduce is still surfaced, and said to be
+unreproduced.
 
 A reviewer may give a **confidence**. It informs the author and nothing else: it is a self-report by
 the same weights that produced the finding. **The facilitator never imputes a confidence or a
@@ -139,6 +142,50 @@ falsification condition onto another reviewer's finding** — that would be Clau
 Codex's finding is true and dressing the judgement as Codex's.
 
 Codex's text is quoted **verbatim**, never paraphrased into Claude's voice.
+
+### Prompt outputs are run. Code outputs are tested.
+
+A **runtime prompt** — a `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent,
+and its text is the behaviour. A `grep` over it shows that the source is the source. It cannot show
+that an agent who reads it acts. Deterministic output keeps the rule it already has at § Tiers: a
+test, written first.
+
+**Route by the claim, not by the file.** A runtime prompt also carries claims where the string *is*
+the property — does this file contain the command block it says it runs — and a `grep` settles
+those. Not because a `grep` is cheap: because for that claim the check is complete. Completeness is
+not automatic, so read the match — a substring can match a longer string that means the opposite.
+The test: could the agent comply without the string appearing? If yes it is a **behaviour claim**,
+and **a string comparison is not evidence for it**.
+
+**A behaviour claim is settled by five independent simulation runs.** Build an environment, give it
+to a subagent as a natural task, and read what it did. Five, not one: one run is a single draw, and
+a claim resting on it is an anecdote. The number is fixed here so no episode has to negotiate it.
+(A *simulation run* is one subagent executing the artifact. It is not the `run=` token § A3 logs,
+which names a whole episode.)
+
+The subagent is never told what is under test, and is never asked whether it complied — a fixture
+that says "output `COMPLIED` if you followed the rule" collects a self-report behind a deterministic
+parser. **Intent** — what the artifact is for and who reads it — reaches reviewers and whoever
+builds the environment, and never the subagent that runs. A reviewer that cannot run, such as a
+read-only CLI, says so; the facilitator runs the claim and reports what it saw.
+
+**A run is evidence only if the transcript shows the moment the instruction was exercised.** If
+nobody can point at that moment, the environment never reached the decision the instruction governs,
+and the run says nothing — pass or fail.
+
+**When the agents behaved well, a control arm is what makes that mean anything.** Run the same
+environment with the instruction deleted. If behaviour changes, the good result is attributable to
+the text. If it does not, this environment does not separate the two — which is not the same as the
+text doing nothing, and no run tells you which. Report that and stop; the author decides whether a
+harder environment is worth building.
+
+**Change one thing between runs, never two** — a result that follows a change to both the
+environment and the text is attributable to neither. To try a repair, change a **private copy** of
+the prompt and never the tree, so § A1 holds.
+
+**The run says what to change**: what the subagent did instead, where it stopped reading, what it
+invented to fill a gap. Text added because a run showed a gap is a correction. Text added because a
+reviewer could imagine a gap is accretion.
 
 ## Flow
 
@@ -157,7 +204,8 @@ How each is invoked:
 
 - **Claude subagents** — one `Task` dispatch per enrolled routine Claude reviewer, each under its
   own `model`. The brief stands alone (the subagent sees none of this conversation): the diff, the
-  tier definitions, the falsification-condition instruction, "state your model id on the first
+  tier definitions, the falsification-condition instruction, **the author's intent — what the
+  artifact is for and who reads it** (§ *Prompt outputs are run*), "state your model id on the first
   line", and "your final message is the review record; no preamble". The brief **always** requires
   the reviewer to end with its explicit `{ converged, still_open, reason }` verdict (and
   `suspected_drift` if the review looks aimed off-target) — on **every** round, including the first
