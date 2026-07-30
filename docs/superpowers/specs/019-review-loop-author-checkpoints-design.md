@@ -365,6 +365,13 @@ T1 or T2 is not measured, and by the text it should not.
 **The stop-shape result comes from an earlier draft**, not from the shipped text. The
 recurrence result does not: see the next section.
 
-**The artifacts are not committed.** The fixtures and every run log are on disk under the
-session's scratch directory, and each review round's reviewer re-derived the numbers from
-them. None of it is in the repository, so it goes when the directory is cleared.
+**The artifacts are not committed, by decision.** The fixtures and every run log lived under
+the session's scratch directory, and each review round's reviewer re-derived the numbers from
+them there. They are not kept, because a fixture is built for the text it tests: this one
+encodes one recurrence, at one location, with a falsification condition chosen to be false
+against one tree. A later change to the rule needs a fixture built for that change, and a
+stored one would invite reuse rather than rebuilding. What is worth carrying forward is the
+design, and it is written above: put round 1 in inherited history with a real fix commit,
+state the recurrence at a different location in different words, make its falsification
+condition false in the tree so reproduction confirms it, include one unrelated finding as a
+false-positive check, and leave enough clean rounds that K does not dominate.
