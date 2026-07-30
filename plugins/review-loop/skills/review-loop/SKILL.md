@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -112,7 +112,23 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings, **resolve T2/T3 with the author first** (quote the comment, draft 2–3 approaches with trade-offs, recommend one, wait for their pick), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings, **resolve T2/T3 with the author first, in one message for the whole round** (every T2/T3 finding of that round together, each with its quoted comment, 2–3 approaches with trade-offs, and a recommendation; one reply settles them all — § *Author checkpoints*), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+
+**A T3 that comes back is a direction signal, not just one more decision.** If a T3 finding raises the
+same concern as one an earlier round already fixed, the fix changed the code without settling the
+question, and the risk is that the change as a whole is drifting away from where the author wanted
+it. So **re-confirm the direction of the whole change with the author** — not only that one item. Give
+the earlier finding, the fix commit, what that fix assumed, and the recurrence, then ask whether the
+change is still going where the author wants. The item still arrives with its approaches and a
+recommendation, as every T2/T3 finding does; the direction question is what the recurrence adds. Compare by concern, not by wording: a reviewer that
+renames the same objection has not raised a new one.
+
+This is a different subject from `suspected_drift` (§ A1), which reports that the *review* looks
+aimed off-target; a recurring T3 is about where the *change* is going. It is still the point at which
+the direction guard is worth proposing, on the ordinary axis — an API-shape or "should this exist"
+question has no runnable ground truth (§ *When adversarial review is the point*). It is **not an
+extra stop** — a recurring T3 is a T3, so that round already stops; what changes is that the message asks
+about the direction as well as about the item.
 
 ### Reviewers are asked what would show a finding wrong; reproduction is the rule
 
@@ -187,11 +203,45 @@ the prompt and never the tree, so § A1 holds.
 invented to fill a gap. Text added because a run showed a gap is a correction. Text added because a
 reviewer could imagine a gap is accretion.
 
+## Author checkpoints — named before round 1, then held
+
+The loop stops for the author at **three kinds of point**, and it names them at A0, before any
+reviewer runs:
+
+1. **A0** — the author pass, and this list.
+2. **Once per round that has a T2/T3 finding** — one message carrying all of them (§ Tiers), never
+   one message per finding. When a T3 has come back after a fix, this is the message that
+   re-confirms the direction of the whole change (§ Tiers).
+3. **The hand-off** — the local gate has converged, and for a forge target the forge reviewer is
+   clean: group commits, merge, or more work. This one is a conversation the author drives.
+   Questions that follow from an offer the author accepted — the grouping shape, whether to delete
+   the branch, a rollback that needs a decision — are inside this stop, not new ones.
+
+**Publish the arithmetic, not a single total.** The number of rounds is set by the reviewers'
+verdicts (§ A3), so it cannot be known at A0. The count is two stops plus one for each round that
+has a T2/T3 finding, and a round with none does not stop. Say that at A0.
+
+**Between these points the loop does not stop.** Whether a round is dry, how many dry rounds K it
+takes on trust (§ A3), and where the tier boundary falls (§ Facilitator discipline) are facilitator
+judgements. Handing one to the author adds a stop and returns an answer the facilitator already
+had.
+
+**Three cases add a stop, because in each one the loop cannot continue by itself:** the
+repeat-comment guard (§ B5), a first-ever Copilot review that needs one click in the GitHub UI
+(§ B1), and a control arm that does not separate the text from the environment (§ *Prompt outputs
+are run*). When one fires, say which one, and re-publish the shape with the added stop named.
+
+The same rule covers anything else that forces a stop the shape did not name — a question only the
+author can answer, a tool that needs a human action. Say what it was, and re-publish. A question
+raised inside a round that was going to stop anyway is part of that stop and adds nothing.
+
+Nothing enforces this section. It holds because you read it.
+
 ## Flow
 
 ### Phase A — Local review (always first)
 
-**A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override.
+**A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override. **Publish the checkpoint list in this same message** (§ *Author checkpoints*): the stop shape reaches the author before round 1, which is the only point at which it is of any use.
 
 **A1. Every live reviewer, blind and in parallel, on the same unfixed diff.** Nobody reviews a
 tree someone else has already fixed, and **no reviewer sees another's findings**. A reviewer
