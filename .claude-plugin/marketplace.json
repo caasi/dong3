@@ -54,8 +54,8 @@
     {
       "name": "review-loop",
       "source": "./plugins/review-loop",
-      "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); a behaviour claim about a runtime prompt is settled by five independent simulation runs, not by a string comparison; roster enrolled per host via /review-loop:init; never merges autonomously; ships an always-on UserPromptSubmit hook that writes nothing until you opt in via /review-loop:init",
-      "version": "0.8.0"
+      "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K + escalation); a behaviour claim about a runtime prompt is settled by five independent simulation runs, not by a string comparison; roster enrolled per host via /review-loop:init; the author-stop shape is published at A0 and then held (author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it), and a T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix; never merges autonomously; ships an always-on UserPromptSubmit hook that writes nothing until you opt in via /review-loop:init",
+      "version": "0.9.0"
     },
     {
       "name": "tsugu",

@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.8.0
+VERSION=0.9.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -34,6 +34,16 @@ jq -e '.description|test("five independent simulation runs")' "$PLG" >/dev/null 
 jq -e '.plugins[]|select(.name=="review-loop")|.description|test("five independent simulation runs")' "$MKT" >/dev/null \
   || fail "marketplace review-loop description does not say how a runtime-prompt finding is settled"
 pass "both descriptions state the settlement rule"
+
+# Both descriptions must state the recurring-T3 rule, which is the fact 0.9.0 added.
+# Same class as the check above: a user-facing fact whose compliance act is the string
+# being there. It asserts nothing about whether the loop then re-confirms direction —
+# only a run shows that, and spec 019 records those runs.
+jq -e '.description|test("re-confirms the direction of the whole change")' "$PLG" >/dev/null \
+  || fail "plugin.json description does not state the recurring-T3 rule"
+jq -e '.plugins[]|select(.name=="review-loop")|.description|test("re-confirms the direction of the whole change")' "$MKT" >/dev/null \
+  || fail "marketplace review-loop description does not state the recurring-T3 rule"
+pass "both descriptions state the recurring-T3 rule"
 
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"
