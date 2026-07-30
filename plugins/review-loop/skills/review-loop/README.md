@@ -47,11 +47,40 @@ enrollment.
   CLI and `jq`, GitHub PRs only, and **no enrollment needed**. Another forge's reviewer is
   reachable by declaring it and its three commands.
 
+## How often it stops for you
+
+The loop names its stops before round 1 and holds to them: the author pass at the start,
+**one message per round that has a T2/T3 finding** carrying all of them together, and the
+hand-off when the gate is clean. So the count is two stops plus one for each such round,
+and a round with none does not stop at all. The number of rounds is the reviewers' call,
+which is why the loop publishes the arithmetic instead of a single total.
+
+It does not stop in between: whether a round is dry, K, and where the tier boundary falls
+are the loop's own judgments. Three cases can add a stop, because the loop cannot continue
+by itself — Copilot re-raising a comment that already had a fix, a first-ever Copilot review
+that needs one click in the GitHub UI, and a control arm that cannot separate a prompt's
+text from its environment. When one fires, the loop names it and re-publishes the shape.
+
+## When a T3 comes back
+
+A T3 finding that raises the same concern as one an earlier round already fixed means the
+fix changed the code without settling the question. That round's message then **re-confirms
+the direction of the whole change with you** — the earlier finding, the fix commit, what
+that fix assumed, and the recurrence — as well as asking for the item's own fix. It is not
+an extra stop: that round was going to stop anyway.
+
+How well that holds was measured, and the numbers are in the design record
+(`docs/superpowers/specs/019-review-loop-author-checkpoints-design.md`): across nine runs the
+loop named the recurrence every time, and asked about the whole change's direction in six of
+them. The three exception cases above have no runs behind them at all.
+
 ## Tiers
 
 - **T1 mechanical** — typos, lint, null checks, doc fixes — auto-fixed.
 - **T2 local refactor** — extraction, naming, validation — resolved with you first.
 - **T3 architectural** — module moves, API shape, "should this exist" — your call.
+
+T2 and T3 reach you batched by round, not one at a time.
 
 How a finding is settled follows who reads the artifact. A **runtime prompt** — a
 `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent, and its text
