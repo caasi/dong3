@@ -112,47 +112,29 @@ Or the slash command:
 - The Copilot path is GitHub-only; on other forges the local reviewer gate (the
   enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies.
 
-## Observation log
+## Round log
 
-`review-loop` ships an always-on `UserPromptSubmit` hook. Once the plugin is enabled, the hook
-runs on every message you send, in every project — not only ones under review. By itself it does
-nothing: it writes a line only once `observation-log: yes` is recorded in
-`~/.claude/review-loop.local.md` (or a project override at
-`<project-root>/.claude/review-loop.local.md`). Until then, and while the answer is `no`, the hook
-still runs on every message, and still writes nothing.
+The loop writes one line per review round to `~/.claude/review-loop.log`:
 
-`/review-loop:init` asks before it writes `yes`. It explains what the hook matches, what one line
-contains, where the file goes, and how to turn it off, before you decide.
+```
+2026-07-30T05:32:07Z  review  project=<slug>  run=<token>  round=<n>  reviewers=<model>:<count>,...
+2026-07-30T05:35:06Z  review  project=<slug>  run=<token>  round=<n>  reviewers=...  end=converged
+```
 
-**What the hook matches.** The marker `#redo`, `#again`, or `#fix`, as a separate word in a message
-you send — at the start or end of the message, or with whitespace around it. A marker glued to
-other characters, like `#fix.` or `#fixed`, does not match. `#redo` means the whole output was unusable; `#again` means this was already corrected
-once; `#fix` means one specific error. A marker inside a code block or an inline code span does
-not count.
+The run's last round carries `end=converged`; if you stop the loop between rounds it writes
+`end=stopped` instead, with no round or reviewer fields.
 
-**What it writes.** One line per objection, to `~/.claude/review-loop.log` — a project slug, your
-session id, and the matched tier. It never writes your message text. The file is global, one file
-for every project on this host, so `grep` across it answers "when did I object, and how often" —
-nothing more.
+A `grep` over it answers which models ran, in which project, how often, and when. Nothing
+computes and nothing is shown to you during a run.
 
-**Off, and how to turn it off.** Answer `no` at `/review-loop:init`, or set
-`observation-log: no` in `review-loop.local.md` directly. Either way the hook keeps running on
-every message — it must run to check the answer — but writes nothing. To silence it without editing
-the config, export `REVIEW_LOOP_LOG=0` in your shell, or set it under `env` in `settings.json` to
-cover every session.
+**It is a record, not a measurement.** Do not read a capability signal into a round count: it
+mixes artifact difficulty, the K policy, roster composition and your own decisions, and it falls
+when a reviewer drops out mid-run, so a degraded run scores better. The line is also written by
+the agent during the loop, so a round it skipped leaves no trace unless the `round` sequence has
+a gap. Spec 020 states this where the data is.
 
-**It travels with your dotfiles.** `review-loop.local.md` lives under `~/.claude/`. If that
-directory is under a dotfiles repository you sync to a second host, a recorded `yes` arrives there
-too. `init` treats that the same as an answer given locally: it does not ask again, and the hook
-starts writing on that host as soon as the file lands.
-
-`init` records the answer as `observation-log: yes` or `observation-log: no` in the file's
-frontmatter. It does not bump `review-loop-config` — the key's absence is itself a meaningful
-state, so no migration is needed — and it never asks twice once the key is present, whether that
-answer is `yes` or `no`.
-
-The hook needs `jq` to read its JSON payload. If `jq` is missing, `init` reports it at enrolment:
-without `jq` the hook writes nothing, on every host, regardless of the answer you gave.
+**Off switch:** export `REVIEW_LOOP_LOG=0`, or set it under `env` in `settings.json`. To send
+the lines elsewhere, set `REVIEW_LOOP_LOG_FILE`.
 
 ## `/review-loop:init` (optional)
 

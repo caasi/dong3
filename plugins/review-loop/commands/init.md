@@ -46,20 +46,6 @@ Load-bearing invariants:
   opt-outs (`enabled: false` is a decision, not an absence).
 - **Never a precondition.** With no config the loop works exactly as it does today, and hints at
   `init` once.
-- **Discloses the observation-log hook, and asks before turning it on.** The plugin ships an
-  always-on `UserPromptSubmit` hook. It runs on every message, in every project. It writes nothing
-  until `observation-log: yes` is recorded in `~/.claude/review-loop.local.md` (or the project
-  override). `init` asks before it writes `yes`. The hook matches the markers `#redo`, `#again`,
-  `#fix` as separate words — at the start or end of your message, or with whitespace around them.
-  A marker glued to other characters, like `#fix.` or `#fixed`, does not match. It writes only
-  `project`, `session`, and the matched
-  tier — never your message text. It still runs, and still writes nothing, while the answer is
-  `no` or absent. Set `observation-log: no`, or export `REVIEW_LOOP_LOG=0`, to stop it from
-  writing. A recorded `yes` travels to another host through a dotfiles sync of
-  `review-loop.local.md`; `init` does not ask again there. `init` records the answer as
-  `observation-log: yes` or `observation-log: no` in the file's frontmatter. This does not bump
-  `review-loop-config`. `init` never asks twice once the key is present. If `jq` is missing,
-  `init` reports it — the hook needs `jq` to read its payload and writes nothing without it.
 
 Writes `~/.claude/review-loop.local.md` (global), overridden per project by
 `<project-root>/.claude/review-loop.local.md`. Offers to add `.claude/*.local.md` to

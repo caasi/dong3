@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.9.0
+VERSION=0.10.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -48,17 +48,6 @@ pass "both descriptions state the recurring-T3 rule"
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"
 pass "version $VERSION"
-
-# Both descriptions must mention the hook, which is a user-facing fact about what
-# installing this plugin does. The probe is deliberately loose — either word
-# satisfies it — because it is inherited coverage, not a new requirement about
-# how the hook must be described. Scoped to the review-loop entry: a raw grep
-# over marketplace.json would pass on another plugin's description.
-jq -e '.plugins[]|select(.name=="review-loop")|.description|test("always-on|inert")' "$MKT" >/dev/null \
-  || fail "marketplace review-loop description does not mention the hook"
-jq -e '.description|test("always-on|inert")' "$PLG" >/dev/null \
-  || fail "plugin.json description does not mention the hook"
-pass "both descriptions mention the hook"
 
 # Every review-loop *.sh must be executable IN THE INDEX — both the ones that ship with
 # the plugin and this repository's own test scripts, since the defect this catches is the
