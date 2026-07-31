@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# log.sh — the loop's writer for the review-loop observation log.
+# log.sh — the loop's writer for the review-loop round log.
 set -euo pipefail
 trap 'exit 0' EXIT           # acceptance §424: neither writer ever exits non-zero, on any path --
                              # including a missing/unreadable logline.sh, which sourcing under
