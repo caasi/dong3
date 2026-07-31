@@ -60,4 +60,26 @@ jq -e '.description|test("always-on|inert")' "$PLG" >/dev/null \
   || fail "plugin.json description does not mention the hook"
 pass "both descriptions mention the hook"
 
+# Every review-loop *.sh must be executable IN THE INDEX — both the ones that ship with
+# the plugin and this repository's own test scripts, since the defect this catches is the
+# same in either place.
+# § A3 tells the facilitator to run log.sh directly and § Helper scripts states that all
+# of them are executable, so a script committed 100644 makes the documented call fail for
+# everyone who installs the plugin — while a local `chmod +x` hides it from the author.
+# The mode is read from the index, not the working tree, because that is what ships.
+listing="$(cd "$ROOT" && git ls-files -s 'plugins/review-loop/skills/review-loop/scripts/*.sh' \
+                                          'tools/review-loop/*.sh')" \
+  || fail "could not read the index for the review-loop scripts"
+[ -n "$listing" ] || fail "no review-loop scripts found in the index — the check would pass vacuously"
+bad=0
+while IFS= read -r row; do
+  [ -n "$row" ] || continue
+  mode="${row%% *}"; path="${row#*	}"
+  [ "$mode" = "100755" ] || { echo "  not executable in the index: $path" >&2; bad=1; }
+done <<EOF
+$listing
+EOF
+[ "$bad" = 0 ] || fail "a review-loop script is committed non-executable"
+pass "every review-loop *.sh is executable in the index ($(printf '%s\n' "$listing" | wc -l) files)"
+
 echo "All review-loop metadata checks passed."
