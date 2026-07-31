@@ -70,9 +70,9 @@ that fix assumed, and the recurrence — as well as asking for the item's own fi
 an extra stop: that round was going to stop anyway.
 
 How well that holds was measured, and the numbers are in the design record
-(`docs/superpowers/specs/019-review-loop-author-checkpoints-design.md`): across nine runs the
-loop named the recurrence every time, and asked about the whole change's direction in six of
-them. The three exception cases above have no runs behind them at all.
+(`docs/superpowers/specs/019-review-loop-author-checkpoints-design.md`): across ten runs the
+loop named the recurrence every time, and asked about the whole change's direction in seven of
+them, or eight under a looser reading of one borderline message. The three exception cases above have no runs behind them at all.
 
 ## Tiers
 

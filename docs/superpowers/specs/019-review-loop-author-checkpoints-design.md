@@ -300,19 +300,28 @@ Five runs on the exact file this branch ships, in the third environment, against
 five control runs. Its § Tiers recurrence rule is byte-identical to the text the first five
 used — the two differ by one line, about K, elsewhere in the file — so the ten pool.
 
-One of the five produced **no author message at all**, so it cannot be scored on message
-content and is excluded from the counts below. What it did instead is recorded under
-*Fabricated author exchanges*.
+One of the five wrote its two messages outside the fixture, for the reason given under
+§ *The instrument produced two false positives*; they were recovered in full and are scored
+here with the rest.
 
 | | names it a recurrence | asks about the whole change |
 |---|---|---|
-| the shipped rule (9 scoreable runs) | **9 of 9** | **6 of 9** |
+| the shipped rule (10 runs) | **10 of 10** | **7 of 10** |
 | `main` (5 runs) | 0 of 5 | 0 of 5 |
 
-**The direction column is noisier than the first five suggested.** It was 4 of 5 there and 2
-of 5 here, across a one-line difference that has nothing to do with the rule. That spread is
-the five-per-arm limit doing exactly what this document declares it does. The pooled 6 of 9
-still separates from 0 of 5; the 4 of 5 alone would have overstated it.
+**The criterion for the direction column, and the run that sits on its edge.** A message
+scores when it puts a question to the author about where the change as a whole is going, rather
+than only about how to fix the item. Two runs score no under it: one re-asks the item alone,
+and one asks whether a decision taken in round 1 still holds — "is splitting compute from
+presentation still out of scope while there is one caller, or has this second finding changed
+that?" That second one is a boundary case, and a reviewer scored it the other way. Read as a
+yes it makes the column 8 of 10 rather than 7. The figure below is the stricter reading.
+
+**The direction column is noisier than either five suggested on its own.** It was 4 of 5 in
+the first batch and 3 of 5 in the second, across a one-line difference that has nothing to do
+with the rule. That spread is the five-per-arm limit doing exactly what this document declares
+it does. The pooled 7 of 10 separates from 0 of 5; either five alone would have misstated it,
+one high and one low.
 
 **The rule is not over-applied here either.** One sentence appeared to call the unrelated
 finding a recurrence. Reading it settles the matter — "round 2's two T3 findings (the
@@ -325,30 +334,51 @@ corrected.
 environment, so this is not a test of the sentence that was removed; it is only evidence that
 removing it did no harm.
 
-### Fabricated author exchanges
+### The instrument produced two false positives
 
-Two runs across roughly thirty-five, in both arms, **reported author exchanges that never
-happened**. In the clearest case the `asks.log` is zero bytes and the unmodified `ask.sh` was
-never called, while the same run wrote three correctly formatted lines to an observation log,
-so the channel worked and the run was executing side-effecting commands. Its journal reads:
-"the whole change's direction was re-confirmed with the author, not just this one item …
-**The author confirmed the recommended direction**", and: "resolved in one batched message —
-see § Author checkpoints". The work itself was done correctly.
+An earlier draft of this section reported two runs that claimed author exchanges which never
+happened, and called the behaviour a defect of the agent. A later draft retracted one of the
+two. Both retractions were wrong in the same direction, and the correct count of fabricated
+exchanges in this corpus is **zero**.
 
-So the run satisfied the rule's *description* by writing the message's content into the
-journal instead of sending it. This is not caused by anything in this change — it appears in
-the arm running `main` too — and it is not repairable by prose in a skill, since the behaviour
-already ignores the prose it is quoting. It belongs to the harness, which can reconcile a
-claimed tool interaction against the tool's own record. It is recorded here because it decides
-how this document's own numbers were obtained: **every count in § Verification is read from
-the ask logs, never from what a run said about itself.** Read only the journal and the
-fabricating run looks fully compliant.
+The author channel resolved its log as `${ASK_LOG:-$PWD/asks.log}`, so a run that invoked
+`./ask.sh` from a working directory other than its own wrote outside the fixture. Two runs,
+in two different environments and about an hour apart, did that from the same directory. Their
+messages went into one file, which was found later in an unrelated repository: three blocks
+from the first run, then two from the second, numbered 4 and 5 because the script numbers a
+block by counting the blocks already in the file. Each run's own log stayed empty, and each
+looked, from its own directory, like a run that had reported an exchange it never had.
 
-A reviewer asked whether the catalogue surfaces should carry it, since they are what a user
-reads before running the loop. They do not, deliberately. The defect is not this skill's to
-disclose or to repair — it appears identically in the arm running the unchanged `main` — and
-a warning in a README would not reach the party that can check a claimed tool call against
-the tool's own record.
+The attribution is checkable, and it takes two steps rather than one. The first three blocks
+are byte-identical to three message files the first run had drafted in its own directory, so
+they are settled by string comparison.
+
+The last two need more care than the first draft of this paragraph gave them. It cited the
+round-1 fix commit `99058d5`, the location `src/report.py:22` and the panel wording "a locale,
+a footer and a title" — but all three are inherited from that environment's template, so every
+one of its fifteen runs carries them. They identify the environment, not the run. The
+"7 commits ahead" in the hand-off block is no better: four other runs in the same environment
+are also seven ahead. **What settles it is that this run is the only one of forty-five with an
+empty `asks.log`**, and the two orphan blocks are exactly what a run is missing when its log is
+empty: one round-2 message and one hand-off. A reviewer re-derived the attribution
+independently and reached the same run; the argument printed here did not, until now.
+
+**What this costs, and what it is worth.** The instrument this document trusts produced a
+false positive of the thing it exists to detect. It reported a run as having sent nothing when
+that run had sent everything, because the log it was read from was not the file the run wrote
+to. None of the review rounds recorded in § Review history caught it. It was found by
+noticing a file in a repository that had nothing to do with the experiment, after the change
+had merged. Any future
+fixture should set `ASK_LOG` to an absolute path rather than let it default to the working
+directory — and, more generally, a log is evidence only when the channel is known to write
+where the reader looks.
+
+The rule that every count in § Verification is read from the ask logs rather than from a run's
+own account is unchanged, and this episode is the strongest argument for it: the run whose
+messages went astray described them accurately in its journal, and it was the *log* that was
+wrong. Reading the journal alone would have been right here and wrong elsewhere; reading the
+log alone was wrong here. Neither is sufficient on its own when the channel can misplace its
+own record.
 
 ### Declared limits
 
