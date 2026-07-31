@@ -57,6 +57,39 @@ Both facts are stated here so that a later reader who wants a capability number
 finds the reasoning against it in the same file as the data, rather than having
 to re-derive it.
 
+## Why only the agent can write the line
+
+A hook cannot write this log, and the removed one never could have.
+
+The end of a review round is known to one party. It is the moment the
+facilitator has collected every reviewer's verdict and decided whether the round
+was dry — a decision made inside the loop, from content no other process sees.
+No harness event corresponds to it. The removed hook fired on
+`UserPromptSubmit`, which is the author sending a message: unrelated to a round
+boundary, and useless as a write trigger even in principle.
+
+So **requiring the agent to append the line is the only mechanism available**,
+and § A3 already does that. This is not a gap waiting for a better hook; it is
+the shape of the problem.
+
+**That makes one limit structural rather than incidental.** The log is written
+by the agent about its own work, so the agent's failure to write is invisible in
+it. A gap in the `round` sequence within a run shows a skipped round. A run that
+was never logged, or one that stopped logging after its first round, leaves the
+log looking merely quiet.
+
+This is not hypothetical. The review of spec 019 ran nine rounds and this log
+holds one line for it — `run=80xlzr round=1`, whose reviewer counts match that
+review's first round exactly. The remaining eight rounds are absent, and the
+mechanism was working: the facilitator had already worked around a permission
+error to write that first line. It then stopped writing.
+
+That instance is recorded here because the log's purpose includes watching how
+the agent is doing, and **the first symptom of a bad run is likely to be an
+unwritten line**. A reader must treat quiet as ambiguous: either nothing ran, or
+something ran and went unrecorded. Nothing in this design separates the two, and
+nothing proposed here would.
+
 ## Why the hook is removed
 
 016's thesis was to measure the interaction rather than the artifact: an
