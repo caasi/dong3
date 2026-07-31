@@ -122,7 +122,7 @@ The loop writes one line per review round to `~/.claude/review-loop.log`:
 ```
 
 The run's last round carries `end=converged`; if you stop the loop between rounds it writes
-`end=stopped` instead, with no round or reviewer fields.
+`end=stopped` instead, with no `round` and no `reviewers` field.
 
 A `grep` over it answers which models ran, in which project, how often, and when. Nothing
 computes and nothing is shown to you during a run.

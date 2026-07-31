@@ -60,7 +60,8 @@ ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.lo
 # Append a line to the round log with guards: off switch, work-tree check, size bound.
 # All failure paths return 0 and write nothing.
 # Note: the guard forks `git` once per call. In production each writer is invoked once
-# per line (one review line per round), so that is one fork per line written — fine. The 2000-line concurrency test below forks git 2000
+# per line (one review line per round), so that is one fork per line written — fine. The
+# 2000-line concurrency test below forks git 2000
 # times and so runs for a few seconds; that is a test artifact, not the real write rate.
 ll_append() { # $1=line. All failure paths return 0 and write nothing.
   [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && return 0

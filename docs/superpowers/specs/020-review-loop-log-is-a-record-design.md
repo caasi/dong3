@@ -20,7 +20,7 @@ One line per round, written by the loop:
 ```
 
 The last round of a run carries `end=converged`; an author stop writes
-`end=stopped` with no `round` or `reviewers` (§ A3).
+`end=stopped` with no `round` and no `reviewers` field (§ A3).
 
 It answers questions of the form "which models ran, in which project, how often,
 and when". `grep` answers them; nothing computes.
@@ -40,7 +40,9 @@ It is carried here for that reason, from the draft:
 - A review loop is a repair mechanism, so its convergence is the quantity that
   hides a capability change rather than the one that shows it.
 
-That draft also recorded, about the half that remains:
+016 as it stands does record one thing about the half that remains — added by a
+later commit than the ones that cut the argument above, which is why this
+sentence cites the current file and the ones above cite the draft:
 
 > The `review` side is not measurable, and that is accepted. A round line has no
 > author-typed antecedent, so nothing independent records that a round happened.
