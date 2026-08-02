@@ -243,6 +243,13 @@ Nothing enforces this section. It holds because you read it.
 
 **A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override. **Publish the checkpoint list in this same message** (§ *Author checkpoints*): the stop shape reaches the author before round 1, which is the only point at which it is of any use.
 
+**One-time cleanup, in this same message.** If `.claude/pr-review-journal.md` exists, say that
+an earlier version of this skill wrote a review journal there, that the loop no longer keeps one
+(§ *Non-goals*), and ask whether to remove it. Remove it on a yes — its own commit if the file is
+tracked. On a no, leave it and never write to it. Ask nothing when the file is absent. This rides
+A0, which is already a stop, so it **adds no stop and does not re-publish the shape** — it is not
+one of the three exceptions in § *Author checkpoints*.
+
 **A1. Every live reviewer, blind and in parallel, on the same unfixed diff.** Nobody reviews a
 tree someone else has already fixed, and **no reviewer sees another's findings**. A reviewer
 shown another's output is not a second opinion, it is an editor.
@@ -579,18 +586,15 @@ record, the loop reasons about thin air.
 - **External CLIs run in the foreground** with a generous timeout (≈10 min). A wrapper that
   backgrounds the call and returns early manufactures ghosts.
 
-## Learning capture
-
-After each round, append to a review journal in the repo (e.g. `.claude/pr-review-journal.md`, create if absent):
-- Target (PR # or branch), round N, which reviewer raised it (Claude / Codex / Copilot)
-- Comment → fix pattern
-- T3 decisions + chosen approach + why
-- Repeat-issue escalations (these = gaps in the project's conventions; candidates for the project's guidelines doc)
-
-Periodically distill recurring patterns into the project's conventions/guidelines doc.
-
 ## Non-goals
 
 - Not fully autonomous. The author decides T2/T3 fixes and the final merge.
 - Not a squash-merge tool. Default to a merge commit to preserve history.
+- **Not a journal.** The loop writes no prose that carries from one review to the next. The
+  round log (§ A3) also grows, and it is a different thing: one line of fixed fields, which
+  nothing reads during a loop and nothing reduces. Prose has to be read, reconciled and
+  compacted by someone, and no moment exists at which that happens — so it becomes a second
+  source that disagrees with the first one later, with no review gate between the note and
+  whoever acts on it. What a round decided belongs in the commit message that round produced.
+  What the whole change concluded belongs in that change's own design record.
 - The Copilot path is GitHub-only (uses `gh` + GitHub GraphQL). For other forges, the local reviewer gate (the enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies; the remote-reviewer phase does not.
