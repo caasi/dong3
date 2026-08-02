@@ -5,7 +5,7 @@ description: General assisted review loop for changes — code or design artifac
 
 # Review Loop (Assisted)
 
-Assisted, not autonomous. Preserves the author's architectural voice and learning across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
+Assisted, not autonomous. Preserves the author's architectural voice across review cycles. General-purpose: the target may be a **local branch / working diff** (no remote needed) or a **GitHub PR**, and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
 **Local reviewers are preferred and run first.** The enrolled roster (§ Reviewer roster) — a Claude subagent, any other Claude models or CLIs you enrol, and Codex when it is enrolled (or, with no config, whenever it is present) — reviews the local diff **blind and in parallel**, and this is the first gate; it costs little and works on any host. A config that intentionally omits Codex is honoured; a present-but-unenrolled Codex is noted, not auto-run (§ Roster reconciliation). Codex runs headless via the `codex` CLI — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default). A forge reviewer (GitHub Copilot) is added only when the target is a GitHub PR, and only after the local gate is clean.
 
@@ -243,12 +243,14 @@ Nothing enforces this section. It holds because you read it.
 
 **A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override. **Publish the checkpoint list in this same message** (§ *Author checkpoints*): the stop shape reaches the author before round 1, which is the only point at which it is of any use.
 
-**One-time cleanup, in this same message.** If `.claude/pr-review-journal.md` exists, say that
-an earlier version of this skill wrote a review journal there, that the loop no longer keeps one
+**The journal file, in this same message.** If `.claude/pr-review-journal.md` exists, say that an
+earlier version of this skill wrote a review journal there, that the loop no longer keeps one
 (§ *Non-goals*), and ask whether to remove it. Remove it on a yes — its own commit if the file is
-tracked. On a no, leave it and never write to it. Ask nothing when the file is absent. This rides
-A0, which is already a stop, so it **adds no stop and does not re-publish the shape** — it is not
-one of the three exceptions in § *Author checkpoints*.
+tracked. On a no, leave it and never write to it. Ask nothing when the file is absent. **Nothing
+records a no**, so the question comes back at each A0 while the file is there; do not invent a
+place to remember the answer. This rides A0, which is already a stop, so it **adds no stop and
+does not re-publish the shape**, and it is not one of the three exceptions in
+§ *Author checkpoints*.
 
 **A1. Every live reviewer, blind and in parallel, on the same unfixed diff.** Nobody reviews a
 tree someone else has already fixed, and **no reviewer sees another's findings**. A reviewer
@@ -300,6 +302,15 @@ How each is invoked:
   request the same `{ converged, still_open, reason }` verdict the Claude subagent returns — a
   third-party CLI reports convergence in that object form (Codex's NL `CONVERGED` line is the sole
   exception, § A3).
+
+**Every brief says the review journal is not a source.** When `.claude/pr-review-journal.md` is in
+the tree or in the diff, each reviewer's brief carries one more line: the file is a record an
+earlier version of this skill wrote, nothing reviewed it, so it is not evidence for anything — and
+a deletion of it in this diff is the loop's own housekeeping (§ A0), not part of the change. A
+reviewer cannot learn either fact any other way: § *Non-goals* is in this skill, and no reviewer
+reads this skill. Runs have shown reviewers citing such a file to close a question — "that was
+decided already", "no test was ever added here" — which settles a review question with a claim
+nobody reviewed.
 
 **Cross-critique is recommended, and gates nothing** — and it happens **before any fix is
 committed**, which is the whole point: with two or more reviewers, showing each the others'
@@ -590,11 +601,13 @@ record, the loop reasons about thin air.
 
 - Not fully autonomous. The author decides T2/T3 fixes and the final merge.
 - Not a squash-merge tool. Default to a merge commit to preserve history.
-- **Not a journal.** The loop writes no prose that carries from one review to the next. The
-  round log (§ A3) also grows, and it is a different thing: one line of fixed fields, which
-  nothing reads during a loop and nothing reduces. Prose has to be read, reconciled and
-  compacted by someone, and no moment exists at which that happens — so it becomes a second
-  source that disagrees with the first one later, with no review gate between the note and
-  whoever acts on it. What a round decided belongs in the commit message that round produced.
-  What the whole change concluded belongs in that change's own design record.
+- **Not a journal.** The loop keeps no prose record of its own that carries from one review to
+  the next. A change's commit messages and its design record are prose that carries, and they are
+  the change's records, reviewed with it — not the loop's. The round log (§ A3) also grows, and
+  it is a different thing again: one line of fixed fields, which nothing reads during a loop and
+  nothing reduces. Prose has to be read, reconciled and compacted by someone, and for a record
+  the loop owns no moment exists at which that happens — so it becomes a second source that
+  disagrees with the first one later, with no review gate between the note and whoever acts on
+  it. What a round decided belongs in the commit message that round produced. What the whole
+  change concluded belongs in that change's own design record.
 - The Copilot path is GitHub-only (uses `gh` + GitHub GraphQL). For other forges, the local reviewer gate (the enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies; the remote-reviewer phase does not.
