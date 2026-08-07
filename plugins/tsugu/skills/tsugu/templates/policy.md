@@ -1,4 +1,4 @@
-tsugu-schema: 7
+tsugu-schema: 8
 ## Private Git Space (agent may do freely)
 create/commit (push per `## Push`) `prepare/*` branches; worktrees; write `.tsugu/*`;
 run tests; try reversible patches; dispatch own (built-in) review subagents
@@ -24,8 +24,8 @@ rebase-prepare-onto-default: yes
      default, to keep the whole queue mergeable while you're away? `yes` = rebase every
      run (history rewrite; force-with-lease on pushed branches); `no` = pre-013 behavior,
      no rebase. Absent reads as `no` (fail-safe). Converge's human-present refresh offer is
-     independent of this flag. Costs of `yes`: churn + union-interleave on long-idle
-     branches (see spec 013). -->
+     independent of this flag. Costs of `yes`: churn, and a narrative conflict you
+     must resolve yourself on long-idle branches (see specs 013 and 022). -->
 ## Accepted Prefixes
 feature/*  bugfix/*  chore/*
 <!-- human-workflow branches the handoff RENAMES prepare/<slug> into —
@@ -36,12 +36,13 @@ feature/*  bugfix/*  chore/*
 ## Public branch
 public-branch-tsugu: include
 <!-- include (default): the work branch's prep commit DAG plus its context.md
-     narrative land on the public/default branch as committed WIP knowledge.
-     knowledge/ lands on the coordination ref regardless of mode.
+     narrative and evidence/ land on the public/default branch as committed
+     work-in-progress.
      exclude: keep .tsugu/ off the default branch — accept is the same handoff
      rename, and the human strips .tsugu/ when opening the public PR (converge no
-     longer cuts a by-path public branch); knowledge/ still lands on the
-     coordination ref regardless of mode. -->
+     longer cuts a by-path public branch). Either way the disposal of evidence/ at
+     landing is the same: what is still needed moves to CLAUDE.md / AGENTS.md, docs/
+     or the test suite, and the rest is deleted. -->
 ## Merge method
 Prefer merge commits — settlement depends on containment-preserved history.
 Non-containment landings (squash / rebase / force-push) are an advanced path — see
@@ -62,11 +63,6 @@ at `prune`.
 ## Remote
 remote: origin                   # authoritative remote for fetch + branch enumeration (multi-remote safety)
 default-branch:                  # optional; if blank, resolved from <remote>/HEAD
-## Coordination ref
-coordination-ref: default        # where `knowledge/` is written.
-<!-- `default` is a sentinel = the repo's default branch (resolves to <default>, not a
-branch literally named "default"). Set to a branch (e.g. tsugu/coord) only if the
-default branch is push-protected. -->
 ## Skill use
 Tsugu invokes no user-installed skill by default; it uses native git + its own
 built-in capabilities. Humans trigger workflow skills (planning, review-loop, …)

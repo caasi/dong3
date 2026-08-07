@@ -301,74 +301,6 @@ full procedure (narrative backstop, retain-the-ref, human-confirmed prune via th
 
 ---
 
-## Coordination-ref writes (for `knowledge/` promotion)
-
-The coordination ref (`coordination-ref` in `policy.md`, **default: the default
-branch**) holds the promoted `knowledge/` — the team's shared brain, which lands
-**regardless of `public-branch-tsugu` mode**. A commit that touches **only
-`.tsugu/`** on this ref is **private-space** — it is coordination memory, not
-public coordination, and needs **no approval**.
-
-> **Resolving `coordination-ref`:** the literal value `default` is a **sentinel**
-> meaning "the default branch" — resolve it to `<default>` wherever the recipes
-> interpolate `<coordination-ref>` (so reads/writes target `<remote>/<default>`,
-> never a nonexistent `origin/default`). Any other value is a literal branch name
-> (e.g. `tsugu/coord`).
-
-**Write protocol** — do this **from a dedicated checkout/worktree of the
-coordination ref**, never from a `prepare/*` worktree (pushing that branch's `HEAD`
-to the coordination ref would replay your private code commits onto it — possibly
-straight onto the default branch). Commit only the `.tsugu/knowledge/` change,
-rebase onto the latest `<remote>/<coordination-ref>`, then push there
-**explicitly** (bare `git pull` / `git push` use the current branch's upstream,
-which may not be the configured `<remote>` or ref):
-
-```bash
-git -C <coord-worktree> add .tsugu/knowledge/ && git -C <coord-worktree> commit \
-  --message "tsugu: promote knowledge/<topic>"
-git -C <coord-worktree> fetch <remote> && git -C <coord-worktree> rebase <remote>/<coordination-ref>
-git -C <coord-worktree> push <remote> HEAD:<coordination-ref>
-```
-
-**On conflict, exercise judgment — do not blind-overwrite.** If the rebase
-conflicts over a `knowledge/` file another agent just promoted, re-read that
-file's **current content** and **reconsider** before reapplying — merge the two
-findings rather than clobbering one. `knowledge/` is a free-form wiki, so most
-edits are additive and conflicts are rare; when one happens over a finding
-someone else wrote, that is exactly the signal to integrate, not to force-resolve.
-
-**If the default branch is push-protected**, the agent cannot push `.tsugu/`
-coordination data to it. Point `coordination-ref` at a dedicated branch instead.
-**Prefer an orphan branch** (e.g. `tsugu/coord`) that holds **only**
-`knowledge/` — an orphan has no code history to drift, whereas a plain
-`git branch tsugu/coord <remote>/<default>` would inherit a full copy of default
-(code, `policy.md`) that goes stale. Keep `policy.md` on the default branch so the
-coordination ref stays **discoverable** (no circularity — you always know where to
-find policy).
-
-Bootstrap once **in a dedicated worktree** — never switch the user's active
-checkout to the orphan (`git switch --orphan` there would blank the working tree,
-or fail outright against local modifications). Git can't track empty directories,
-so seed `knowledge/` with a real file:
-
-```bash
-git worktree add --detach <coord-worktree>          # isolated; doesn't touch the active checkout
-git -C <coord-worktree> switch --orphan <coordination-ref>   # the configured ref (e.g. tsugu/coord), not a literal
-( cd <coord-worktree>
-  mkdir -p .tsugu/knowledge
-  touch .tsugu/knowledge/.gitkeep )
-git -C <coord-worktree> add .tsugu
-git -C <coord-worktree> commit --message "tsugu: bootstrap coordination ref (knowledge/)"
-git -C <coord-worktree> push --set-upstream <remote> <coordination-ref>
-```
-
-Thereafter the normal commit → `fetch` + `rebase <remote>/<coordination-ref>` →
-`push <remote> HEAD:<coordination-ref>` protocol applies (never a bare `git pull`
-— see the warning above). All `knowledge/` reads resolve against
-`<remote>/<coordination-ref>`; always read `policy.md` from `<remote>/<default>`,
-never from the coord branch.
-
----
 
 ## Personal-folder bootstrap
 
@@ -578,15 +510,14 @@ human approval**. Cleanup order is the established one: `git worktree remove`
 ## Freshness
 
 Persistent branches drift when default moves under them. **Who's present decides the
-posture** — four modes share one mechanic (`git fetch` then a forced-merge-backend
-`git rebase --merge <remote>/<default>`, so `.gitattributes` union drivers are always
-consulted) but differ in who resolves a conflict, and what happens when the refresh
-can't proceed:
+posture** — four modes share one mechanic (`git fetch` then
+`git rebase <remote>/<default>`) but differ in who resolves a conflict, and what
+happens when the refresh can't proceed:
 
 | Who's present | Posture | Conflict handling |
 |---|---|---|
 | **Manual resume** — human at the terminal, resuming a branch | stop-and-ask | non-trivial conflict → stop and ask the human |
-| **Unattended `prepare`** — flag-gated automatic step | abort + skip | any real conflict → `git rebase --abort`, skip the branch this run, surface at `converge` |
+| **Unattended `prepare`** — flag-gated automatic step | resolve `.tsugu/`, else abort + skip | a `.tsugu/` conflict → the agent resolves it and notes what it kept; a conflict it cannot reconcile, a structural one, or any conflict outside `.tsugu/` → `git rebase --abort`, skip the branch this run, surface at `converge` |
 | **`converge`** — human present, reading branches live | resolve or park, live | real conflict → the human resolves it live, or `git rebase --abort` and parks the branch |
 | **Maintenance** — human-marked task only | rebase → verify | same rebase, then build/test so the accepted branch is merge-ready ([Maintenance complete path](#maintenance-complete-path-human-marked-only--re-scoped-from-the-old-default)) |
 
@@ -599,18 +530,23 @@ and before working each branch (`no`, or the field absent, skips it — fail-saf
 
 ```bash
 git fetch --prune <remote>                 # already the queue-read step
-git rebase --merge <remote>/<default>      # per in-progress LOCAL <work-prefix>/<slug>, on its own checkout; --merge forces the union-capable backend — never the two-arg `git rebase <upstream> <branch>` form, which would switch the shared checkout
+git rebase <remote>/<default>              # per in-progress LOCAL <work-prefix>/<slug>, on its own checkout — never the two-arg `git rebase <upstream> <branch>` form, which would switch the shared checkout
 ```
 
-- **`.tsugu/context.md` auto-unions.** `init` writes `.tsugu/.gitattributes` with
-  `context.md merge=union`, so a *content* conflict in the narrative file concatenates
-  both sides losslessly and never stops the rebase — no `-X theirs`, which would also
-  swallow real *code* conflicts.
-- **Any real conflict → abort, skip the branch, surface for converge.** A source-file
-  conflict, or a *structural* `context.md` conflict union can't cover (modify/delete,
-  etc.), means union could not resolve it: `git rebase --abort` restores the pre-rebase
-  tip exactly, and `prepare` **skips working that branch this run** rather than piling
-  fresh commits onto a stale base. No status write — the fact is derived at the next
+- **A `.tsugu/` conflict is yours to resolve.** Nothing auto-resolves it — there is no
+  merge driver (spec 022 removed `merge=union` and the `.gitattributes` that carried
+  it). You wrote both sides, so reconcile the two accounts into one, then **write one
+  line into `context.md`'s narrative saying what you reconciled and which side you
+  kept**. This is the only step in an unattended `prepare` that discards someone else's
+  text; the human reads that line at `converge`. Do **not** use `-X theirs`, which would
+  also swallow real *code* conflicts.
+- **Decline when you cannot, and abort on anything outside `.tsugu/`.** A conflict you
+  cannot confidently reconcile, a *structural* one (modify/delete on `context.md`, or
+  add/add on the same `evidence/` filename with different contents), or any source-file
+  conflict: `git rebase --abort` restores the pre-rebase tip exactly, and `prepare`
+  **skips working that branch this run** rather than piling fresh commits onto a stale
+  base. Declining is a first-class outcome — a merge driver always produced *an* answer,
+  and judgment must be allowed to say no. No status write — the fact is derived at the next
   `converge` ("behind default, did not fast-forward"), never recorded in `context.md`
   (a write there would rewrite the claim's author-date, see below).
 - **Bare-submodule paired work branches are excluded.** Rebasing the submodule side
@@ -719,8 +655,10 @@ branch as-is (no accepted name exists); **drop** deletes it (the refresh was was
 harmless — nothing was published).
 
 - **Conflict handling is human-present** — different from `prepare`'s deterministic
-  abort+skip. A `.tsugu/context.md` *content* conflict still auto-unions, identical to
-  `prepare`. A **real** conflict is never blind-aborted: surface it live and let the
+  abort+skip. A `.tsugu/` conflict is resolved by the agent as in `prepare`, and stated
+  to the human rather than only written to the narrative — a human is present, so there
+  is no reason to make them find it later. A conflict **outside** `.tsugu/`, or a
+  structural one the agent declines, is never blind-aborted: surface it live and let the
   human **resolve it**, or `git rebase --abort` and **park** the item as a normal
   disposition.
 - **Pushed-repo reconcile, gated by divergence origin — never a clobber.** The refresh
@@ -761,27 +699,23 @@ checked out.
 
 `init` runs when a repo has no `.tsugu/`. It writes the fixed metadata and the
 durable skeleton, idempotently. Committed `.tsugu/` collapses to **`policy.md` +
-`context.md` + `.gitattributes` + `knowledge/`** — no `intake/`, no `runs/`, no
+`context.md` + `evidence/`** — no `.gitattributes`, no `intake/`, no `runs/`, no
 `packets/`, no repo-seeded `templates/`.
 
-**1. Create the `.tsugu/` skeleton.** Only `knowledge/` is a tracked directory,
-and git can't track an empty one, so seed it with a real file. `knowledge/`'s
+**1. Create the `.tsugu/` skeleton.** Only `evidence/` is a tracked directory,
+and git can't track an empty one, so seed it with a real file. `evidence/`'s
 internal layout is unprescribed — seed the dir itself, nothing more:
 
 ```bash
-mkdir -p .tsugu/knowledge
-touch .tsugu/knowledge/.gitkeep
+mkdir -p .tsugu/evidence
+touch .tsugu/evidence/.gitkeep
 ```
 
 Templates are **not** seeded into the repo — `init`/`prepare`/`converge` read
 them from `${CLAUDE_PLUGIN_ROOT}/skills/tsugu/templates/` instead.
 
-**2. Write `policy.md` (with `tsugu-schema: 7`) + the mainline `context.md` +
-`.tsugu/.gitattributes` only if absent**, rendered from the skill's templates
-(`.gitattributes` from `templates/gitattributes` — content `context.md
-merge=union`, flag-independent: it's written regardless of the repo's
-`rebase-prepare-onto-default` value, since a narrative-file merge conflict should
-never block an ordinary `git merge` either). This makes re-running `init` an
+**2. Write `policy.md` (with `tsugu-schema: 8`) + the mainline `context.md`
+only if absent**, rendered from the skill's templates. This makes re-running `init` an
 **idempotent repair**: it fills in any missing skeleton path and is otherwise a
 no-op. **Never overwrite a curated `policy.md`** — a re-run must not clobber rules
 a human already tuned. Observation **sources** and **opt-in skills** are personal
@@ -791,9 +725,8 @@ order (N→N+1 until current) and stamps the new `tsugu-schema` **last**. It als
 appends the agent-md routing pointer (`templates/agent-md-pointer.md`) to
 `CLAUDE.md`/`AGENTS.md` — append-only, marker-idempotent, human-approved.
 
-**3. Land the metadata on the default branch.** `policy.md`, the mainline
-`context.md`, and `.tsugu/.gitattributes` must reach `<default>` so policy stays
-resolvable and the union driver exists before any rebase relies on it. If the
+**3. Land the metadata on the default branch.** `policy.md` and the mainline
+`context.md` must reach `<default>` so policy stays resolvable. If the
 default branch is **push-protected**, write them on an `init/*` branch and open a
 **human-approved PR**:
 
@@ -806,12 +739,12 @@ git push --set-upstream <remote> init/tsugu-bootstrap
 ```
 
 Do **not** run `prepare` in that repo until the metadata PR is merged — `prepare`
-needs `policy.md` / `coordination-ref` resolvable from `<remote>/<default>`.
+needs `policy.md` resolvable from `<remote>/<default>`.
 
 ## Submodule recursion
 
 (Omni-repo.) `prepare` recurses after working the meta-repo's own queue. The branch always lands
-at the lowest repo that owns the **code**; `.tsugu/` knowledge lands at the lowest
+at the lowest repo that owns the **code**; `.tsugu/` evidence lands at the lowest
 repo that **has** a `.tsugu/`.
 
 **Descend only if this repo's own `## Recursion` permits** (default: only when

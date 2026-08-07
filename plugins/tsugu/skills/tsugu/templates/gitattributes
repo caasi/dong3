@@ -1,3 +1,0 @@
-# Shipped by `tsugu:init` as .tsugu/.gitattributes. Intentional, flag-independent:
-# context.md is narrative and should never block any merge or rebase.
-context.md merge=union

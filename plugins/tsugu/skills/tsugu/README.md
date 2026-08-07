@@ -10,10 +10,10 @@ agent to human, and the resume by whoever comes next. It never auto-merges.
 Using git's DAG as the coordination substrate, an agent prepares engineering work
 **privately on git branches** (often while you are away), records the evolving
 narrative in a committed `context.md`, and promotes durable findings into a shared
-`knowledge/` wiki. When you return, you **converge** — read the prepared branches
+`evidence/` directory. When you return, you **converge** — read the prepared branches
 live, decide together what becomes public, and **hand off** the explored branch to
 you (the human owns the design and the landing), all in one human-present session. A branch is a unit of work one agent
-hands to the next; the committed `.tsugu/` knowledge is the memory that outlives the
+hands to the next; the committed `.tsugu/` is the record that outlives the
 session that produced it.
 
 Tsugu prepares the board; workflow skills (planning, debugging, TDD, review-loop)
@@ -33,7 +33,7 @@ One lifecycle, four routines:
    private git work on the configured work-prefix branches (default `prepare/*`),
    run tests, record evidence in `context.md` (including **blindspots** — unknown
    unknowns — under a material + grounded filter), and promote shareable findings into
-   `knowledge/`. **External silence** — interrupt only if the task is unsafe,
+   `evidence/`. **External silence** — interrupt only if the task is unsafe,
    destructive, or blocked. Work stays on **local** `prepare/*` by default
    (**local-first**); pushing to the remote is a **cross-machine opt-in**
    (`push-prepare-branches: yes` in `policy.md`), which also restores the remote
@@ -54,14 +54,14 @@ One lifecycle, four routines:
    (note in `context.md` what's needed to resume) and **drop** (record *why*, then
    clean up). A branch you don't act on just **continues** — the implicit default.
    **Findings curation** rides alongside any of these: the agent surfaces durable
-   findings + existing `knowledge/` entries and asks which to organise into the
+   findings + what its `evidence/` holds and asks which to organise into the
    agent md (`CLAUDE.md` / `AGENTS.md`) — agent drafts, you approve. Tsugu presents
    and yields; it invokes no skill (you trigger any workflow skill by keyword).
    Running it just to look is a first-class use — the read-only pass is your
    **morning status view**: how many prepared branches are workable today, what
    awaits merge, what's stale. Looking and leaving is a valid outcome.
 
-**Post-handoff cleanup.** After `converge` hands a branch off, the human finishes it with an agent **outside tsugu's lifecycle**. Because `context.md` carries `merge=union`, landing would concatenate the branch's story onto the mainline note. So the mainline `context.md` ends with a standing **`POST-HANDOFF CLEANUP`** block, and `init` writes a matching pointer into the repo's **`CLAUDE.md`/`AGENTS.md`** (always-loaded) — together they remind the finishing agent to reset the narrative before landing. Passive, best-effort, out-of-lifecycle.
+**Post-handoff cleanup.** After `converge` hands a branch off, the human finishes it with an agent **outside tsugu's lifecycle**, and landing it would otherwise leave a dead branch's story on the mainline note. So the mainline `context.md` ends with a standing **`POST-HANDOFF CLEANUP`** block, and `init` writes a matching pointer into the repo's **`CLAUDE.md`/`AGENTS.md`** (always-loaded) — together they remind the finishing agent to do two things before landing: reset the narrative, and dispose of the `evidence/` files that branch added, moving what is still needed to the agent md, `docs/` or the test suite and deleting the rest. Passive, best-effort, out-of-lifecycle.
 
 4. **prune** (human present) — a recurring, queue-wide cleanup sweep of unused
    branches (**local + remote**), the home for the destructive cleanup that
@@ -91,20 +91,18 @@ driver you start.
 
 ## The `.tsugu/` namespace at a glance
 
-The committed `.tsugu/` is a **work-in-progress knowledge layer** — a richer,
+The committed `.tsugu/` is a **work-in-progress layer** — a richer,
 agent-maintained sibling of `AGENTS.md` / `CLAUDE.md`, pushed so any inheritor reads
-it from `git fetch` alone. It holds three knowledge parts, plus a one-line
-infrastructure file so the narrative never blocks a merge or rebase:
+it from `git fetch` alone. It holds three parts and no infrastructure file:
 
 ```text
 .tsugu/
   policy.md      shared coordination policy (boundary, work + accepted prefixes,
-                 merge method, … — `tsugu-schema: 7`)
+                 merge method, … — `tsugu-schema: 8`)
   context.md     this ref's narrative — every branch tells its own story; the
                  default branch tells the mainline's
-  knowledge/     free-form shared wiki (promoted, durable findings)
-  .gitattributes context.md merge=union — union-merges narrative conflicts
-                 instead of stopping a merge/rebase on them
+  evidence/      this ref's runnable artifacts — repro scripts, probes, captured
+                 output; emptied at landing, what is still needed moves out
 ```
 
 Everything *about how Tsugu operates for one human* lives in a **personal folder**,
@@ -116,7 +114,7 @@ per machine and **never committed**:
   packets/       converge decision-views (derived, regenerated live)
 ```
 
-The repo holds knowledge; the skill holds behavior; the personal folder holds one
+The repo holds the work; the skill holds behavior; the personal folder holds one
 human's setup. `<project-key>` derives from the repo's git common dir, so every
 worktree of one repo shares one personal folder per machine. The personal folder
 does not transfer across machines — the only cross-machine contract is the pushed
@@ -159,8 +157,9 @@ default before working it. This is governed by a `## Freshness` policy flag,
 `rebase-prepare-onto-default` — a fresh `init` writes it **on**; a repo upgraded from an
 older schema keeps its pre-upgrade behavior (**off**, pinned by the migration) until you
 explicitly flip it. Three guarantees make the refresh safe to run unattended: a
-`.tsugu/context.md` conflict during the rebase auto-unions both sides (concatenates
-rather than blocking the run); the claim/recency signal a branch's freshness relies on
+a `.tsugu/context.md` conflict during the rebase is resolved by the agent, which notes
+in the narrative what it kept, and is declined — abort and skip — when it cannot be
+reconciled; the claim/recency signal a branch's freshness relies on
 survives the rebase, because recency reads the commit's **author-date**, which rebase
 preserves (only committer-date changes); and where a branch is pushed cross-machine, the
 refreshed branch is delivered with a **pinned** `--force-with-lease` tied to the exact
@@ -188,7 +187,7 @@ without approval**.
 ## Public-branch mode
 
 `public-branch-tsugu: include | exclude` (recorded in `policy.md`, **default
-`include`**) governs whether the committed WIP-knowledge layer lands on the
+`include`**) governs whether the committed `.tsugu/` layer lands on the
 public/default branch:
 
 - **`include`** (default) — the work branch merges as-is, so its **prep commit DAG
@@ -199,8 +198,9 @@ public/default branch:
   **human strips `.tsugu/` when they open the public PR** — converge no longer cuts a
   separate by-path public branch.
 
-Either way, **`knowledge/` lands on the coordination ref** — it is the team's shared
-brain in both modes.
+Either way the **disposal of `evidence/` at landing is the same**: three of its four
+routes write outside `.tsugu/` — the agent md, `docs/`, the test suite — so they land
+in both modes.
 
 ## Non-goals
 
@@ -215,7 +215,7 @@ See the design specs for the full model:
 and [005 — the agent-first revision](../../../../docs/superpowers/specs/005-tsugu-agent-first-design.md)
 (lineage: the init/prepare/converge routines, derived state), refined by
 [006 — the workspace holds only what transfers (schema 3)](../../../../docs/superpowers/specs/006-tsugu-workspace-transfer-design.md)
-(committed WIP-knowledge layer + personal folder) and
+(committed `.tsugu/` layer + personal folder) and
 [007 — the thin core (schema 4)](../../../../docs/superpowers/specs/007-tsugu-thin-core-design.md)
 (single `prepare/*` work prefix, accepted-prefixes, non-containment landings → advanced),
 [008 — submodule recursion](../../../../docs/superpowers/specs/008-tsugu-submodule-recursion-design.md)
