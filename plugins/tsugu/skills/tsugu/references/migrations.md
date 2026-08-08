@@ -19,7 +19,7 @@ decisions by reading `policy.md`'s `tsugu-schema:` stamp:
   curated `policy.md`.
 - **migrate** — `.tsugu/` present and the stamp is older → apply the documented
   migration steps below **in order** (N→N+1 until current — the full chain is
-  `1→2→3→4→5→6→7`), then update the stamp and commit. The commit message names the
+  `1→2→3→4→5→6→7→8`), then update the stamp and commit. The commit message names the
   migration range (e.g. `chore(tsugu): migrate .tsugu/ schema 1→2`).
 
 The steps obey these rules, which hold for every migration (not just 1→2):
@@ -49,17 +49,17 @@ The steps obey these rules, which hold for every migration (not just 1→2):
 - **Push-protected default branches:** the whole migration rides an `init/*`
   branch + human-approved PR (the 004 `init` rule). The `tsugu-schema` stamp lives
   in `policy.md` on the default branch, so it always rides this policy PR and is
-  the **last** write to land; how the `knowledge/` rename orders against it
-  depends on where the coordination ref lives. When `coordination-ref` is
-  `default` (the default branch itself), the rename is also a default-branch
-  change and travels **in the same policy PR**, stamp written last within it — one
-  atomic merge. When `coordination-ref` is a separate pushable branch (the usual
+  the **last** write to land. Where a migration also renames a store, how that
+  rename orders against the stamp depends on which ref holds the store. When it is
+  the default branch itself, the rename travels **in the same policy PR**, stamp
+  written last within it — one atomic merge. When it is a separate pushable branch
+  (before schema 8, a `coordination-ref` such as `tsugu/coord`; the usual
   push-protected setup), the rename is pushed to that branch **first** and
   confirmed, **then** the policy PR carrying the stamp is merged. Either way the
   stamp lands only after the rename is confirmed, and while it is absent a re-run
   re-enters — so the schema never reads complete over a half-applied rename.
-  Throughout the window readers accept **both** `context/` and `knowledge/` names,
-  so a schema-1 reader and the renamed coordination ref never disagree.
+  Throughout such a window readers accept **both** the old and the new directory
+  names, so a stale reader and the renamed ref never disagree.
 
 ## Migration 1→2
 
@@ -555,3 +555,99 @@ branch + human-approved PR, stamp the **last** write to land — as 004–013 sp
 
 This migration changes no policy field, touches no branch refs, and rewrites no
 surrounding `context.md` narrative.
+
+## Migration 7→8
+
+Schema 8 is the spec 022 layout: the committed store is renamed `knowledge/` →
+`evidence/` and re-scoped from a repo-wide wiki on a coordination ref to a **per-ref
+directory that is emptied at landing**; `merge=union` and `.tsugu/.gitattributes` are
+removed; the `POST-HANDOFF CLEANUP` block stops being byte-immutable and gains the
+four-way disposal; `## Promotion candidates` leaves `context.md`; and `## Coordination
+ref` leaves `policy.md`.
+
+**Condition:** `.tsugu/` present and `tsugu-schema` reads `7`.
+
+**0. Read `coordination-ref` before anything else — the migration may span two refs.**
+`knowledge/` is not necessarily on the default branch. `policy.md`'s
+`coordination-ref: default` is a sentinel; the other setting is a separate branch,
+preferably an **orphan** such as `tsugu/coord` that holds **only** `knowledge/`, with
+`policy.md` always read from the default branch. Read the field **now**, because step 4
+removes it, and split the steps by **where each file actually lives**:
+
+| Steps | Ref |
+|---|---|
+| 1–2 (`knowledge/` rename and triage) | the ref `coordination-ref` names |
+| 3–7 (`.gitattributes`, `policy.md`, `context.md`, agent md, stamp) | the **default branch**, always |
+
+Running every step against the coordination ref is as wrong as ignoring the field.
+On the orphan layout that branch has no `policy.md`, no `context.md` and no
+`.gitattributes`, so steps 3–7 would no-op there while the default branch stayed at
+schema 7. Ignoring the field instead makes step 1's guard find no `knowledge/`, step 2
+triage nothing, and step 7 stamp schema 8 over content still sitting untriaged on a
+branch nothing points at — a migration that reports success and did nothing. This is
+the same two-ref split migration 2→3 states in its `Cross-ref placement:` paragraph,
+with the same ordering rule: the coordination-ref work is pushed and **confirmed
+first**, then the policy change carrying the stamp lands.
+
+**1. Rename the store.** On the ref step 0 resolved, guarded on `knowledge/` still
+existing (a bare `git mv` run twice fails, and onto an existing target directory it
+**nests** instead of erroring — migration 1→2 step 5 states both):
+
+```bash
+[ -d .tsugu/knowledge ] && git mv .tsugu/knowledge .tsugu/evidence
+```
+
+Keep the `.gitkeep`. If `evidence/` already exists and `knowledge/` does not, this step
+has run — no-op.
+
+**2. Triage every entry — human-present, one by one, with no exemption.** Present each
+entry with a proposed destination and **move it only on the human's approval**:
+
+| The entry | Route | Approval |
+|---|---|---|
+| A convention this repo follows | `CLAUDE.md` / `AGENTS.md` | human approves — public coordination |
+| An explanation a person reads | `docs/` | human approves — public coordination |
+| A behaviour the code must keep | the test suite | none — an ordinary code change |
+| Everything else | delete | none |
+
+**A throwable spike gets no exemption.** 017's blessed transient is a *work-branch*
+carve-out, and this store is not a work branch: a spike belonging to work that already
+landed is done and is deleted, and a spike belonging to work still in flight sits on
+that work's own branch, which this migration never touches. **Idempotency condition:**
+an entry is presented only while it is still in `evidence/` on this ref. Dispose of
+each entry as it is decided rather than collecting decisions and applying them at the
+end, so the remaining contents *are* the record of what is left and an interrupted
+re-run re-presents only the undecided ones.
+
+**Then surface the old coordination branch**, if step 0 resolved a non-default ref:
+say it now holds nothing tsugu reads and let the human decide. A remote delete is
+public coordination and never happens without explicit per-item approval — the rule
+`prune` states.
+
+**3. Delete `.tsugu/.gitattributes`** (default branch). With no `merge=union`, nothing
+auto-resolves `.tsugu/`; `prepare` resolves a narrative conflict itself and declines a
+structural one. If the file is already absent, no-op.
+
+**4. `policy.md`** (default branch): remove the `## Coordination ref` section and its
+`coordination-ref:` field; drop the coordination-ref sentences from the
+`## Public branch` comment; and edit `## Freshness`'s cost note, which names
+union-interleave from a third section neither of the other two edits reaches.
+
+**5. `context.md`** (default branch): remove `## Promotion candidates`; replace the
+`POST-HANDOFF CLEANUP` block with the schema-8 text (no byte-immutability language;
+the four-way `evidence/` disposal; a backstop cue that reads "the default branch's
+`context.md` tells one branch's story instead of the mainline's" rather than
+"duplicate `##` headers", which was union's signature and can no longer occur); and
+update the `## Blindspots` comment's directory name.
+
+**6. Agent-md pointer** (default branch): refresh the `## tsugu — post-handoff
+cleanup` section to the new block text, including its own copy of the backstop cue.
+Append-only, marker-idempotent, human-approved — the 015 rules are unchanged.
+
+**7. Stamp `tsugu-schema: 8` — last.** Only after every step above succeeds, and
+after the coordination-ref work of steps 1–2 is confirmed. Until the stamp is written
+a re-run re-enters this migration and each condition guard makes the re-entry a no-op.
+
+**Reader tolerance during the window.** A reader accepts `knowledge/` when `evidence/`
+is absent, as the 1→2 window did for `context/`. A schema-7 repo is therefore readable
+by a schema-8 agent before its `init` re-run.

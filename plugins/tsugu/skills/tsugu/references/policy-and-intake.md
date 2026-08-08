@@ -62,10 +62,10 @@ history-rewriting, force-pushing rebase of in-progress work branches onto the
 fetched default tip. It exists because that rebase runs with no human present:
 **`yes`** (fresh-init default) has `prepare` rebase every in-progress
 `<work-prefix>/*` branch (settled / taken-over / zero-commit excluded) after each
-fetch, on the required **merge backend** (`git rebase --merge <remote>/<default>`,
-forced at the call site so `.tsugu/.gitattributes`'s `context.md merge=union`
-driver always applies regardless of the repo's `rebase.backend` config or git
-version) — a real conflict aborts and skips the branch this run, surfacing it at
+fetch (`git rebase <remote>/<default>`) — a `.tsugu/` conflict is resolved by the
+agent, which notes in the narrative what it kept; a conflict it cannot reconcile, a
+structural one, or any conflict outside `.tsugu/` aborts and skips the branch this
+run, surfacing it at
 `converge`. **`no`** skips the rebase step entirely (pre-013 behavior). It is an
 **independent** knob from `## Push` — rebase rewrites history and earns its own
 off-switch, even though the delivery half of it (`--force-with-lease`) only fires
@@ -127,13 +127,13 @@ existing repos so behavior never flips silently.
 public-branch-tsugu: include
 ```
 
-Controls whether the committed **WIP-knowledge layer** reaches the default branch.
+Controls whether the committed **`.tsugu/` layer** reaches the default branch.
 Two values, default **`include`**:
 
 - **`include` (default):** the work branch **is** what merges — directly (solo
   flow) or via a slug-paired accepted branch. Merging lands the work branch's
   **prep commit DAG plus its `context.md` narrative** on the default branch as
-  committed WIP knowledge; there is no by-path filtering and no separate
+  committed work in progress; there is no by-path filtering and no separate
   evidence-landing step. The trade-off, stated openly: mainline history carries
   the agent's preparation commits and `context.md` — and in the agent-first
   orientation that history *is* the memory.
@@ -146,9 +146,9 @@ Two values, default **`include`**:
   containment, or — where the strip/rewrite breaks containment — `prune`'s
   *possibly-landed (no containment) — confirm* bucket.
 
-**`knowledge/` lands on the coordination ref regardless of mode** — it is the
+**`evidence/` lands on the coordination ref regardless of mode** — it is the
 team's shared brain in both `include` and `exclude`; the field governs only the
-WIP layer (`context.md` + prep DAG), not `knowledge/`.
+WIP layer (`context.md` + prep DAG), not `evidence/`.
 
 ### `## Merge method`
 
@@ -209,17 +209,6 @@ Optional override for `<default>`. If blank, `<default>` is resolved from
 `<remote>/HEAD` (`git symbolic-ref refs/remotes/<remote>/HEAD`). Set it only when
 `<remote>/HEAD` is unreliable or the repo's default is non-obvious.
 
-### `coordination-ref:`
-
-The ref where the promoted `knowledge/` wiki is written. **Default: `default`** (a
-sentinel meaning "the repo's default branch" — it resolves to `<default>`, not a
-branch literally named `default`). Point it at a dedicated branch (e.g.
-`tsugu/coord`, ideally an orphan) when the default branch is **push-protected** —
-the agent needs a writable home for `.tsugu/knowledge/`, but in a human-
-collaborative repo the task **code** only ever reaches default through a human-
-merged PR, not an agent push. That right varies per environment, which is why it
-is a per-repo policy field. (There is no longer an `intake/` inbox at this ref —
-schema 3 has no committed note layer.)
 
 ### `## Skill use`
 
@@ -246,7 +235,7 @@ not consulted to gate it. A malformed/partial `.tsugu/` without a readable
 `policy.md` is **not** a valid signal — surface it, never silently treat it as
 bare.
 
-| Submodule state | Branch (code) | `.tsugu/` knowledge | Policy used | Lifecycle owner |
+| Submodule state | Branch (code) | `.tsugu/` evidence | Policy used | Lifecycle owner |
 | --- | --- | --- | --- | --- |
 | HAS `.tsugu/policy.md` | `prepare/<slug>` in the submodule | the submodule's own `.tsugu/` | the submodule's own (recurse-and-run) | the submodule (its own `converge`) |
 | no `.tsugu/` | `prepare/<slug>` in the submodule (no `.tsugu/` created there) | the **meta** `.tsugu/`, via a paired meta `prepare/<slug>` | the meta `policy.md` | the meta-repo |

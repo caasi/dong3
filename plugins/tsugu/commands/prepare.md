@@ -24,4 +24,4 @@ no tracker/source intake).
 
 `prepare` also surfaces **blindspots** (unknown unknowns) into `context.md`'s
 `## Blindspots` under a material + grounded filter, and may keep a decision-free
-probe as rerunnable evidence in `knowledge/`, indexed from that section (spec 017).
+probe as rerunnable evidence in `evidence/`, indexed from that section (spec 017).
