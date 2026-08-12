@@ -6,14 +6,15 @@
 # observe what an agent does after reading a prompt, so it reports green whether
 # the instruction works or is ignored. See issue #73.
 #
-# What remains is genuine: JSON fields, compared by value.
+# What remains is genuine. Where a block needs an argument for why a string can settle its
+# claim, that block carries it.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.11.0
+VERSION=0.12.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -44,6 +45,55 @@ jq -e '.description|test("re-confirms the direction of the whole change")' "$PLG
 jq -e '.plugins[]|select(.name=="review-loop")|.description|test("re-confirms the direction of the whole change")' "$MKT" >/dev/null \
   || fail "marketplace review-loop description does not state the recurring-T3 rule"
 pass "both descriptions state the recurring-T3 rule"
+
+# Both descriptions must state that a settled finding keeps its command, which is the
+# fact 0.12.0 added. Same class again: the compliance act is the string being there.
+# It asserts nothing about whether the loop then keeps and re-runs the command — issue
+# #84 records the runs that measured that.
+jq -e '.description|test("keeps the command that settled it")' "$PLG" >/dev/null \
+  || fail "plugin.json description does not state the kept-command rule"
+jq -e '.plugins[]|select(.name=="review-loop")|.description|test("keeps the command that settled it")' "$MKT" >/dev/null \
+  || fail "marketplace review-loop description does not state the kept-command rule"
+pass "both descriptions state the kept-command rule"
+
+# Every record must state BOTH re-run triggers, not just the round one. This fact was
+# written wrong twice in one episode — first in README.md and CLAUDE.md, then again in
+# the three description strings — which is why it is pinned here rather than left to a
+# scratch check that dies with the episode. SKILL.md itself says a check worth a longer
+# life graduates to the repo test suite.
+#
+# This is NOT a return of the SKILL.md/README.md grep assertions issue #73 removed.
+# Those asserted that a runtime prompt contained an instruction, and stood in for
+# whether an agent then obeyed it — a string cannot see that. This asserts that a
+# record states a fact, where the string IS the fact and the check is complete for what
+# it asserts. That holds for a runtime prompt too: SKILL.md's own rule says a presence
+# claim is settled by a grep, and only a behaviour claim needs a run.
+#
+# Flattened so a future re-wrap cannot turn a present phrase into a false negative. These
+# two substrings do not wrap in any record today, and never did in this range — this guard
+# is prospective, not a record of a past failure.
+#
+# SKILL.md's record is its FRONTMATTER DESCRIPTION, not the file. Grepping the whole file
+# passed vacuously: the rule body states both triggers too, and the body is frozen, so a
+# regression in the description alone slipped through. A mutation test found that — reading
+# a check is not running it against a broken case. Slice the frontmatter, the same precision
+# `jq -e .description` already gives the two JSON records.
+flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
+frontmatter() { awk '/^---[[:space:]]*$/{n++; next} n==1' "$1" | tr '\n' ' ' | tr -s ' '; }
+for trig in 'start of each round' 'before each commit'; do
+  for f in "$ROOT/plugins/review-loop/skills/review-loop/README.md" "$ROOT/CLAUDE.md"; do
+    flat "$f" | grep -q "$trig" || fail "$(basename "$f") does not state the '$trig' re-run trigger"
+  done
+  frontmatter "$ROOT/plugins/review-loop/skills/review-loop/SKILL.md" | grep -q "$trig" \
+    || fail "SKILL.md frontmatter description does not state the '$trig' re-run trigger"
+done
+for trig in 'start of each round' 'before each commit'; do
+  jq -e --arg t "$trig" '.description|test($t)' "$PLG" >/dev/null \
+    || fail "plugin.json description does not state the '$trig' re-run trigger"
+  jq -e --arg t "$trig" '.plugins[]|select(.name=="review-loop")|.description|test($t)' "$MKT" >/dev/null \
+    || fail "marketplace review-loop description does not state the '$trig' re-run trigger"
+done
+pass "all five records state both re-run triggers"
 
 v="$(jq -r '.plugins[]|select(.name=="review-loop").version' "$MKT")"
 [ "$v" = "$VERSION" ] || fail "review-loop version is $v, not $VERSION"

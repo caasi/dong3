@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -151,6 +151,23 @@ On prose a human reads, there is nothing to run, so reproduction is **a citation
 verifies with a command** — the quotation, its location, and a `grep`. "A reader can check it" is a
 capability, not a check. A finding nobody could reproduce is still surfaced, and said to be
 unreproduced.
+
+**A settled finding keeps the command that settled it.** Reproduction already ran, so the command
+already exists. Keep that command, and not a check written afterwards. Put it in a scratch directory
+named `<runid>-presence-checks`, outside the repo. Point it at the text the fix produced. When that
+text is gone, the check exits non-zero. Re-run every kept check at the start of each round, and
+before each commit. A failure re-opens that finding, and spends no reviewer round.
+
+**A finding that no command settled keeps nothing** (§ *Prompt outputs are run*). Five runs settle a
+behaviour claim, so it keeps nothing. Reading and judgement settle a T3, so it keeps nothing. This
+holds when the falsification condition names a string, because the string was never what settled it.
+Do not write a new `grep` for such a finding. A `grep` is evidence for a *different claim*, and a
+green signal for a property the check cannot see is worse than no check. Never keep an absence
+check. A rewording escapes an absence check, and the same rewording trips a presence check. On a
+pass that matters, read the match. When the same kept check fails a second time, send that one
+re-fix to a different enrolled model. The facilitator still validates and commits. Remove the directory at the
+end of the episode. A check worth a longer life graduates to the repo's test suite, or to a
+`constraint` artifact.
 
 A reviewer may give a **confidence**. It informs the author and nothing else: it is a self-report by
 the same weights that produced the finding. **The facilitator never imputes a confidence or a
