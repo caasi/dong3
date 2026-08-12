@@ -92,6 +92,22 @@ substring can match a longer string that means the opposite. **Deterministic
 output** — a script, a parser, a schema — keeps test-driven development. For a document
 a human reads, findings are about clarity, consistency, structure and factual accuracy.
 
+**A settled finding keeps the command that settled it.** The loop reproduces a finding before
+it acts on it. When a command did that, the loop keeps it in a scratch directory outside the
+repo. It re-runs every kept command at the start of each round, and before each commit. If a
+later round writes the defect back, that kept command fails immediately, and no reviewer round
+is spent on it. On executable code the test suite already did this. Prose had no runnable check.
+
+A finding that no command settled keeps nothing. A behaviour claim and a judgement about wording
+or design are both in that group, because a `grep` is evidence for a different claim. The loop
+keeps the command it ran and never writes a new check afterwards, so there is no moment at which
+a cheap `grep` can stand in for the five runs a behaviour claim needs.
+
+How well that holds was measured in simulation runs, against control runs on the same
+environment without this rule. The text that ships kept the command in 4 of 5 runs, and no
+control run kept it. The full numbers, the models and the known limits are in the design
+record — GitHub issue #84, which this change uses in place of a spec.
+
 ## How to use
 
 ```text
