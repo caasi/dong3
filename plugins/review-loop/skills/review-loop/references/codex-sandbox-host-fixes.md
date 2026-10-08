@@ -25,31 +25,40 @@ create a user namespace. The children of bwrap run under a second profile,
 capabilities, and it cannot use bwrap to get around the user namespace restriction.
 Option 3 does not have this second profile.
 
-The profile is for `/usr/bin/bwrap` (`profile bwrap /usr/bin/bwrap`). Codex runs
-`/usr/bin/bwrap`, not the `bwrap` copy in `codex-resources/`. This was seen with `strace`
-on codex-cli 0.156.1, and in issue #41.
+The profile is for `/usr/bin/bwrap` (`profile bwrap /usr/bin/bwrap`). On an Ubuntu
+24.04.5 host, `strace` showed that codex-cli 0.156.1 runs `/usr/bin/bwrap`, not the `bwrap`
+copy in `codex-resources/`. Issue #41 reports the same.
 
 On Ubuntu 24.04, `apt install apparmor-profiles` does not enable this profile. The package
-puts it in `/usr/share/apparmor/extra-profiles/`, and AppArmor loads profiles only from
-`/etc/apparmor.d/`. The package also adds other profiles to `/etc/apparmor.d/`. The steps
-below install and load only this one profile.
+puts it in `/usr/share/apparmor/extra-profiles/`. The AppArmor service loads the profiles
+in `/etc/apparmor.d/`, not the profiles in `extra-profiles/`. The package also adds other
+profiles to `/etc/apparmor.d/`. The steps below install and load only this one profile.
 
-If `/etc/apparmor.d/bwrap-userns-restrict` already exists, go to "Verify".
+These steps fixed an Ubuntu 24.04.5 host with `apparmor-profiles`
+`4.0.1really4.0.1-0ubuntu0.24.04.8`. They are written here with long options, in a temporary
+directory. Each command runs only if the command before it worked.
 
-Steps (tested on Ubuntu 24.04.5 with `apparmor-profiles` `4.0.1really4.0.1-0ubuntu0.24.04.8`):
+1. If `/etc/apparmor.d/bwrap-userns-restrict` does not exist, install it:
 
-```bash
-work="$(mktemp --directory)"
-cd "$work"
-apt-get download apparmor-profiles
-dpkg --extract apparmor-profiles_*.deb pkg
-sudo install --mode=644 pkg/usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
-sudo apparmor_parser --replace /etc/apparmor.d/bwrap-userns-restrict
-cd - && rm --recursive --force "$work"
-```
+   ```bash
+   work="$(mktemp --directory)"
+   (
+     cd "$work" &&
+     apt-get download apparmor-profiles &&
+     dpkg --extract apparmor-profiles_*.deb pkg &&
+     sudo install --mode=644 pkg/usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
+   )
+   rm --recursive --force "$work"
+   ```
 
-If `~/.codex/config.toml` has `use_legacy_landlock` under `[features]`, remove that line
-(see option 2).
+2. Load the profile. Do this step also when the file was already there:
+
+   ```bash
+   sudo apparmor_parser --replace /etc/apparmor.d/bwrap-userns-restrict
+   ```
+
+3. If `~/.codex/config.toml` has `use_legacy_landlock` under `[features]`, remove that
+   line (see option 2).
 
 Note: the header of the profile names `aa-enforce` as the way to enable it. `aa-enforce` is
 in the `apparmor-utils` package. This path was not tested.
@@ -95,7 +104,7 @@ profile bwrap /usr/bin/bwrap flags=(unconfined) {
   include if exists <local/bwrap>
 }
 EOF
-sudo apparmor_parser -r /etc/apparmor.d/bwrap
+sudo apparmor_parser --replace /etc/apparmor.d/bwrap
 ```
 
 Verify:
