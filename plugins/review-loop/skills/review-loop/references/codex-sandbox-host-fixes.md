@@ -11,17 +11,19 @@ returns a false-clean ("…not available in the connected GitHub repository").
 
 | # | Fix | sudo / scope | Trade-off | Prefer when |
 |---|-----|--------------|-----------|-------------|
-| 1 | `bwrap-userns-restrict` AppArmor profile | sudo; all bwrap callers | durable; also blocks nested-ns escape; on 24.04 the package does not enable it — see the steps | you want the native path back, durably |
+| 1 | `bwrap-userns-restrict` AppArmor profile | sudo; all bwrap callers | durable; sandboxed children get no capabilities; on 24.04 the package does not enable it — see the steps | you want the native path back, durably |
 | 2 | `features.use_legacy_landlock=true` | none; codex only | **does not work** in codex-cli 0.156.1 (panic) | never — remove it if it is set |
-| 3 | hand-rolled `/etc/apparmor.d/bwrap` (`flags=(unconfined)` + a `userns` rule) | sudo; all bwrap callers | least strict (nested-escape hole) | only if #1 unavailable |
+| 3 | hand-rolled `/etc/apparmor.d/bwrap` (`flags=(unconfined)` + a `userns` rule) | sudo; all bwrap callers | least strict (no limit on sandboxed children) | only if #1 unavailable |
 | 4 | `sysctl …apparmor_restrict_unprivileged_userns=0` | sudo; whole system | drops the hardening globally | last resort |
 | 5 | skill-side embedded-diff | none | n/a — already automatic | always available; zero config |
 
 ## 1. `bwrap-userns-restrict` (recommended durable default)
 
 Ubuntu ships this AppArmor profile in the `apparmor-profiles` package. It lets bwrap
-create a user namespace, and it stops a sandboxed child from creating more namespaces.
-Option 3 does not close that second gap.
+create a user namespace. The children of bwrap run under a second profile,
+`unpriv_bwrap`, which has `audit deny capability`. So a sandboxed child gets no
+capabilities, and it cannot use bwrap to get around the user namespace restriction.
+Option 3 does not have this second profile.
 
 The profile is for `/usr/bin/bwrap` (`profile bwrap /usr/bin/bwrap`). Codex runs
 `/usr/bin/bwrap`, not the `bwrap` copy in `codex-resources/`. This was seen with `strace`
@@ -77,8 +79,9 @@ under `[features]`, remove that line. Then use option 1.
 
 ## 3. Hand-rolled `/etc/apparmor.d/bwrap` (inferior to `bwrap-userns-restrict`)
 
-Works, but is the **least strict** variant: sandboxed children also get userns (the
-nested-escape hole that `bwrap-userns-restrict` closes). Use only if option 1 is unavailable.
+Works, but is the **least strict** variant. This profile puts no limit on the children
+of bwrap. `bwrap-userns-restrict` takes all capabilities from them (see option 1). Use this
+option only if option 1 is unavailable.
 
 Create the profile and load it:
 
