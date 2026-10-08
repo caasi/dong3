@@ -7,9 +7,8 @@
 #   unknown (2)  bwrap absent on PATH, or any other (non-permission) failure — can't conclude
 #
 # This is a ROUTING HINT only. review-loop's post-round structural detector is the
-# real guarantee. Caveat: if the user set features.use_legacy_landlock=true, Codex
-# uses Landlock and never calls bwrap, so this may report `broken` while native
-# `review` actually works — harmless, since the skill then routes to embedded-diff.
+# real guarantee. features.use_legacy_landlock=true does not bypass bwrap: in
+# codex-cli 0.156.1 it panics and asks for bubblewrap (issue #89).
 set -euo pipefail
 
 if ! command -v bwrap >/dev/null 2>&1; then

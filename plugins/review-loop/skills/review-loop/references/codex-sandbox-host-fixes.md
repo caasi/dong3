@@ -12,7 +12,7 @@ returns a false-clean ("…not available in the connected GitHub repository").
 | # | Fix | sudo / scope | Trade-off | Prefer when |
 |---|-----|--------------|-----------|-------------|
 | 1 | `bwrap-userns-restrict` AppArmor profile | sudo; all bwrap callers | durable; also blocks nested-ns escape | you want the native path back, durably |
-| 2 | `features.use_legacy_landlock=true` | none; codex only | **deprecated** in recent codex | a quick, no-sudo stopgap |
+| 2 | `features.use_legacy_landlock=true` | none; codex only | **does not work** in codex-cli 0.156.1 (panic) | never — remove it if it is set |
 | 3 | hand-rolled `/etc/apparmor.d/bwrap` (`flags=(unconfined)` + a `userns` rule) | sudo; all bwrap callers | least strict (nested-escape hole) | only if #1 unavailable |
 | 4 | `sysctl …apparmor_restrict_unprivileged_userns=0` | sudo; whole system | drops the hardening globally | last resort |
 | 5 | skill-side embedded-diff | none | n/a — already automatic | always available; zero config |
@@ -34,24 +34,19 @@ Verify:
 bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev echo OK   # prints OK
 ```
 
-## 2. `features.use_legacy_landlock=true` (temporary compatibility workaround)
+## 2. `features.use_legacy_landlock=true` (does not work in codex-cli 0.156.1)
 
-No sudo, scoped to codex; uses the Landlock LSM instead of bwrap, with the read-only
-sandbox preserved. **Recent `codex` marks this deprecated and slated for removal** — treat
-it as a stopgap, not a long-term default. If it is removed, fall back to #1 or rely on
-the skill-side embedded-diff path.
+Do not use this option. In codex-cli 0.156.1, the Linux sandbox stops with a panic when
+it runs a command with this setting:
 
-```toml
-# ~/.codex/config.toml
-[features]
-use_legacy_landlock = true
+```
+thread 'main' (<id>) panicked at linux-sandbox/src/linux_run_main.rs:410:9:
+filesystem-restricted execution requires bubblewrap to isolate app-server sockets
 ```
 
-Verify:
-
-```bash
-codex exec --sandbox read-only review --commit <unpushed-sha>   # produces a real review
-```
+`codex sandbox` and `codex exec` both give this panic. The setting does not replace bwrap
+any more: Codex asks for bubblewrap. If `~/.codex/config.toml` has `use_legacy_landlock`
+under `[features]`, remove that line. Then use option 1.
 
 ## 3. Hand-rolled `/etc/apparmor.d/bwrap` (inferior to `bwrap-userns-restrict`)
 
