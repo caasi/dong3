@@ -11,7 +11,7 @@ returns a false-clean ("…not available in the connected GitHub repository").
 
 | # | Fix | sudo / scope | Trade-off | Prefer when |
 |---|-----|--------------|-----------|-------------|
-| 1 | `bwrap-userns-restrict` AppArmor profile | sudo; all bwrap callers | durable; also blocks nested-ns escape | you want the native path back, durably |
+| 1 | `bwrap-userns-restrict` AppArmor profile | sudo; all bwrap callers | durable; also blocks nested-ns escape; on 24.04 the package does not enable it — see the steps | you want the native path back, durably |
 | 2 | `features.use_legacy_landlock=true` | none; codex only | **does not work** in codex-cli 0.156.1 (panic) | never — remove it if it is set |
 | 3 | hand-rolled `/etc/apparmor.d/bwrap` (`flags=(unconfined)` + a `userns` rule) | sudo; all bwrap callers | least strict (nested-escape hole) | only if #1 unavailable |
 | 4 | `sysctl …apparmor_restrict_unprivileged_userns=0` | sudo; whole system | drops the hardening globally | last resort |
@@ -19,19 +19,46 @@ returns a false-clean ("…not available in the connected GitHub repository").
 
 ## 1. `bwrap-userns-restrict` (recommended durable default)
 
-Ships in Ubuntu's `apparmor-profiles` (default in 25.04; backportable to 24.04). Restores
-bwrap's userns under an AppArmor profile **and** denies a sandboxed child from creating
-further namespaces (closing the nested-escape gap that option 3 leaves open).
+Ubuntu ships this AppArmor profile in the `apparmor-profiles` package. It lets bwrap
+create a user namespace, and it stops a sandboxed child from creating more namespaces.
+Option 3 does not close that second gap.
+
+The profile is for `/usr/bin/bwrap` (`profile bwrap /usr/bin/bwrap`). Codex runs
+`/usr/bin/bwrap`, not the `bwrap` copy in `codex-resources/`. This was seen with `strace`
+on codex-cli 0.156.1, and in issue #41.
+
+On Ubuntu 24.04, `apt install apparmor-profiles` does not enable this profile. The package
+puts it in `/usr/share/apparmor/extra-profiles/`, and AppArmor loads profiles only from
+`/etc/apparmor.d/`. The package also adds other profiles to `/etc/apparmor.d/`. The steps
+below install and load only this one profile.
+
+If `/etc/apparmor.d/bwrap-userns-restrict` already exists, go to "Verify".
+
+Steps (tested on Ubuntu 24.04.5 with `apparmor-profiles` `4.0.1really4.0.1-0ubuntu0.24.04.8`):
 
 ```bash
-sudo apt install apparmor-profiles   # if not present
-sudo systemctl reload apparmor
+work="$(mktemp --directory)"
+cd "$work"
+apt-get download apparmor-profiles
+dpkg --extract apparmor-profiles_*.deb pkg
+sudo install --mode=644 pkg/usr/share/apparmor/extra-profiles/bwrap-userns-restrict /etc/apparmor.d/bwrap-userns-restrict
+sudo apparmor_parser --replace /etc/apparmor.d/bwrap-userns-restrict
+cd - && rm --recursive --force "$work"
 ```
+
+If `~/.codex/config.toml` has `use_legacy_landlock` under `[features]`, remove that line
+(see option 2).
+
+Note: the header of the profile names `aa-enforce` as the way to enable it. `aa-enforce` is
+in the `apparmor-utils` package. This path was not tested.
 
 Verify:
 
 ```bash
 bwrap --ro-bind / / --unshare-user --unshare-net --dev /dev echo OK   # prints OK
+scripts/sandbox-preflight.sh                     # in the skill directory; prints usable
+codex sandbox -- echo inside-sandbox             # prints inside-sandbox
+codex sandbox -- touch /etc/codex-write-test     # fails: Read-only file system
 ```
 
 ## 2. `features.use_legacy_landlock=true` (does not work in codex-cli 0.156.1)
