@@ -36,7 +36,8 @@ profiles to `/etc/apparmor.d/`. The steps below install and load only this one p
 
 These steps fixed an Ubuntu 24.04.5 host with `apparmor-profiles`
 `4.0.1really4.0.1-0ubuntu0.24.04.8`. They are written here with long options, in a temporary
-directory. Each command runs only if the command before it worked.
+directory. Each command in the subshell runs only if the command before it worked. The
+temporary directory is removed in all cases.
 
 1. If `/etc/apparmor.d/bwrap-userns-restrict` does not exist, install it:
 
