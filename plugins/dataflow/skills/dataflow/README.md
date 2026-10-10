@@ -4,7 +4,7 @@ A Claude Code skill to explore an unfamiliar codebase together with you, one ste
 
 ## What it does
 
-You read the code in your editor and ask one question. The agent answers that question, then stops, so that you choose the next step.
+You read the code in your editor and ask one question. The agent answers that question with at most five findings, then stops, so that you choose the next step.
 
 - **One value at a time.** The agent finds where the value is created, changed and read, and which code owns it.
 - **Types on the path.** If the code has a type system, the agent also reads what each type allows and forbids, what each signature promises, and where outside data becomes a typed value. A question about types starts there.
