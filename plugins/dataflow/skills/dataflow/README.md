@@ -11,7 +11,7 @@ You read the code in your editor and ask one question. The agent answers that qu
 - **Evidence for each finding.** A finding has one of two marks:
   - `[read]` with `file:line`: the agent read it in the code.
   - `[spike]` with the command and its output: the agent ran code and saw the result.
-- **Spikes on a copy.** Before an answer, the agent runs at least one small spike on the most important finding about behavior. A spike calls the code from outside, on a copy of the files. Before the first install or build in the copy, the agent asks you once.
+- **Spikes on a copy.** Before an answer, the agent runs at least one small spike on the most important finding about behavior. If no finding can be tested without an install or a build, the agent says so. A spike calls the code from outside, on a copy of the files. Before the first install or build in the copy, the agent asks you once.
 - **Next steps.** Each answer ends with two lists:
   - **Read next:** two or three `vim +<line> <path>` lines that you can paste, each with one reason.
   - **Spike next:** one or two facts that the agent will check next.
