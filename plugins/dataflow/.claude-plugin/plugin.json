@@ -1,0 +1,12 @@
+{
+  "name": "dataflow",
+  "description": "Explore an unfamiliar codebase together with the user, one step at a time, through its data flow and its types",
+  "author": {
+    "name": "caasi"
+  },
+  "homepage": "https://github.com/caasi/dong3",
+  "repository": "https://github.com/caasi/dong3",
+  "license": "MIT",
+  "keywords": ["dataflow", "types", "code-reading", "exploration", "spike"],
+  "skills": "./skills/"
+}

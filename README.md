@@ -24,6 +24,12 @@ Natural language constraints → deterministic test artifacts. Write constraints
 - [constraint-generate](plugins/constraint/skills/constraint-generate/README.md) — artifact generation (TypeScript)
 - [constraint-enforce](plugins/constraint/skills/constraint-enforce/README.md) — enforcement pipeline
 
+### dataflow
+
+Explore an unfamiliar codebase together with the agent, one step at a time. The agent follows one value through the code, reads the types along its path, marks each finding `[read]` or `[spike]`, and ends each answer with where to read next.
+
+See [plugins/dataflow/skills/dataflow/README.md](plugins/dataflow/skills/dataflow/README.md) for full documentation.
+
 ### fetch-tips
 
 Platform-specific fetch strategies for content that resists simple WebFetch. Currently covers Blogspot/Blogger via JSON Feed API.
