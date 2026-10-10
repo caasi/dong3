@@ -26,7 +26,7 @@ Natural language constraints → deterministic test artifacts. Write constraints
 
 ### dataflow
 
-Explore an unfamiliar codebase together with the agent, one step at a time. The agent follows one value through the code, reads the types along its path, marks each finding as read or verified with a small spike, and ends each answer with where to read next.
+Explore an unfamiliar codebase together with the agent, one step at a time. The agent follows one value through the code, reads the types along its path, marks each finding `[read]` or `[spike]`, and ends each answer with where to read next.
 
 See [plugins/dataflow/skills/dataflow/README.md](plugins/dataflow/skills/dataflow/README.md) for full documentation.
 
