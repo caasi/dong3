@@ -27,7 +27,7 @@ How does input become the [a, b, c] on the screen?
 How does the type of useSpace stop me from passing a plain string?
 ```
 
-Claude starts the skill when the question matches. You can also start it yourself:
+Claude usually starts the skill when the question matches (see the test results below). You can also start it yourself:
 
 - Type `/dataflow` at the start of a message.
 - Write `/dataflow` or `/types` inside a sentence, for example `How do these /types stop me from calling useSpace wrongly?`
