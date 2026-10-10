@@ -6,7 +6,7 @@ when_to_use: Questions such as "how does this type stop me from passing X", "wha
 
 # Types and dataflow
 
-Explore with the user. They read the code in their editor; you answer the one question they just asked, then stop so they can steer. If the conversation already has a how or why answer, start from what it found.
+Explore with the user. They read the code in their editor; you answer the one question they just asked, then stop so that they choose the next step. If the conversation already has a how or why answer, start from what it found.
 
 Follow one value: where it is created, changed, read, and which code owns it.
 
