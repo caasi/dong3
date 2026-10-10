@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing nine independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing ten independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -16,6 +16,7 @@ plugins/
   chat-subagent/                  # Delegate to external LLM endpoints (bash/curl)
   compose/                        # Arrow-style DSL for workflow pipelines
   constraint/                     # NL constraints → deterministic test artifacts
+  dataflow/                       # Explore a codebase with the user, one step at a time (data flow + types)
   fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
   old-react/                      # FP-thinking review/refactor for pre-RSC React
@@ -46,6 +47,8 @@ plugins/<name>/
 **compose:** Uses an OCaml binary (`ocaml-compose-dsl`) for DSL validation. Install via `scripts/install.sh` (downloads to `~/.local/bin/`). Validate `.arr` files with `ocaml-compose-dsl pipeline.arr` or Markdown files with `ocaml-compose-dsl --literate doc.md`. Arrow combinators: `>>>` (sequential), `|||` (branch), `***` (parallel), `&&&` (fanout), `?` (question/branch), `loop()` (feedback). Abstraction: `\x -> expr` (lambda), `let x = expr in body` (let binding). Other syntax: `()` (unit), `;` (statement separator). Epistemic conventions: `gather`, `branch`, `merge`, `leaf`, `check` (cognitive role markers with lint support). Grammar spec in `references/dsl-grammar.md`, examples in `examples/`.
 
 **kami:** Pure dialogue, no runtime dependencies. Grounded in Audrey Tang's Humane Intelligence (仁工智慧) framework and the Civic AI 6-Pack of Care.
+
+**dataflow:** One skill, auto-triggered (no `disable-model-invocation`). It helps a user explore an unfamiliar codebase one question at a time: follow one value (created, changed, read, owned), read the types on its path, mark each finding `[read]` or `[spike]`, and end with `Read next` (`vim +<line> <path>`) and `Spike next`. A spike calls the code from outside, on a copy; the first install or build in the copy needs the user's consent. The SKILL.md is deliberately short: the working assumption is that the model already knows how to read data flow and types, so the skill states only what it does not do by default (one step and stop, the evidence marks, the two end lists, the spike rules). `when_to_use` carries the trigger phrases, and also covers `/types` or `/dataflow` written inside a sentence. Measured with headless `claude -p` simulation runs (Opus, Sonnet, Haiku, with a `--disallowed-tools Skill` control arm); the numbers are in the skill README. Design record: issue #91 — **no spec file**.
 
 **fetch-tips:** Platform-specific fetch strategies for content that resists simple WebFetch.
 
