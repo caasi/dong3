@@ -55,7 +55,7 @@ Each group of 5 runs had 2 runs with Opus, 2 with Sonnet and 1 with Haiku.
 - In each run that started the skill, the answer had `[read]` or `[spike]` marks and both lists at the end. No control run had them.
 - All `Read next` paths were relative to the repository root.
 - Opus and Sonnet ran a spike, or said that a spike needed an install, in 12 of 12 runs.
-- Haiku did not start the skill from a plain-words question in any run. With Haiku, write `/dataflow` or `/types` in the message.
+- Haiku did not start the skill from a plain-words question (0 of 2 runs). With Haiku, write `/dataflow` or `/types` in the message.
 - With the skill, answers were longer than in the control runs, because of the spike output and the two lists.
 
 The design record is [issue #91](https://github.com/caasi/dong3/issues/91).
