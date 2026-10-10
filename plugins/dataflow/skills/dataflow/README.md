@@ -38,7 +38,12 @@ The skill also works after an answer from the `how` or `why` skills of [pstack](
 
 ## Test results
 
-The skill was tested with 30 headless `claude -p` runs on a copy of a React + ReScript + TypeScript site. Each question had 5 runs: 2 with Opus, 2 with Sonnet and 1 with Haiku. The control runs used `--disallowed-tools Skill`.
+The skill was tested with 30 headless `claude -p` runs on a copy of a React + ReScript + TypeScript site:
+
+- 20 runs with the skill: 4 questions, 5 runs each.
+- 10 control runs: the type question and the data-flow question, 5 runs each, with `--disallowed-tools Skill`.
+
+Each group of 5 runs had 2 runs with Opus, 2 with Sonnet and 1 with Haiku.
 
 | Question | Skill started |
 |---|---|
