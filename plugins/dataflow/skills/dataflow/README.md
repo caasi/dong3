@@ -58,6 +58,8 @@ Each group of 5 runs had 2 runs with Opus, 2 with Sonnet and 1 with Haiku.
 - Haiku did not start the skill from a plain-words question (0 of 2 runs). With Haiku, write `/dataflow` or `/types` in the message.
 - With the skill, answers were longer than in the control runs, because of the spike output and the two lists.
 
+The runs loaded the skill as a personal skill in `~/.claude/skills/`. A spot check with the plugin (`--plugin-dir`, no personal skill): `/dataflow` worked, and the skill started as `dataflow:dataflow` in 3 of 3 Haiku runs with `/types` inside the sentence and in 1 of 1 Sonnet run with a plain-words type question.
+
 The design record is [issue #91](https://github.com/caasi/dong3/issues/91).
 
 ## Install
