@@ -6,6 +6,8 @@
 **Source:** author request, prompted by [makinux/adversarial-panel](https://github.com/makinux/adversarial-panel) (MIT) and its design essay, ["adversarial-panel:多モデル敵対的レビューという品質保証"](https://x.com/wayama_ryousuke/status/2075147624806813800) (Ryousuke Wayama, 2026-07-09). **We take its insight, not its architecture** — see *What we took, and what we did not*.
 **Target version:** `review-loop` 0.4.0 → 0.5.0
 
+> **Partly superseded in 0.13.0 (issue #96).** The role `direction`, the direction guard (§A.4, §B.7) and the stamp-1 schema (§A.5) are removed. The current schema and roles are in `SKILL.md` § *The roster file* and § *Reviewer roster*.
+
 ## What this changes, in one paragraph
 
 `review-loop` assumes its reviewers. `codex` on `PATH` and an authenticated `gh` happen to exist on the author's machines; on anyone else's the loop quietly degrades to Claude alone and still reports "gate clean". This spec adds **`/review-loop:init`**, which discovers what a host can actually field and records the author's choice — so the strategy is picked per environment rather than baked into the skill. It then teaches the loop to use more than one reviewer *properly*: they answer **blind and in parallel**, before any fix, and the verdict says which panel actually ran.
