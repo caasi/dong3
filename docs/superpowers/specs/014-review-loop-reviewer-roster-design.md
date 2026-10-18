@@ -142,6 +142,8 @@ A reviewer plays one of two **roles**, split by cost. `init` asks for both, and 
 
 ### A.5 Where the config lives
 
+> **Superseded in 0.13.0 (issue #96).** The schema below is stamp 1. Stamp 2 removes the role `direction`, adds the role `on_request` and the fields `harness`, `private_content` and `private_repos`, lets `via` name a delegate skill, and removes the `## Notes` body: a rule is a YAML comment, and history goes to the memory of the harness. The current schema is in `SKILL.md` § *The roster file*.
+
 Machine-scoped, uncommitted, and **outside the plugin directory** — `plugins/review-loop/` is the install boundary, so anything written there is lost on the next update. Follow the resolution order `chat-subagent` already established in this repo:
 
 1. `<project-root>/.claude/review-loop.local.md` — per-project overrides

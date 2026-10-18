@@ -29,8 +29,16 @@ Reviewers carry a **role**, set by `/review-loop:init`:
    context), one or more *other* Claude models, and `codex` (a different family). Several at
    once is normal — Opus + Sonnet + gpt-5.5. A declared endpoint may join but never counts as a
    cross-family voice.
-2. **Direction guard** — an expensive model (e.g. Fable) held back from every round, proposed
-   under the ordinary `/review-loop` only when the escalation rule fires. No sub-command.
+2. **On request** — runs only in a review where you name it. The loop never adds it and never
+   proposes it. Use it for an expensive model, or for a provider that you want to call only by
+   hand. No sub-command.
+
+The roster file (`~/.claude/review-loop.local.md`, stamp 2) also records, for each reviewer, who
+runs its agent loop (`harness`), how the loop reaches it (`via`: a delegate skill, `cli`, or
+`chat-subagent`), and whether it can get private content (`private_content`, with a
+`private_repos` list). A rule that no field holds is a YAML comment on its entry. The roster holds
+no history and no research: those go to the memory of the harness. `/review-loop:init` migrates a
+stamp-1 file and keeps the old one as `review-loop.local.md.stamp1`.
 
 Routine reviewers answer **blind and in parallel** on the same unfixed diff — none sees another's
 findings — and fixes land after all have reported. A **forge reviewer** (Phase B) is not one of
