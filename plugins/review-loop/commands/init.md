@@ -4,8 +4,9 @@ description: Discover which coding CLIs this host has, verify how to call each o
 
 # /review-loop:init
 
-Invoke the `review-loop` skill and run the **init** routine. Pass `$ARGUMENTS` through as
-free-form context.
+Invoke the `review-loop` skill and run the **init** routine. The skill is
+`${CLAUDE_PLUGIN_ROOT}/skills/review-loop/SKILL.md`; read that file, not another installed copy.
+Pass `$ARGUMENTS` through as free-form context.
 
 **Usage:** `/review-loop:init`
 
@@ -57,6 +58,9 @@ Load-bearing invariants:
   `2`; `init` writes it and, on re-run, migrates an older one — removing the stale stamp rather
   than leaving both. Re-running re-probes, prints a diff of what changed, and preserves explicit
   opt-outs (`enabled: false` is a decision, not an absence).
+- **Writes only the keys of the schema.** The file is YAML frontmatter only, with the keys that
+  `SKILL.md` § The roster file lists. A fact that no key holds goes into a YAML comment. Do not
+  add a key, and do not write a markdown body.
 - **Migrates stamp 1 faithfully — the YAML form and the prose form.** A stamp-1 file can hold a
   `panel:` list, or only the stamp and prose tables that hand edits extended. Both migrate the
   same way:
@@ -83,5 +87,6 @@ Load-bearing invariants:
   `init` once.
 
 Writes `~/.claude/review-loop.local.md` (global), overridden per project by
-`<project-root>/.claude/review-loop.local.md`. The schema is in the skill (§ *The roster file*).
+`<project-root>/.claude/review-loop.local.md`. The schema is in
+`${CLAUDE_PLUGIN_ROOT}/skills/review-loop/SKILL.md` § *The roster file*.
 Offers to add `.claude/*.local.md` to `.gitignore` if absent.
