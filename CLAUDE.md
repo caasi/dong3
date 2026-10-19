@@ -15,7 +15,6 @@ plugins/
   compose/                        # Arrow-style DSL for workflow pipelines
   constraint/                     # NL constraints → deterministic test artifacts
   dataflow/                       # Explore a codebase with the user, one step at a time (data flow + types)
-  fetch-tips/                     # Platform-specific fetch strategies
   kami/                           # Socratic dialogue on human-AI stewardship
   old-react/                      # FP-thinking review/refactor for pre-RSC React
   owasp/                          # OWASP security review with offline references

@@ -30,12 +30,6 @@ Explore an unfamiliar codebase together with the agent, one step at a time. The 
 
 See [plugins/dataflow/skills/dataflow/README.md](plugins/dataflow/skills/dataflow/README.md) for full documentation.
 
-### fetch-tips
-
-Platform-specific fetch strategies for content that resists simple WebFetch. Currently covers Blogspot/Blogger via JSON Feed API.
-
-See [plugins/fetch-tips/skills/blogspot/README.md](plugins/fetch-tips/skills/blogspot/README.md) for full documentation.
-
 ### kami
 
 Reflect on human-AI stewardship through Socratic dialogue. A mirror, not a checklist — rooted in Audrey Tang's Humane Intelligence framework and Civic AI 6-Pack of Care.

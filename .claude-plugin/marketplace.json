@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "caasi's plugin collection for Claude Code",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -26,12 +26,6 @@
       "source": "./plugins/kami",
       "description": "Socratic dialogue for reflecting on human-AI stewardship",
       "version": "0.2.0"
-    },
-    {
-      "name": "fetch-tips",
-      "source": "./plugins/fetch-tips",
-      "description": "Platform-specific fetch strategies for content that resists simple WebFetch",
-      "version": "0.1.0"
     },
     {
       "name": "owasp",
