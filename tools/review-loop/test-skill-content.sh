@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.13.0
+VERSION=0.14.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
