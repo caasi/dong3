@@ -91,6 +91,7 @@ built-in adapter and needs no enrollment.
 ---
 review-loop-config: 2
 private_repos: [my-notes, my-logs]
+usage_log: false
 panel:
   - id: opus
     kind: claude-model
@@ -98,8 +99,6 @@ panel:
     role: routine
     enabled: true
     harness: claude
-  # Until a fallback field exists: run the round with gpt-6-sol when Codex usage is at
-  # 50% or more, and after a usage-limit error. Name the model that ran in the verdict.
   - id: codex
     kind: cli
     model: gpt-6-astra
@@ -108,6 +107,7 @@ panel:
     harness: external
     via: cli
     private_content: allow
+    fallback: {model: gpt-6-sol, usage_percent: 50}
     invocation:
       form: embedded
       command: "codex exec -m gpt-6-astra --json --sandbox read-only -"
@@ -160,6 +160,16 @@ panel:
   counts as `deny`.
 - **`private_repos`** — names of repositories whose content goes only to Claude models and to
   `allow` reviewers.
+- **`fallback`** — for a Codex entry: `{model, usage_percent}`. Before each Codex round, run
+  `usage.py codex-limits` (§ *Helper scripts*). If either window is at `usage_percent` or more
+  (`-` is a window that the plan does not have, and it is never at the limit),
+  run that round with `fallback.model` (replace the `-m` value of the invocation, § *Codex mechanics*). If it prints `N/A`, run with `model`. After a usage-limit
+  error, run that round again once with `fallback.model` (§ *Codex mechanics*). Name the model
+  that ran in the verdict. `codex-limits` reads the `codex` meter; every Codex rate-limit event
+  seen so far (2026-10) belongs to it, so the fallback model only uses less of the same meter.
+- **`usage_log`** — top level, `true` or `false`. A missing value counts as `false`. When it is
+  `true`, the loop writes a usage row for each reviewer in each round (§ A3, *Usage row*), and
+  runs `log.sh usage-retry` once before round 1 of each run.
 
 **Private content.** Before the loop sends anything to a `deny` reviewer, it makes two
 decisions:
@@ -211,6 +221,9 @@ Prebuilt so you don't re-derive the same commands each run. All in `${CLAUDE_PLU
 
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/copilot.sh {status <pr> | request <pr> | rerequest <pr>}` — manage the Copilot reviewer. `request` uses `gh pr edit --add-reviewer`; `rerequest` uses the GraphQL `requestReviews` mutation. Note: the first-ever Copilot review may need a one-time request through the GitHub UI (see B1).
 - `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/pr-comments.sh {fetch <pr> | clean-pass <pr>}` — paginated fetch of reviews + inline comments; `clean-pass` exits 0 when Copilot's newest review is a clean pass.
+
+- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh {new-run | review ... | usage ... | usage-retry}` — the only writer of the round log, the usage file and the pending cost files (§ A3).
+- `python3 ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/usage.py {codex-limits | cost <file>...}` — reads one value from outside: the Codex usage percent as `<5h>+<7d>`, with `-` for a window that the plan does not have, or the net OpenRouter cost of the generations in a relay events file. It asks the harness first (for Codex: `codex app-server`); when the harness cannot answer, it reads or computes the value itself (for Codex: the session logs). It prints `N/A` when it cannot get the value, always exits 0, and writes no file. When the command prints no value, for example on a host without a working `python3`, read that as `N/A` too. It reads `OPENROUTER_API_KEY` from the environment.
 
 Reach for these first. Only hand-write a command when a script genuinely doesn't cover the case.
 
@@ -537,7 +550,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 
 - **Capture the exit status, don't pipe it away.** Never `codex … | tee` — that makes `$?` reflect `tee`, not Codex, and the three-outcome split below needs Codex's real exit code. Redirect stdout to the per-round `$round` file and stderr to `$err`, capturing the code set-e-safely (`rc=0; … || rc=$?`, never a bare `; rc=$?`), then `cat "$round" >>"$log"` for the watch and read `$round` for classification.
 
-- **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop.
+- **Model / effort — defer to the user's Codex config.** Pass **no `-m` and no reasoning-effort override**: `codex exec review` honors `~/.codex/config.toml`'s `review_model` (falling back to the session default). Only if the author names a model for the session ("use gpt-5.4") pass `-m` for the rest of the loop. A round that runs `fallback.model` (§ *The roster file*, `fallback`) uses `fallback.model` on each call of that round, the first call and every `resume`: replace the value of the `-m` that the invocation already has, or add `-m <fallback.model>` when it has none. Codex refuses a second `-m` (`the argument '--model <MODEL>' cannot be used multiple times`), and that error is not a usage limit.
 
 - **Three outcomes** after each call — branch on `rc`:
   - **`rc == 0` → first confirm Codex actually read the tree, *then* read the review.** Read **this round's `$round`** (not the cumulative `$log`). **Post-round detector (the guarantee) — all native-path rounds (initial `review`, `resume`, and the fresh native fallback):** a native round that ran **zero `command_execution` items** never executed a local command, so it never read the tree (a sandbox false-clean). `codex exec --json` nests item kinds under `.item.type`, not top-level `.type`, so test:
@@ -548,7 +561,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
     fi
     ```
     Corroborate with text markers `sandbox prevented reading|repository sandbox|filesystem sandbox failed|not available in the connected GitHub repository`; treat a bare `confidence is low` as a non-review **only** alongside one of those markers. **Embedded-diff rounds are exempt** — the diff is in the prompt, so zero `command_execution` is expected and *not* a failure; judge them by reading the review (text markers only as a sanity check). On a **non-review**, retry with the embedded-diff form; if that still can't produce a real review, **degrade to Claude-only with a surfaced note** ("Codex couldn't read the target locally — proceeding Claude-only for the Codex gate") — never a silent clean. Otherwise Claude reads the review and classifies its findings into T1/T2/T3. The facilitator does **not** judge cleanliness itself on any round — it reads Codex's explicit `CONVERGED` / `STILL-OPEN` line (§ A3) as the verdict. This holds on the **first blind round** too: Codex's `$brief` now ends with that verdict line (a finding-free blind pass ends `CONVERGED`), so a clean round 1 with Codex live is a legitimate dry round like any other — the verdict is *read*, never inferred from an empty findings list.
-  - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** **Stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
+  - **Non-zero *with* a limit message in `$err`** (matching `usage limit|rate limit|quota|too many requests|try again later`) → **usage-limited.** If the entry has `fallback` and this round did not use `fallback.model`, run this round again once with `fallback.model`, and say so. Otherwise **stop the Codex sub-loop**, note "Codex hit its usage limit — falling back to Claude-only local review (+ Copilot if this is a GitHub target)," and continue without Codex.
   - **Non-zero *without* a limit match → "Codex failed"** (bad flag, invalid base, auth failure, etc.). Do **not** silently fold this into the usage-limit fallback — **surface it to the author** with a stderr summary (`tail "$err"`), then degrade to Claude-only. (A read-only review in an untrusted/first-run directory was verified to *proceed* — rc=0 — not hard-fail, so no dedicated trust branch is needed; any future trust-gate non-zero exit lands here.)
 
 - **Convergence rounds — resume the same session, with `--json`.** Use the `thread_id` captured from the first round (the `--json` stream's `thread_id` field — not `session_id`) and resume so Codex remembers its prior comments. **Keep `--json`** so the post-round detector (above) can still run on the resume round — read the review text from the assistant/agent-message events, exactly as on the first round (`resume`'s trailing `-` for the follow-up prompt is valid — only `review` target flags conflict with a prompt):
@@ -583,10 +596,27 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 **Log each round, after the dry decision, not before.** After the facilitator aggregates the round's verdicts and decides whether the round is dry, call `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh` for that round:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ...
+${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review dir=<checkout> run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ...
 ```
 
-Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+`dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. When the roster has `usage_log: true`, also run `log.sh usage-retry` at this point (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+
+**Usage row — only when the roster has `usage_log: true`.** After the round line, write one row for each reviewer that returned a verdict this round:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh usage dir=<checkout> run=<tok> round=<n> reviewer=<id> model=<model> \
+  input=<n> output=<n> cached=<n> reasoning=<n> total=<n> cost=<usd> cost_source=<source> rl_before=<5h+7d> rl_after=<5h+7d>
+```
+
+`model` is the model that ran this round, which is `fallback.model` when the fallback ran. The row goes to `~/.claude/review-loop-usage.tsv`, one file for all projects. Give only the values that the reviewer reported. Leave out the others: the cell stays empty. A row without `cost` gets `N/A` for the cost and for its source.
+
+| Reviewer | Tokens | Cost |
+|---|---|---|
+| Claude subagent | `total` = `subagent_tokens` of the task notification | leave out |
+| Codex (`codex exec --json`, or the relay of `codex-delegate`: its `<out-dir>/events.jsonl`) | the `usage` of `turn.completed`: `input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_output_tokens` | leave out. Give `rl_before` and `rl_after`: `usage.py codex-limits` before and after the round. These two columns are a trial: the owner reads the result before keeping them |
+| Through OpenRouter (for example the relay of `pi-delegate`) | `usage` in `result.json`: `input`, `output`, `cacheRead`, `reasoning`, `totalTokens` | `usage.py cost <out-dir>/events.jsonl` → `cost_source=provider-api`. Also give `pending=<out-dir>/events.jsonl`. Do not use `usage.cost` in `result.json`: one provider gave it wrong prices |
+
+If `usage.py cost` prints `N/A`, leave out `cost`. The OpenRouter generation endpoint can return 404 for a long time (all 18 generations of 2026-10-15 did, issue #92), and an Anthropic model through OpenRouter gives `msg_` ids that the endpoint does not know. Do not put the OpenRouter credits delta in place of the cost: the credits endpoint can lag, and one delta read 0.009 USD for a run whose net cost was 0.067 USD (GPT-6 Sol, 2026-10-18). A low number looks like a measured one; `N/A` does not. With `pending=`, a row whose cost is `N/A` keeps the generation ids of the events file (only the ids) in `~/.claude/review-loop-usage-pending/`. `log.sh usage-retry` looks each of them up again: a cost that it finds goes in a new row with `cost_source=provider-api-late` and only the cost filled in, and an id file older than 7 days is removed. The usage file is append-only, so the earlier row keeps `N/A`. A reader takes the cost of a `provider-api-late` row for the row with the same project, run, round and reviewer. Two runs that start at the same time can both write a late row for one key; a reader takes the last one. Keep the relay `--out-dir` until the row is written.
 
 ### Phase B — GitHub Copilot (only for GitHub PR targets)
 
@@ -617,7 +647,7 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
   - **Only the session's own model ran** → still a genuine fresh-context pass; note no second reviewer participated, so the author can add one via `/review-loop:init`.
   - A user-declared endpoint never counts as a cross-family voice, whatever the config says.
   - Report what **actually ran, verified**: the CLIs that returned findings, and the models that actually *differed*. The subagent echoes its model id on the first line — a self-report, weak, and better than asserting composition from a config field. Where a check is weak, report the verdict it supports and no stronger — but **never let a weak check downgrade a same-family pass**.
-- **Codex usage limit** → stop only the Codex sub-loop; the rest of the loop continues.
+- **Codex usage limit** → run the round again once on `fallback.model` when the entry has one (§ *The roster file*); otherwise stop only the Codex sub-loop. The rest of the loop continues.
 - **Merge** — never merge autonomously. Only on an explicit `merge` instruction. Default to a merge commit (`gh pr merge --merge`, not `--squash`) to preserve history; ask before deleting the branch, and prefer leaving the local branch in place for the author to prune. Honor the project's own merge conventions if they differ.
 
 ### How many dry rounds the loop trusts

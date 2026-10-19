@@ -49,6 +49,11 @@ Load-bearing invariants:
   `private_content: allow | deny` for each reviewer that is not a Claude model. It suggests
   `deny` for a reviewer on a provider that you have not accepted for private content. A missing
   value counts as `deny` for each entry that is not `kind: claude-model`.
+- **Asks about the usage record.** "Record the token count and the cost of each reviewer in each
+  round?" The answer goes into `usage_log` (default `false`). On a re-run, keep the earlier answer
+  unless you change it.
+- **Asks for a Codex fallback model.** When Codex is enrolled, `init` asks for a cheaper model and
+  a usage percent, and writes `fallback: {model, usage_percent}`. No answer → no `fallback`.
 - **Endpoints are declared, never discovered.** Name one and `init` records the name. Where it is
   an alias in the `chat-subagent` registry the entry is marked `via: chat-subagent`, and the url
   and `api_key_env` stay in that plugin's files. **No secrets are ever written.** The roster
@@ -81,6 +86,11 @@ Load-bearing invariants:
   6. Before it writes, `init` shows the new file and a table that maps each passage of the old
      file to a field, a comment, or "history or research". It writes only after your yes, and it
      keeps the old file as `review-loop.local.md.stamp1`.
+- **Turns a comment into a field when the field exists.** A YAML comment that states a rule that a
+  field now holds becomes that field: for example, a Codex fallback rule ("run the round with
+  gpt-6-sol when usage is at 50% or more") becomes `fallback`. The stamp stays `2`, because
+  `usage_log` and `fallback` are optional and a missing value keeps the old behaviour. Show the
+  change and write it only after your yes.
 - **Keeps comments on a re-run.** A YAML comment holds a rule, so edit the file in place. Do not
   generate the YAML again from the parsed data, because that drops the comments.
 - **Never a precondition.** With no config the loop works exactly as it does today, and hints at

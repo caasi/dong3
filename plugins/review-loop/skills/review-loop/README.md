@@ -40,6 +40,11 @@ runs its agent loop (`harness`), how the loop reaches it (`via`: a delegate skil
 no history and no research: those go to the memory of the harness. `/review-loop:init` migrates a
 stamp-1 file and keeps the old one as `review-loop.local.md.stamp1`.
 
+Two optional keys: `fallback` gives Codex a cheaper model for a round when its usage is high or
+after a usage-limit error, and `usage_log: true` makes the loop write the tokens and the cost of
+each reviewer in each round to `~/.claude/review-loop-usage.tsv`. A cost that the loop cannot get
+is `N/A`; the next run looks up an OpenRouter cost again and adds it in a later row.
+
 Routine reviewers answer **blind and in parallel** on the same unfixed diff — none sees another's
 findings — and fixes land after all have reported. A **forge reviewer** (Phase B) is not one of
 them: it appears only once a PR/MR exists. GitHub Copilot is the built-in adapter and needs no

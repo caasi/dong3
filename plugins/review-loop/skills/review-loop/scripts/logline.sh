@@ -54,8 +54,10 @@ ll_line() { # $1=event, rest = key=value tokens already formed by caller
   printf '%s' "$out"
 }
 
-# Log file path resolver
+# Log file path resolvers
 ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.log}"; }
+ll_usagefile() { printf '%s' "${REVIEW_LOOP_USAGE_FILE:-$HOME/.claude/review-loop-usage.tsv}"; }
+ll_pendingdir() { printf '%s' "${REVIEW_LOOP_USAGE_PENDING:-$HOME/.claude/review-loop-usage-pending}"; }
 
 # Append a line to the round log with guards: off switch, work-tree check, size bound.
 # All failure paths return 0 and write nothing.
@@ -63,10 +65,10 @@ ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.lo
 # per line (one review line per round), so that is one fork per line written — fine. The
 # 2000-line concurrency test below forks git 2000
 # times and so runs for a few seconds; that is a test artifact, not the real write rate.
-ll_append() { # $1=line. All failure paths return 0 and write nothing.
+ll_append() { # $1=line [$2=file, default the round log]. All failure paths return 0 and write nothing.
   [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && return 0
   local line="$1" f dir gdir lc
-  f="$(ll_logfile)"; dir="$(dirname "$f")"
+  f="${2:-$(ll_logfile)}"; dir="$(dirname "$f")"
   # guard: refuse if the log's own directory is inside a work tree (printed value, not exit status).
   # Check the nearest EXISTING ancestor: if the log dir does not exist yet, `git -C "$dir"` fails
   # and the guard would be silently skipped, then `mkdir -p` below would create the dir inside a
