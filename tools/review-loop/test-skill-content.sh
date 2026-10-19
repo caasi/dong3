@@ -81,7 +81,8 @@ pass "both descriptions state the kept-command rule"
 flat() { tr '\n' ' ' < "$1" | tr -s ' '; }
 frontmatter() { awk '/^---[[:space:]]*$/{n++; next} n==1' "$1" | tr '\n' ' ' | tr -s ' '; }
 for trig in 'start of each round' 'before each commit'; do
-  for f in "$ROOT/plugins/review-loop/skills/review-loop/README.md" "$ROOT/CLAUDE.md"; do
+  # CLAUDE.md is not a record of the loop rules any more: it points to SKILL.md (kept lean).
+  for f in "$ROOT/plugins/review-loop/skills/review-loop/README.md"; do
     flat "$f" | grep -q "$trig" || fail "$(basename "$f") does not state the '$trig' re-run trigger"
   done
   frontmatter "$ROOT/plugins/review-loop/skills/review-loop/SKILL.md" | grep -q "$trig" \
