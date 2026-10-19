@@ -6,6 +6,8 @@
 **Source:** author request, prompted by [makinux/adversarial-panel](https://github.com/makinux/adversarial-panel) (MIT) and its design essay, ["adversarial-panel:多モデル敵対的レビューという品質保証"](https://x.com/wayama_ryousuke/status/2075147624806813800) (Ryousuke Wayama, 2026-07-09). **We take its insight, not its architecture** — see *What we took, and what we did not*.
 **Target version:** `review-loop` 0.4.0 → 0.5.0
 
+> **Partly superseded in 0.13.0 (issue #96).** The role `direction`, the direction guard (§A.4, §B.7) and the stamp-1 schema (§A.5) are removed. The current schema and roles are in `SKILL.md` § *The roster file* and § *Reviewer roster*.
+
 ## What this changes, in one paragraph
 
 `review-loop` assumes its reviewers. `codex` on `PATH` and an authenticated `gh` happen to exist on the author's machines; on anyone else's the loop quietly degrades to Claude alone and still reports "gate clean". This spec adds **`/review-loop:init`**, which discovers what a host can actually field and records the author's choice — so the strategy is picked per environment rather than baked into the skill. It then teaches the loop to use more than one reviewer *properly*: they answer **blind and in parallel**, before any fix, and the verdict says which panel actually ran.
@@ -141,6 +143,8 @@ A reviewer plays one of two **roles**, split by cost. `init` asks for both, and 
 `init` is **idempotent**. Re-running re-probes, re-verifies an invocation only when the CLI's version changed or its recipe failed at run time, prints a diff of what changed, and preserves explicit opt-outs (`enabled: false` is a decision, not an absence).
 
 ### A.5 Where the config lives
+
+> **Superseded in 0.13.0 (issue #96).** The schema below is stamp 1. Stamp 2 removes the role `direction`, adds the role `on_request` and the fields `harness`, `private_content` and `private_repos`, lets `via` name a delegate skill, and removes the `## Notes` body: a rule is a YAML comment, and history goes to the memory of the harness. The current schema is in `SKILL.md` § *The roster file*.
 
 Machine-scoped, uncommitted, and **outside the plugin directory** — `plugins/review-loop/` is the install boundary, so anything written there is lost on the next update. Follow the resolution order `chat-subagent` already established in this repo:
 

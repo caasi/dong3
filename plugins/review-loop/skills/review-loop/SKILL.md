@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K and the escalation-to-direction-guard decision. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -55,21 +55,129 @@ reviewer or blocks a clean verdict on its absence. What the loop does is *name w
 ran* — disclosure, not a ranking — so a reader knows whether the cross-family perspective was
 exercised this run, never to discount a same-family pass.
 
-Reviewers carry a **role**, set by `/review-loop:init`, split by cost. Neither role adds a
-sub-command:
+Reviewers carry a **role**, set by `/review-loop:init`. Neither role adds a sub-command:
 
 1. **Routine panel** — runs on every review, blind and in parallel. Compose it from what the
    host has: the session's own model (fresh context), one or more *other* Claude models (e.g.
    Sonnet alongside an Opus session), and `codex` (a different family, actually called). Several
    at once is normal — Opus + Sonnet + gpt-5.5, not a single pick. A user-declared endpoint may
    join, but never counts as a cross-family voice.
-2. **Direction guard** — an expensive, heavyweight model (e.g. Fable) held back from every
-   round. It runs under this same `/review-loop`, proposed only when the escalation rule fires
-   (see *When adversarial review is the point*). Never a sub-command, never every round.
+2. **On request** — runs only in a review where the user names it. Then it runs blind and in
+   parallel with the routine panel, and its verdict counts in the loop-until-dry check (§ A3) for
+   that review. Do not add it to a review yourself, and do not propose it: the user decides when a
+   reviewer is worth its cost or its provider.
+
+A role that this skill does not list is not enrolled. Note it once, and do not run that reviewer.
+An older config can carry `role: direction`: it is a role of stamp 1, and `/review-loop:init`
+migrates it.
 
 **Forge reviewers are a separate phase** (Phase B) — they live on the code-hosting platform,
 appear only once a PR/MR exists, and never review the local diff. GitHub Copilot is the one
 built-in adapter and needs no enrollment.
+
+### The roster file
+
+`/review-loop:init` writes `~/.claude/review-loop.local.md` (a project can override it with
+`<project-root>/.claude/review-loop.local.md`). The file is the YAML frontmatter only:
+
+- **Fields** for each fact that a field can hold.
+- **YAML comments** for each rule in force that no field holds yet. Put the comment on the entry
+  that the rule applies to, and obey it as you obey a field.
+- **No history and no research.** The roster is not a record of what happened on the host. When
+  there is a finding to keep, write it to the memory that the harness uses (in Claude Code: the
+  auto memory of the current project), not to the roster.
+
+```yaml
+---
+review-loop-config: 2
+private_repos: [my-notes, my-logs]
+panel:
+  - id: opus
+    kind: claude-model
+    model: opus
+    role: routine
+    enabled: true
+    harness: claude
+  # Until a fallback field exists: run the round with gpt-6-sol when Codex usage is at
+  # 50% or more, and after a usage-limit error. Name the model that ran in the verdict.
+  - id: codex
+    kind: cli
+    model: gpt-6-astra
+    role: routine
+    enabled: true
+    harness: external
+    via: cli
+    private_content: allow
+    invocation:
+      form: embedded
+      command: "codex exec -m gpt-6-astra --json --sandbox read-only -"
+      verified_with: "codex-cli 0.156.1"
+  - id: glm
+    kind: endpoint
+    model: z-ai/glm-5.3
+    role: on_request
+    enabled: true
+    harness: external
+    via: pi-delegate
+    private_content: deny
+    invocation:
+      command: "node <pi-delegate>/scripts/relay.mjs --brief <file> --cd <repo> --read-only --provider openrouter --model z-ai/glm-5.3 --out-dir <dir>"
+      verified_with: "pi 1.1.0, pi-delegate 0.5.0"
+  - id: deepseek
+    kind: endpoint
+    role: routine
+    enabled: false
+    harness: claude
+    via: chat-subagent
+    private_content: deny
+    alias: deepseek
+  - id: copilot                  # an opt-out; Copilot needs no enrollment
+    kind: forge
+    enabled: false
+---
+```
+
+- **`id`** — the name of the entry; the verdict uses it. **`kind`** — `claude-model`, `cli`,
+  `endpoint` or `forge`. **`model`** — the model that the reviewer runs. **`enabled`** — `false`
+  is an opt-out. **`alias`** — the `chat-subagent` name. **`invocation.form`** — `native` or
+  `embedded` (§ *Codex mechanics*).
+- **`role`** — `routine` or `on_request` (§ *Reviewer roster*). A `forge` entry has no role.
+- **`harness`** — who runs the agent loop of the reviewer. `claude`: a Claude subagent sends
+  all of the input of the reviewer, so the reviewer sees only what the subagent sends (a Claude
+  model, or an endpoint through `chat-subagent`). `external`: another harness (codex, pi) runs the
+  loop and reads files under its working directory by itself.
+- **`via`** — how the loop reaches a reviewer that is not a Claude model: the name of a delegate
+  skill (`pi-delegate`, `codex-delegate`), `cli` (call `invocation.command` directly), or
+  `chat-subagent`. A delegate skill carries the fixes for known problems of its CLI, so `init`
+  prefers it when it is installed.
+- **`invocation`** — the command that `init` verified, also when `via` names a skill: the delegate
+  skills are implementers by default, so a review always gives the read-only option
+  (`--read-only`, `--sandbox read-only`). `verified_with` holds the version of the CLI and, for a
+  skill, the version of the skill. A change in either one is recipe drift (§ *Roster
+  reconciliation*).
+- **`private_content`** — `allow` or `deny`. An entry with `kind: claude-model` needs no value
+  and counts as `allow`. For any other entry, also one with `harness: claude`, a missing value
+  counts as `deny`.
+- **`private_repos`** — names of repositories whose content goes only to Claude models and to
+  `allow` reviewers.
+
+**Private content.** Before the loop sends anything to a `deny` reviewer, it makes two
+decisions:
+
+1. **The list.** The name of the repository root (`basename "$(git rev-parse --show-toplevel)"`)
+   is in `private_repos` → do not send. For `harness: external`, the reviewer can read each file
+   under its working directory, so also do not send when a submodule or a directory under that
+   working directory has the name of a `private_repos` entry.
+2. **The content.** The list does not match → decide from what the reviewer will read. Do not
+   send content that the user marked private for this review, or content of the same kind as the
+   listed repositories. If you are not sure, do not send.
+
+If the user named a reviewer that this rule excludes, tell the user before round 1 that the privacy
+rule excludes it. In the verdict, name that reviewer as excluded by the privacy rule. It is not an
+enrolled reviewer that failed to run.
+
+The forge reviewer (Phase B) is outside this rule. It reads the PR that the user opened, so the
+user made that decision when they opened it.
 
 ### Roster reconciliation at loop start
 
@@ -89,7 +197,7 @@ Compare against the config and **surface every disagreement — never silently f
   the author asked for and did not get is not a silent skip.
 - **Present but unenrolled** (e.g. `codex` installed after `init` ran) → note once: "`codex` is
   on `PATH` but not enrolled — run `/review-loop:init` to add it." Do **not** auto-enroll.
-- **Recipe drift** — the CLI's version differs from `invocation.verified_with`, or the preflight
+- **Recipe drift** — the version of the CLI or of its delegate skill differs from `invocation.verified_with`, or the preflight
   contradicts `invocation.form`. The stored recipe is a **learned default, not gospel**: the
   preflight and the post-round detector still run and still win. Follow this run's evidence, then
   suggest re-running `init`. **A recipe never suppresses a detector.**
@@ -124,9 +232,7 @@ recommendation, as every T2/T3 finding does; the direction question is what the 
 renames the same objection has not raised a new one.
 
 This is a different subject from `suspected_drift` (§ A1), which reports that the *review* looks
-aimed off-target; a recurring T3 is about where the *change* is going. It is still the point at which
-the direction guard is worth proposing, on the ordinary axis — an API-shape or "should this exist"
-question has no runnable ground truth (§ *When adversarial review is the point*). It is **not an
+aimed off-target; a recurring T3 is about where the *change* is going. It is **not an
 extra stop** — a recurring T3 is a T3, so that round already stops; what changes is that the message asks
 about the direction as well as about the item.
 
@@ -288,8 +394,7 @@ How each is invoked:
   blind pass, where a finding-free review ends `converged: true`. The reviewer decides convergence,
   so it must be asked for it, not have it inferred from the absence of findings. `suspected_drift`
   is **advisory**: a reviewer may set it alongside `converged: true`, it never by itself makes a
-  round non-dry; the facilitator surfaces it to the author and treats it as a trigger to *propose*
-  (never auto-run) the direction guard (§ *When adversarial review is the point*).
+  round non-dry; the facilitator surfaces it to the author with the findings of that round.
 - **Codex, native path — the *freeform* form, because the first round needs a prompt.** A target flag takes
   none (`review --uncommitted -` errors rc=2), and the prompt is where the finding record is
   requested. The freeform form does take one:
@@ -471,7 +576,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 
 **The two tokens do not share a prefix, and that is the point.** The earlier pair was `CONVERGED` / `NOT CONVERGED`, where a substring match on the first silently accepted the second — a reviewer that had not converged was read as converged, and the loop stopped early. Do not restore a symmetric pair because it reads better. The asymmetry removes the collision; it does not remove the echo, since a reviewer that quotes this brief back still contains a token. That is why the rule above is to read the meaning.
 
-**Loop-until-dry, not loop-until-N.** A round is *dry* only when **every** live reviewer reports `converged` (Codex converged **and** Claude converged **and** any other enrolled reviewer converged). Stop only after **K consecutive dry rounds**. **K is not a constant, and it is not the reviewer's to set** — the **facilitator** sets it from the ground-truth axis (§ *When adversarial review is the point*). **K is sticky, not recomputed per round:** fix it at the **last round that actually resolved findings**, and hold it across the dry rounds that follow — a dry round resolves nothing, so it must never recompute K to a vacuous `K = 1`. Concretely, **K is the running max of a per-round signal** across the episode's fix-rounds — it only ratchets up, never down. Each fix-round contributes a signal: **1** when every finding it resolved was settled by a runnable check that passes (a test, a `grep` for a *mechanical text-presence* claim, `fxrank`, a type check — a greppable citation for a **judgement** finding is not ground truth for the judgement, so that finding stays in the no-runnable-check branch); **≥ 2** when a resolved finding rested on pure judgement with nothing runnable behind it. **K is the max of those signals**, so a judgement-backed fix-round holds **K ≥ 2** even if a *later* fix-round's signal is 1 — the earlier judgement risk does not evaporate because the last fix happened to be check-backed. An episode that resolved **no findings at all** (clean from the first blind pass) has no signals, so **K = 1** — no judgement debt to hold. On the **≥ 2** branch you may instead **propose a direction-guard round** (proposed, never auto-run — § *When adversarial review is the point*) to audit the convergence before the loop trusts it. A clean audit **discharges the ≥ 2 hold** and **counts as one dry round** (not an instant stop), and the direction guard is a **one-shot auditor for that claim** — it does not join the live set for subsequent rounds. If the author declines the proposal, hold **K ≥ 2**. This is the one place the two decisions meet: the reviewer says *whether* this pass is dry; the facilitator says *how many* dry passes it takes on trust.
+**Loop-until-dry, not loop-until-N.** A round is *dry* only when **every** live reviewer reports `converged` (Codex converged **and** Claude converged **and** any other enrolled reviewer converged). Stop only after **K consecutive dry rounds**. **K is not a constant, and it is not the reviewer's to set** — the **facilitator** sets it from the ground-truth axis (§ *How many dry rounds the loop trusts*). **K is sticky, not recomputed per round:** fix it at the **last round that actually resolved findings**, and hold it across the dry rounds that follow — a dry round resolves nothing, so it must never recompute K to a vacuous `K = 1`. Concretely, **K is the running max of a per-round signal** across the episode's fix-rounds — it only ratchets up, never down. Each fix-round contributes a signal: **1** when every finding it resolved was settled by a runnable check that passes (a test, a `grep` for a *mechanical text-presence* claim, `fxrank`, a type check — a greppable citation for a **judgement** finding is not ground truth for the judgement, so that finding stays in the no-runnable-check branch); **≥ 2** when a resolved finding rested on pure judgement with nothing runnable behind it. **K is the max of those signals**, so a judgement-backed fix-round holds **K ≥ 2** even if a *later* fix-round's signal is 1 — the earlier judgement risk does not evaporate because the last fix happened to be check-backed. An episode that resolved **no findings at all** (clean from the first blind pass) has no signals, so **K = 1** — no judgement debt to hold. This is the one place the two decisions meet: the reviewer says *whether* this pass is dry; the facilitator says *how many* dry passes it takes on trust.
 
 "Done" for a reviewer means any of: a `converged` verdict, **or** that reviewer was unavailable this run — for Codex: the `codex` CLI is absent, it stopped at its usage limit, or it **failed for a non-limit reason** (the "Codex failed" path — surfaced to the author, then degraded to Claude-only). In every unavailable case the gate proceeds on the remaining reviewers; only an *available, not-yet-converged* reviewer blocks. Only after K consecutive dry rounds, proceed.
 
@@ -512,55 +617,28 @@ First-time caveat: on some repos `gh pr edit --add-reviewer` returns 422 for the
   - **Only the session's own model ran** → still a genuine fresh-context pass; note no second reviewer participated, so the author can add one via `/review-loop:init`.
   - A user-declared endpoint never counts as a cross-family voice, whatever the config says.
   - Report what **actually ran, verified**: the CLIs that returned findings, and the models that actually *differed*. The subagent echoes its model id on the first line — a self-report, weak, and better than asserting composition from a config field. Where a check is weak, report the verdict it supports and no stronger — but **never let a weak check downgrade a same-family pass**.
+- **Codex usage limit** → stop only the Codex sub-loop; the rest of the loop continues.
+- **Merge** — never merge autonomously. Only on an explicit `merge` instruction. Default to a merge commit (`gh pr merge --merge`, not `--squash`) to preserve history; ask before deleting the branch, and prefer leaving the local branch in place for the author to prune. Honor the project's own merge conventions if they differ.
 
-### When adversarial review is the point, and when looping is enough
+### How many dry rounds the loop trusts
 
-**This is the facilitator's per-round decision, and it is *not* the convergence check.**
-Convergence — is another pass worth it? — is a content property the reviewer owns (§ A3), because
-only the reviewer read the diff and the findings. What the facilitator decides each round is
-narrower: does *this* round justify **proposing** the expensive **direction guard** (proposed to the
-author, never auto-run — see below) to guard direction (顧方向) — sanity-check that the review is
-aimed correctly, catch drift — and, on the same axis below, how many dry rounds **K** a convergence
-verdict must repeat before the loop trusts it.
-**Escalation and K ride the same axis:** the ground-truth question below decides *both* whether to
-propose the direction guard *and* whether K may be 1, so a reviewer that reports dry with no
-runnable ground truth is exactly the case where the proposed direction guard doubles as the
-convergence auditor for that claim — the reviewer with the most incentive to declare itself done
-does not also get to set how many times "done" is believed.
+**This is the facilitator's decision, and it is *not* the convergence check.** Convergence — is
+another pass worth it? — is a content property the reviewer owns (§ A3), because only the reviewer
+read the diff and the findings. The facilitator decides how many dry rounds **K** a convergence
+verdict must repeat before the loop trusts it. So the reviewer with the most incentive to declare
+itself done does not also set how many times "done" is believed.
 
-The routine panel runs every review. The **direction guard** — the expensive, cross-family or
-heavyweight reviewer — is spent only when the work needs decorrelation, and one axis decides
-whether escalation is even on the table: **does the finding have a runnable ground truth?**
+One axis decides it: **does the finding have a runnable ground truth?**
 
 - **It does** — a test, a `grep` for a *mechanical text-presence* claim, `fxrank`, a type check
   settles it (a greppable citation is **not** ground truth for a *judgement* finding — see § A3).
-  **Keep looping.** Reproduction is the judge and the reviewer's family is irrelevant; same-family
+  **K may be 1.** Reproduction is the judge and the reviewer's family is irrelevant; same-family
   multi-pass converges here.
 - **It does not** — the correctness is a judgement (design, premise, API shape, security argument).
-  No test closes it, and a same-family judgement inherits the generator's blind spots. **Here the
-  direction guard earns its cost.**
+  No test closes it, and a same-family judgement inherits the generator's blind spots. **K ≥ 2.**
 
-The axis decides whether escalation is possible; it does not by itself decide the spend is worth
-it. **All three of the following presuppose that no check settles the finding** — a green check
-takes it off the table first. Within that region, when one holds, the loop **proposes** the
-direction guard (never auto-runs it, never a `/review-loop:direction` sub-command) and the author
-says yes or no:
-
-1. **No runnable ground truth** — design/prose/premise, not something a check adjudicates. This is
-   the axis itself; the other two are reasons the spend is worth it within it.
-2. **High or irreversible cost, with no check to settle it** — shared code, a merge gate, an
-   outward-facing change, or a spec the downstream depends on. When judgement is all you have *and*
-   a wrong judgement is expensive, the asymmetry justifies the spend. (A passing check that does
-   not cover the risk is not ground truth for that risk — the finding is still in this region.)
-3. **Converged without proof** — the panel went clean, but "clean" rests on judgement, not a green
-   check. Same-family agreement with nothing runnable behind it is the
-   diversity-illusion danger zone; convergence here is the signal to let a decorrelated reviewer
-   try to break it.
-
-When "clean" is backed by a passing check, **do not escalate** — the ground truth already ruled.
-The default is to loop; adversarial review is the exception these triggers name.
-- **Codex usage limit** → stop only the Codex sub-loop; the rest of the loop continues.
-- **Merge** — never merge autonomously. Only on an explicit `merge` instruction. Default to a merge commit (`gh pr merge --merge`, not `--squash`) to preserve history; ask before deleting the branch, and prefer leaving the local branch in place for the author to prune. Honor the project's own merge conventions if they differ.
+The loop does not bring in a stronger or a different reviewer for such a finding. When the author
+wants one, the author names an `on_request` reviewer for the review (§ Reviewer roster).
 
 ### After convergence — offer to group commits (assisted, never automatic)
 
