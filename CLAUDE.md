@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Claude Code plugin marketplace (`caasi/dong3`) containing ten independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
+A Claude Code plugin marketplace (`caasi/dong3`) containing independent plugins under `plugins/`. No traditional build system — this is a skill/plugin distribution repo.
 
 Install: `claude plugin marketplace add caasi/dong3`
 
@@ -44,7 +44,7 @@ plugins/<name>/
 
 **old-react:** FP-thinking review/refactor for pre-RSC React. Ships **architectural** rules only; what the React-Compiler diagnostics in `eslint-plugin-react-hooks` v5+ and TypeScript discriminated unions cover is deferred. The rule list lives in `plugins/old-react/skills/old-react/SKILL.md` (don't duplicate counts here — they drift). Rules ship from real review examples (spec §9). One slash command: `/old-react [review|refactor] [path]`. Spec: `docs/superpowers/specs/001-old-react-skill-design.md`. Lineage source: `docs/old-react.md`.
 
-**review-loop:** Assisted, not autonomous. Local reviewers answer blind and in parallel on the same unfixed diff; each gives its own per-round verdict; the loop runs until K dry rounds; then GitHub Copilot for PR targets. Every rule of the loop lives in `skills/review-loop/SKILL.md` — do not restate it here. Specs: `docs/superpowers/specs/*-review-loop-*`. Three releases have no spec file; the issue is the design record: 0.12.0 kept command (#84), 0.13.0 roster stamp 2 (#96), 0.14.0 usage record (#92). Two slash commands: `/review-loop [PR# | branch | blank]` and `/review-loop:init`.
+**review-loop:** Assisted, not autonomous. Local reviewers answer blind and in parallel on the same unfixed diff; each gives its own per-round verdict; the loop runs until K dry rounds; then GitHub Copilot for PR targets. Every rule of the loop lives in `skills/review-loop/SKILL.md` — do not restate it here. Specs: `docs/superpowers/specs/*-review-loop-*`. Releases with no spec file, where the issue or the commit is the design record: 0.6.0 reviewer-owned convergence (#64), 0.12.0 kept command (#84), 0.13.0 roster stamp 2 (#96), 0.14.0 usage record (#92), 0.15.0 chat-subagent dropped (commit message). Two slash commands: `/review-loop [PR# | branch | blank]` and `/review-loop:init`.
 
 **tsugu:** Git-native preparation and convergence (継ぐ — "to carry forward"). Four routines, each a slash command: `/tsugu:init`, `/tsugu:prepare`, `/tsugu:converge`, `/tsugu:prune`. Never auto-merges; no scripts shipped; invokes no user-installed skill by default. Every rule lives in `skills/tsugu/SKILL.md`. Schema 8. Specs: `docs/superpowers/specs/*-tsugu-*`, read in number order (004 → 022).
 
