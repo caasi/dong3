@@ -17,7 +17,6 @@ plugins/
   dataflow/                       # Explore a codebase with the user, one step at a time (data flow + types)
   kami/                           # Socratic dialogue on human-AI stewardship
   old-react/                      # FP-thinking review/refactor for pre-RSC React
-  owasp/                          # OWASP security review with offline references
   review-loop/                    # Assisted review loop; never auto-merges
   tsugu/                          # Git-native preparation & convergence (init/prepare/converge/prune)
 tools/<plugin>/                   # Repo-level dev tooling (NOT shipped to skill users)
@@ -43,8 +42,6 @@ plugins/<name>/
 **compose:** Validates with the `ocaml-compose-dsl` binary (`scripts/install.sh` puts it in `~/.local/bin/`): `ocaml-compose-dsl pipeline.arr`, or `--literate doc.md` for Markdown. Grammar in `references/dsl-grammar.md`, examples in `examples/`.
 
 **dataflow:** One skill, auto-triggered. Explore a codebase with the user, one step at a time. The SKILL.md is deliberately short: it states only what the model does not do by default. Measured with `claude -p` simulation runs; the numbers are in the skill README. Design record: issue #91 — **no spec file**.
-
-**owasp:** OWASP security review with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index. Dual-licensed: skill files MIT, OWASP reference files CC BY-SA 4.0.
 
 **constraint:** Three skills for NL metaprogramming — humans write constraints in structured natural language (`constraints/*.md` with Given/When/Then/Unless/Examples/Properties), agents generate deterministic test artifacts. `constraint-write` for authoring, `constraint-generate` for language-agnostic artifact generation (see `references/toolchain-matrix.md`; TS is the primary reference, OCaml verified), `constraint-enforce` for running the enforcement pipeline.
 

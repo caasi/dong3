@@ -42,12 +42,6 @@ FP-thinking review and refactor for pre-RSC React (classes, hooks, Redux/MobX/ob
 
 See [plugins/old-react/skills/old-react/README.md](plugins/old-react/skills/old-react/README.md) and [SKILL.md](plugins/old-react/skills/old-react/SKILL.md) for the canonical rule list.
 
-### owasp
-
-Security review using OWASP frameworks with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index.
-
-See [plugins/owasp/skills/owasp/README.md](plugins/owasp/skills/owasp/README.md) for full documentation.
-
 ### review-loop
 
 Assisted (not autonomous) multi-reviewer convergence loop for any change — code or design artifacts. Local reviewers answer **blind and in parallel** on the same unfixed diff (a Claude subagent always, plus any models/CLIs you enrol per host — Codex via headless `codex exec` when present), then GitHub Copilot for PR targets. The verdict names which reviewers actually ran; heterogeneity is a bonus, not a gate, and same-family review is never treated as a downgrade. Classifies comments into tiers, auto-fixes the mechanical ones, pauses for your judgment on the architectural ones, and never merges on its own. It publishes its stop shape before round 1 and holds to it, and a T3 that comes back after a fix makes that round's message a question about the whole change's direction as well as asking for the item's own fix. How a finding is settled follows who reads the artifact: a behaviour claim about a runtime prompt is settled by five independent simulation runs, never by a string comparison. Two slash commands: `/review-loop [PR# | branch | blank]` and `/review-loop:init` (enrol the roster for this host).
