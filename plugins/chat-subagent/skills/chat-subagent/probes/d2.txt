@@ -1,3 +1,0 @@
-TYPE: coding
-Q: Write a function that reverses a string without using any built-in reverse function or slicing.
-VERIFY: Must use loop or recursion. "hello" → "olleh".

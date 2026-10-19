@@ -1,3 +1,0 @@
-TYPE: reasoning
-Q: Sally is a girl. She has three brothers. Each brother has the same two sisters. How many sisters does Sally have?
-A: 1

@@ -1,3 +1,0 @@
-TYPE: coding
-Q: Write a Python function: given a year, return whether it's a leap year. (div by 4, except centuries unless div by 400)
-VERIFY: 2000→True, 1900→False, 2024→True, 2100→False.

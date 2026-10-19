@@ -1,3 +1,0 @@
-TYPE: counting-spatial
-Q: A robot has 8 arms. It picks up 5 objects (one per arm), then shakes hands with itself. How many arms free?
-A: 1 (8 - 5 - 2 = 1)

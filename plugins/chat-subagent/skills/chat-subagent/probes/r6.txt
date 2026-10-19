@@ -1,3 +1,0 @@
-TYPE: reasoning
-Q: Which weighs more: a pound of water, two pounds of bricks, a pound of feathers, or three pounds of air?
-A: Three pounds of air. Just compare the numbers: 1 vs 2 vs 1 vs 3.

@@ -1,3 +1,0 @@
-TYPE: counting-spatial
-Q: I'm in London facing west. Is Edinburgh to my left or right?
-A: Right. Edinburgh is north; facing west, north is right.

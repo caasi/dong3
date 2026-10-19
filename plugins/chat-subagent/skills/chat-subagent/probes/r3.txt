@@ -1,3 +1,0 @@
-TYPE: reasoning
-Q: I have 2 apples, then I buy 2 more. I bake a pie with 2 of the apples. After eating half of the pie, how many apples do I have left?
-A: 2 (eating pie doesn't change apple count)

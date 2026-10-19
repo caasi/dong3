@@ -1,3 +1,0 @@
-TYPE: reasoning
-Q: There are three killers in a room. Someone enters and kills one of them. Nobody leaves. How many killers are left?
-A: 3 (2 survivors + 1 new killer)

@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/tsugu/.claude-plugin/plugin.json"
-VERSION=0.10.0
+VERSION=0.11.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -34,7 +34,7 @@ for probe in prune 'local-first|local by default' 'post-handoff|POST-HANDOFF'; d
   pass "marketplace description matches /$probe/"
 done
 
-for probe in prune 'local-first|local by default' 'schema 7'; do
+for probe in prune 'local-first|local by default' 'schema 8'; do
   jq -e --arg p "$probe" '.description|test($p)' "$PLG" >/dev/null \
     || fail "plugin.json description does not match /$probe/"
   pass "plugin.json description matches /$probe/"

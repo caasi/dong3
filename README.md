@@ -4,12 +4,6 @@ A Claude Code plugin marketplace by [caasi](https://github.com/caasi).
 
 ## Skills
 
-### chat-subagent
-
-Delegate tasks to external OpenAI-compatible chat endpoints with capability probing, delegation patterns, and prompt injection awareness.
-
-See [plugins/chat-subagent/skills/chat-subagent/README.md](plugins/chat-subagent/skills/chat-subagent/README.md) for full documentation.
-
 ### compose
 
 Describe multi-step agent workflows using an Arrow-style DSL and validate them structurally with the `ocaml-compose-dsl` binary. The DSL is a planning language — the agent expands it into concrete tool calls.
@@ -30,12 +24,6 @@ Explore an unfamiliar codebase together with the agent, one step at a time. The 
 
 See [plugins/dataflow/skills/dataflow/README.md](plugins/dataflow/skills/dataflow/README.md) for full documentation.
 
-### fetch-tips
-
-Platform-specific fetch strategies for content that resists simple WebFetch. Currently covers Blogspot/Blogger via JSON Feed API.
-
-See [plugins/fetch-tips/skills/blogspot/README.md](plugins/fetch-tips/skills/blogspot/README.md) for full documentation.
-
 ### kami
 
 Reflect on human-AI stewardship through Socratic dialogue. A mirror, not a checklist — rooted in Audrey Tang's Humane Intelligence framework and Civic AI 6-Pack of Care.
@@ -47,12 +35,6 @@ See [plugins/kami/skills/kami/README.md](plugins/kami/skills/kami/README.md) for
 FP-thinking review and refactor for pre-RSC React (classes, hooks, Redux/MobX/observable, Reselect, Immer). Ships only architectural rules where neither TypeScript nor `eslint-plugin-react-hooks` already enforces the principle. Five active categories: state architecture (`model-`), effects (`effect-`), composition (`compose-`), render purity (`purity-`), and hook applicability (`hooks-`). Two categories (`immutable-`, `message-`) defer to existing tooling. One slash command: `/old-react [review|refactor] [path]`.
 
 See [plugins/old-react/skills/old-react/README.md](plugins/old-react/skills/old-react/README.md) and [SKILL.md](plugins/old-react/skills/old-react/SKILL.md) for the canonical rule list.
-
-### owasp
-
-Security review using OWASP frameworks with offline reference data from 8 Top 10 projects (Web, API, LLM, MCP, Agentic, Mobile, CI/CD, Kubernetes) and a CheatSheetSeries index.
-
-See [plugins/owasp/skills/owasp/README.md](plugins/owasp/skills/owasp/README.md) for full documentation.
 
 ### review-loop
 

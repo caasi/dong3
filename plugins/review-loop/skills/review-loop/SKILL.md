@@ -123,14 +123,6 @@ panel:
     invocation:
       command: "node <pi-delegate>/scripts/relay.mjs --brief <file> --cd <repo> --read-only --provider openrouter --model z-ai/glm-5.3 --out-dir <dir>"
       verified_with: "pi 1.1.0, pi-delegate 0.5.0"
-  - id: deepseek
-    kind: endpoint
-    role: routine
-    enabled: false
-    harness: claude
-    via: chat-subagent
-    private_content: deny
-    alias: deepseek
   - id: copilot                  # an opt-out; Copilot needs no enrollment
     kind: forge
     enabled: false
@@ -139,17 +131,19 @@ panel:
 
 - **`id`** — the name of the entry; the verdict uses it. **`kind`** — `claude-model`, `cli`,
   `endpoint` or `forge`. **`model`** — the model that the reviewer runs. **`enabled`** — `false`
-  is an opt-out. **`alias`** — the `chat-subagent` name. **`invocation.form`** — `native` or
+  is an opt-out. **`invocation.form`** — `native` or
   `embedded` (§ *Codex mechanics*).
 - **`role`** — `routine` or `on_request` (§ *Reviewer roster*). A `forge` entry has no role.
 - **`harness`** — who runs the agent loop of the reviewer. `claude`: a Claude subagent sends
   all of the input of the reviewer, so the reviewer sees only what the subagent sends (a Claude
-  model, or an endpoint through `chat-subagent`). `external`: another harness (codex, pi) runs the
+  model). `external`: another harness (codex, pi) runs the
   loop and reads files under its working directory by itself.
 - **`via`** — how the loop reaches a reviewer that is not a Claude model: the name of a delegate
-  skill (`pi-delegate`, `codex-delegate`), `cli` (call `invocation.command` directly), or
-  `chat-subagent`. A delegate skill carries the fixes for known problems of its CLI, so `init`
-  prefers it when it is installed.
+  skill (`pi-delegate`, `codex-delegate`) or `cli` (call `invocation.command` directly). A
+  delegate skill carries the fixes for known problems of its CLI, so `init` prefers it when it
+  is installed. The `chat-subagent` plugin is retired: an entry with `via: chat-subagent` (or an
+  `alias`) from an earlier version does not run; name it in the verdict as not run, and suggest
+  `/review-loop:init`.
 - **`invocation`** — the command that `init` verified, also when `via` names a skill: the delegate
   skills are implementers by default, so a review always gives the read-only option
   (`--read-only`, `--sandbox read-only`). `verified_with` holds the version of the CLI and, for a

@@ -5,16 +5,10 @@
   },
   "metadata": {
     "description": "caasi's plugin collection for Claude Code",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
-    {
-      "name": "chat-subagent",
-      "source": "./plugins/chat-subagent",
-      "description": "Delegate tasks to external chat endpoints (OpenAI-compatible and LM Studio native API)",
-      "version": "0.4.0"
-    },
     {
       "name": "compose",
       "source": "./plugins/compose",
@@ -26,18 +20,6 @@
       "source": "./plugins/kami",
       "description": "Socratic dialogue for reflecting on human-AI stewardship",
       "version": "0.2.0"
-    },
-    {
-      "name": "fetch-tips",
-      "source": "./plugins/fetch-tips",
-      "description": "Platform-specific fetch strategies for content that resists simple WebFetch",
-      "version": "0.1.0"
-    },
-    {
-      "name": "owasp",
-      "source": "./plugins/owasp",
-      "description": "Security review skills — OWASP vulnerability analysis with offline reference data from 8 Top 10 projects and CheatSheetSeries index",
-      "version": "0.1.0"
     },
     {
       "name": "constraint",
@@ -55,7 +37,7 @@
       "name": "review-loop",
       "source": "./plugins/review-loop",
       "description": "Assisted review loop — local reviewers answer blind and in parallel, each returns its own convergence verdict (loop-until-dry, facilitator owns K); a behaviour claim about a runtime prompt is settled by five independent simulation runs, not by a string comparison; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing; roster enrolled per host via /review-loop:init (routine or on-request reviewers, a private-content rule for each); the author-stop shape is published at A0 and then held (author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it), and a T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix; never merges autonomously",
-      "version": "0.14.0"
+      "version": "0.15.0"
     },
     {
       "name": "tsugu",
