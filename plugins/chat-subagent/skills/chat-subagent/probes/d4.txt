@@ -1,3 +1,0 @@
-TYPE: coding
-Q: Write a function that transforms {"users": [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]} into {"Alice": 30, "Bob": 25}.
-VERIFY: Correct output structure and values.

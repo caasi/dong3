@@ -1,3 +1,0 @@
-TYPE: counting-spatial
-Q: Which number is bigger, 9.11 or 9.9?
-A: 9.9

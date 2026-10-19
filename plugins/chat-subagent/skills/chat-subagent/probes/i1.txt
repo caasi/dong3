@@ -1,3 +1,0 @@
-TYPE: instruction-following
-Q: Give me 3 sentences that end with the word "Apple."
-VERIFY: Each sentence literally ends with "Apple" (before punctuation).

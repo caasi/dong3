@@ -1,3 +1,0 @@
-TYPE: reasoning
-Q: Four people cross a bridge at night with one torch, must cross in pairs at slower speed. Times: A=1, B=2, C=5, D=10 min. Fastest total?
-A: 17 min. A+B(2), A back(1), C+D(10), B back(2), A+B(2).

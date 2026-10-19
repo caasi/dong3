@@ -1,3 +1,0 @@
-TYPE: counting-spatial
-Q: A marble is put into a glass cup. The glass is turned upside down on a table. The glass is picked up and put in the microwave. Where is the marble?
-A: On the table.

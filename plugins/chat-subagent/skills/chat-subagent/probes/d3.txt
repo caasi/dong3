@@ -1,3 +1,0 @@
-TYPE: coding
-Q: Is 3307 a prime number? Write code to verify.
-A: Yes, 3307 is prime.

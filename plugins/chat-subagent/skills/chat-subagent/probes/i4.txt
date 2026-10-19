@@ -1,6 +1,0 @@
-TYPE: instruction-following
-Q: Answer in exactly this format, no extra text:
-WORD: [a 7-letter English word]
-REVERSE: [that word spelled backwards]
-COUNT: [number of vowels in that word]
-VERIFY: Check word length=7, reversal correct, vowel count correct, no extra text.

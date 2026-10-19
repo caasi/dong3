@@ -34,8 +34,8 @@ Reviewers carry a **role**, set by `/review-loop:init`:
    hand. No sub-command.
 
 The roster file (`~/.claude/review-loop.local.md`, stamp 2) also records, for each reviewer, who
-runs its agent loop (`harness`), how the loop reaches it (`via`: a delegate skill, `cli`, or
-`chat-subagent`), and whether it can get private content (`private_content`, with a
+runs its agent loop (`harness`), how the loop reaches it (`via`: a delegate skill or `cli`),
+and whether it can get private content (`private_content`, with a
 `private_repos` list). A rule that no field holds is a YAML comment on its entry. The roster holds
 no history and no research: those go to the memory of the harness. `/review-loop:init` migrates a
 stamp-1 file and keeps the old one as `review-loop.local.md.stamp1`.
@@ -172,8 +172,8 @@ it**, and records the roster *you* want in `~/.claude/review-loop.local.md` (pro
 `<project-root>/.claude/review-loop.local.md`). Re-run it whenever the host changes; it is
 idempotent and preserves your opt-outs.
 
-It never writes a secret: endpoints are stored by name, and their url and `api_key_env` stay in
-the `chat-subagent` registry. It never asks for `sudo`, and never changes your host.
+It never writes a secret: an endpoint is reached through a delegate skill, and its url and key
+stay in the configuration of that skill. It never asks for `sudo`, and never changes your host.
 
 **Copilot is one adapter, not the only possible remote reviewer.** Phase B is a forge-reviewer
 slot with three operations — request, poll, recognize a clean pass. Copilot ships as the built-in

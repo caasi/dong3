@@ -54,11 +54,13 @@ Load-bearing invariants:
   unless you change it.
 - **Asks for a Codex fallback model.** When Codex is enrolled, `init` asks for a cheaper model and
   a usage percent, and writes `fallback: {model, usage_percent}`. No answer → no `fallback`.
-- **Endpoints are declared, never discovered.** Name one and `init` records the name. Where it is
-  an alias in the `chat-subagent` registry the entry is marked `via: chat-subagent`, and the url
-  and `api_key_env` stay in that plugin's files. **No secrets are ever written.** The roster
-  also holds no url and no name of a key variable or a key file: those belong to the
-  configuration of the delegate skill or of `chat-subagent`.
+- **Endpoints are declared, never discovered.** Name one and `init` enrolls it through a
+  delegate skill that reaches it (for example `pi-delegate` with an OpenRouter model), verified
+  like a CLI. **No secrets are ever written.** The roster holds no url and no name of a key
+  variable or a key file: those belong to the configuration of the delegate skill.
+- **Re-enrolls a `chat-subagent` entry.** The `chat-subagent` plugin is retired. An entry with
+  `via: chat-subagent` or an `alias` does not run. Offer to enroll the same model through a
+  delegate skill, or to set `enabled: false`, and drop `alias`. Write it only after your yes.
 - **Idempotent, and it stamps its schema.** The config carries a `review-loop-config` stamp, now
   `2`; `init` writes it and, on re-run, migrates an older one — removing the stale stamp rather
   than leaving both. Re-running re-probes, prints a diff of what changed, and preserves explicit

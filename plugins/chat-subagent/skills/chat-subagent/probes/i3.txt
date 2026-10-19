@@ -1,3 +1,0 @@
-TYPE: instruction-following
-Q: Return a valid JSON object with exactly these keys: "animal", "color", "count". The animal must be real, the color a valid CSS color name, and the count a prime number.
-VERIFY: Parse JSON. Check all three constraints.

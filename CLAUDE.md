@@ -11,7 +11,6 @@ Install: `claude plugin marketplace add caasi/dong3`
 ```
 .claude-plugin/marketplace.json   # Central manifest (all plugin versions)
 plugins/
-  chat-subagent/                  # Delegate to external LLM endpoints (bash/curl)
   compose/                        # Arrow-style DSL for workflow pipelines
   constraint/                     # NL constraints → deterministic test artifacts
   dataflow/                       # Explore a codebase with the user, one step at a time (data flow + types)
@@ -37,8 +36,6 @@ plugins/<name>/
 
 > Versions live in `.claude-plugin/marketplace.json` — don't duplicate them here. The compose binary comes from GitHub releases of `caasi/ocaml-compose-dsl`; there is no package registry.
 
-**chat-subagent:** `chat.sh` is a pure bash/curl wrapper for OpenAI-compatible APIs. `thinking-filter.jq` strips reasoning blocks. `probes/` contains diagnostic questions (reasoning, instruction-following, counting, coding). Test the jq filter with `test-thinking-filter.sh`.
-
 **compose:** Validates with the `ocaml-compose-dsl` binary (`scripts/install.sh` puts it in `~/.local/bin/`): `ocaml-compose-dsl pipeline.arr`, or `--literate doc.md` for Markdown. Grammar in `references/dsl-grammar.md`, examples in `examples/`.
 
 **dataflow:** One skill, auto-triggered. Explore a codebase with the user, one step at a time. The SKILL.md is deliberately short: it states only what the model does not do by default. Measured with `claude -p` simulation runs; the numbers are in the skill README. Design record: issue #91 — **no spec file**.
@@ -53,7 +50,7 @@ plugins/<name>/
 
 ## Conventions
 
-- Commits follow **conventional commits** scoped by plugin: `feat(compose):`, `docs(kami):`, `chore(chat-subagent):`, etc.
+- Commits follow **conventional commits** scoped by plugin: `feat(compose):`, `docs(kami):`, `chore(tsugu):`, etc.
 - Planning docs (specs, plans) can go directly on `main`. Code changes must go on a feature branch.
 - Bash scripts use `set -euo pipefail`.
 

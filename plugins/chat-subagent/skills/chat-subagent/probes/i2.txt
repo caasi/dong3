@@ -1,3 +1,0 @@
-TYPE: instruction-following
-Q: Write a sentence where every word starts with the letter A.
-VERIFY: Every word must start with A. No exceptions.
