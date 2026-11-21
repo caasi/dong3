@@ -50,33 +50,49 @@ case "${1:-}" in
     # Each reviewer is its OWN arg — `reviewer=<id>:<count>`. A model id can contain a
     # comma, so a comma-joined list cannot be split back; separate args remove the
     # ambiguity. Parse the fixed key set so the output order is project run round
-    # reviewers end regardless of input order, and skip a malformed reviewer arg
-    # (empty id or empty count) rather than write a broken field.
+    # reviewers outcomes end regardless of input order, and skip a malformed <id>:<value>
+    # arg (empty id or empty value) rather than write a broken field.
     # The value rule (drop whitespace, =, path separator) applies to every value, so run,
     # round, end and each count are scrubbed too — the reviewer id gets the stronger
     # percent-encoding. In practice the caller passes a clean run token, an integer round
     # and end=converged|stopped; scrubbing is defence, not an expected transform.
-    run="" round="" endv="" revs="" pdir="$PWD"
+    # `outcome=<id>:<accepted>+<rejected>+<declined>+<deferred>` gives the outcome of the
+    # findings of one reviewer (SKILL.md § A3). The id is written once for all four counts:
+    # one field for each count repeats every id, and a line over the 1024-byte bound of
+    # ll_append is dropped whole. The counts are not a third part of reviewer=, because a
+    # reader takes the id as the text before the last ':'. '+' and not '/': the value rule
+    # removes '/'.
+    # Limit: log.sh does not check that the four counts add up to the reviewer= count, or
+    # that the value has four parts. The caller is trusted (spec 023).
+    pair_of() { # $1=<id>:<value>; prints <encoded id>:<value>, or nothing when malformed
+      case "$1" in *:*) ;; *) return 0 ;; esac
+      local id="${1%:*}" c; c="$(ll_scrub "${1##*:}")"
+      [ -n "$id" ] && [ -n "$c" ] && printf '%s' "$(ll_encode_id "$id"):$c"
+      return 0
+    }
+    run="" round="" endv="" revs="" outs="" pdir="$PWD"
     for kv in "$@"; do
       case "$kv" in
         dir=*)   pdir="${kv#dir=}" ;;
         run=*)   run="$(ll_scrub "${kv#run=}")" ;;
         round=*) round="$(ll_scrub "${kv#round=}")" ;;
         end=*)   endv="$(ll_scrub "${kv#end=}")" ;;
-        reviewer=*)
-          pair="${kv#reviewer=}"
-          case "$pair" in
-            *:*) id="${pair%:*}"; c="$(ll_scrub "${pair##*:}")"
-                 [ -n "$id" ] && [ -n "$c" ] && revs="${revs:+$revs,}$(ll_encode_id "$id"):$c" ;;
-          esac ;;
+        reviewer=*) p="$(pair_of "${kv#reviewer=}")"; [ -n "$p" ] && revs="${revs:+$revs,}$p" ;;
+        outcome=*)  p="$(pair_of "${kv#outcome=}")";  [ -n "$p" ] && outs="${outs:+$outs,}$p" ;;
       esac
     done
     fields=("project=$(ll_project_slug "$pdir")")
     [ -n "$run" ]   && fields+=("run=$run")
     [ -n "$round" ] && fields+=("round=$round")
     [ -n "$revs" ]  && fields+=("reviewers=$revs")
-    [ -n "$endv" ]  && fields+=("end=$endv")
-    ll_append "$(ll_line review "${fields[@]}")" || true
+    endf=""; [ -n "$endv" ] && endf="end=$endv"
+    line="$(ll_line review "${fields[@]}" ${outs:+"outcomes=$outs"} ${endf:+"$endf"})"
+    # ll_append drops a line over its bound whole. outcomes= roughly doubles the line, so a
+    # roster that fits without it must not lose its round: write the line without outcomes=.
+    if [ "$(printf '%s\n' "$line" | wc -c)" -gt 1024 ]; then
+      line="$(ll_line review "${fields[@]}" ${endf:+"$endf"})"
+    fi
+    ll_append "$line" || true
     ;;
   usage)
     shift
@@ -161,6 +177,6 @@ case "${1:-}" in
       row_written "$row" && rm -f "$pf"
     done
     ;;
-  *) echo "usage: log.sh {new-run | review [dir=<path>] run=... [round=...] [reviewer=<id>:<count> ...] [end=...] | usage [dir=<path>] run=... round=... reviewer=<id> model=<id> [input= output= cached= reasoning= total= cost= cost_source= rl_before= rl_after= pending=<events file>] | usage-retry}" >&2; exit 0 ;;
+  *) echo "usage: log.sh {new-run | review [dir=<path>] run=... [round=...] [reviewer=<id>:<count> ...] [outcome=<id>:<a>+<r>+<d>+<f> ...] [end=...] | usage [dir=<path>] run=... round=... reviewer=<id> model=<id> [input= output= cached= reasoning= total= cost= cost_source= rl_before= rl_after= pending=<events file>] | usage-retry}" >&2; exit 0 ;;
   # exit 0, not 2: acceptance §424 makes non-zero exit forbidden for either writer.
 esac
