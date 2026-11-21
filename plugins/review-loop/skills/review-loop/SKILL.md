@@ -292,7 +292,8 @@ which names a whole episode.)
 
 The subagent is never told what is under test, and is never asked whether it complied — a fixture
 that says "output `COMPLIED` if you followed the rule" collects a self-report behind a deterministic
-parser. **Intent** — what the artifact is for and who reads it — reaches reviewers and whoever
+parser. **Intent** — what the artifact is for and who reads it, from the commit messages and what
+the author said (§ A1) — reaches reviewers and whoever
 builds the environment, and never the subagent that runs. A reviewer that cannot run, such as a
 read-only CLI, says so; the facilitator runs the claim and reports what it saw.
 
@@ -376,7 +377,9 @@ How each is invoked:
 - **Claude subagents** — one `Task` dispatch per enrolled routine Claude reviewer, each under its
   own `model`. The brief stands alone (the subagent sees none of this conversation): the diff, the
   tier definitions, the falsification-condition instruction, **the author's intent — what the
-  artifact is for and who reads it** (§ *Prompt outputs are run*), "state your model id on the first
+  artifact is for and who reads it** (§ *Prompt outputs are run*), taken only from the commit messages
+  of the change and from what the author said in this conversation, and never a description of the
+  implementation (an intent that names the code under review tells the reviewer it was meant), "state your model id on the first
   line", and "your final message is the review record; no preamble". The brief **always** requires
   the reviewer to end with its explicit `{ converged, still_open, reason }` verdict (and
   `suspected_drift` if the review looks aimed off-target) — on **every** round, including the first
