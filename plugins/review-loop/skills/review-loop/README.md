@@ -56,17 +56,17 @@ findings — and fixes land after all have reported.
 
 ## How often it stops for you
 
-The loop names its stops before round 1 and holds to them: **one message per round that
+The loop has two kinds of stop and holds to them: **one message per round that
 has a T3 finding** carrying all of them together, and the hand-off when the gate is clean.
 So the count is one stop for each such round plus the hand-off, and a round with none does
-not stop at all. Before round 1 the loop says this in one sentence and goes on; it asks no
-question at the start. The number of rounds is the reviewers' call, so the sentence gives the
-rule, not a total.
+not stop at all. Each stop message begins with this rule in one sentence. Nothing is asked
+or said about it before round 1. The number of rounds is the reviewers' call, so the sentence
+gives the rule, not a total.
 
 It does not stop in between: whether a round is dry, K, and where the tier boundary falls
 are the loop's own judgments. One case can add a stop, because the loop cannot continue
 by itself: a control arm that cannot separate a prompt's text from its environment. When it
-fires, the loop names it and re-publishes the shape.
+fires, the loop names it and gives the stop sentence again.
 
 ## When a T3 comes back
 

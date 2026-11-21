@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is said in one sentence before round 1, without a wait, and then held — one batched message per round that has a T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape opens every stop message in one sentence and is held — one batched message per round that has a T3 finding, the hand-off, plus the named exceptions that add a stop — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -315,10 +315,11 @@ the prompt and never the tree, so § A1 holds.
 invented to fill a gap. Text added because a run showed a gap is a correction. Text added because a
 reviewer could imagine a gap is accretion.
 
-## Author checkpoints — named before round 1, then held
+## Author checkpoints — named at every stop, then held
 
-The loop stops for the author at **two kinds of point**. Before the first reviewer runs, it says
-so in one sentence and does not wait (§ A0).
+The loop stops for the author at **two kinds of point**, and **every stop message begins with one
+sentence that says so**. Nothing is said about the stops before round 1: a stop always comes, so
+the author always reads the sentence.
 
 1. **Once per round that has a T3 finding** — one message carrying all of them (§ Tiers), never
    one message per finding. When a T3 has come back after a fix, this is the message that
@@ -331,7 +332,7 @@ so in one sentence and does not wait (§ A0).
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
 
 **One sentence, not a total.** The number of rounds is set by the reviewers' verdicts (§ A3), so
-it cannot be known before round 1. The sentence says: one stop for each round that has a T3
+it cannot be known at a stop either. The sentence says: one stop for each round that has a T3
 finding, plus the hand-off, and a round with none does not stop.
 
 **Between these points the loop does not stop.** Whether a round is dry, how many dry rounds K it
@@ -341,10 +342,10 @@ had.
 
 **One case adds a stop, because the loop cannot continue by itself:** a control arm that does
 not separate the text from the environment (§ *Prompt outputs are run*). When it fires, say so,
-and re-publish the shape with the added stop named.
+and give the stop sentence again with the added stop named.
 
 The same rule covers anything else that forces a stop the shape did not name — a question only the
-author can answer, a tool that needs a human action. Say what it was, and re-publish. A question
+author can answer, a tool that needs a human action. Say what it was, and give the stop sentence again. A question
 raised inside a round that was going to stop anyway is part of that stop and adds nothing.
 
 Nothing enforces this section. It holds because you read it.
@@ -353,12 +354,11 @@ Nothing enforces this section. It holds because you read it.
 
 ### Phase A — Local review
 
-**A0. One sentence, then round 1.** Before the first reviewer dispatch, say in one sentence where
-the loop will stop (§ *Author checkpoints*). Then start A1 in the same turn. Ask no question here,
-and do not wait for a reply.
+**A0. Check for the journal file, then start round 1.** Ask no question, publish nothing, and do
+not wait: start A1 in the same turn. The stop sentence opens the first stop (§ *Author checkpoints*).
 
-**The journal file: note it now, ask at the hand-off.** If `.claude/pr-review-journal.md` exists,
-add to the A0 sentence that an earlier version of this skill wrote a review journal there and that
+**The journal file: note it at the first stop, ask at the hand-off.** If `.claude/pr-review-journal.md`
+exists, say in the first stop message that an earlier version of this skill wrote a review journal there and that
 the loop no longer keeps one (§ *Non-goals*). Never write to it. At the hand-off, ask whether to
 remove it. Remove it on a yes — its own commit if the file is tracked. On a no, leave it. Ask
 nothing when the file is absent. **Nothing records a no**, so the question comes back at each
