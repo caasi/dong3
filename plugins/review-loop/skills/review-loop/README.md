@@ -79,7 +79,10 @@ an extra stop: that round was going to stop anyway.
 How well that holds was measured, and the numbers are in the design record
 (`docs/superpowers/specs/019-review-loop-author-checkpoints-design.md`): across ten runs the
 loop named the recurrence every time, and asked about the whole change's direction in seven of
-them, or eight under a looser reading of one borderline message. The exception case above has no runs behind it at all.
+them, or eight under a looser reading of one borderline message. Those runs were made on 0.9.0,
+whose stop shape (a stop at A0 and at every T2/T3 round) stayed the same up to 0.15.0. 0.16.0
+did not run them again. The
+exception case above has no runs behind it at all.
 
 ## Tiers
 

@@ -7,7 +7,7 @@ description: General assisted review loop for changes — code or design artifac
 
 Assisted, not autonomous. Preserves the author's architectural voice across review cycles. General-purpose: the target is a **local branch or working diff** (no remote needed), and the changes under review may be **code or design artifacts** (specs, plans, docs).
 
-**Local reviewers are preferred and run first.** The enrolled roster (§ Reviewer roster) — a Claude subagent, any other Claude models or CLIs you enrol, and Codex when it is enrolled (or, with no config, whenever it is present) — reviews the local diff **blind and in parallel**, and this is the first gate; it costs little and works on any host. A config that intentionally omits Codex is honoured; a present-but-unenrolled Codex is noted, not auto-run (§ Roster reconciliation). Codex runs headless via the `codex` CLI — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default).
+**Every reviewer runs locally or through a model API.** The enrolled roster (§ Reviewer roster) — a Claude subagent, any other Claude models or CLIs you enrol, and Codex when it is enrolled (or, with no config, whenever it is present) — reviews the local diff **blind and in parallel**; it costs little and works on any host. A config that intentionally omits Codex is honoured; a present-but-unenrolled Codex is noted, not auto-run (§ Roster reconciliation). Codex runs headless via the `codex` CLI — no tmux needed; tmux only adds a live-watch pane **when the user asks to watch** (never by default).
 
 ## Why this loop exists
 
@@ -168,12 +168,12 @@ enrolled reviewer that failed to run.
 
 ### Roster reconciliation at loop start
 
-Probe presence inline — no script; a `command -v` loop is not knowledge worth materializing:
+Probe presence inline — no script. One `command -v` with every name prints the path of each CLI
+that is present; a name with no line is absent. (A `for` loop over `"$cli"` is refused by the
+Bash permission checker, because it cannot check a variable.)
 
 ```bash
-for cli in codex gemini cursor-agent opencode aider crush amp llm; do
-  command -v "$cli" >/dev/null 2>&1 && echo "$cli present" || echo "$cli absent"
-done
+command -v codex gemini cursor-agent opencode aider crush amp llm
 ```
 
 (`<cli> --version` is `/review-loop:init`'s business, not a review's.)
@@ -208,7 +208,7 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings. **Resolve T3 with the author first, in one message for the whole round** (every T3 finding of that round together, each with its quoted comment, 2–3 approaches with trade-offs, and a recommendation; one reply settles them all — § *Author checkpoints*). **T2 is the facilitator's decision and does not stop the loop**: choose the approach, and give the finding, the approach chosen and the reason in that round's message. A reply that disagrees is a new change from the next commit on. **Every stop lists the T2 decisions made since the last stop** — finding, approach, reason, commit — so the author can ask for a change to any of them; a stop without that list is incomplete. When a finding could be T2 or T3, it is T3. **A fix that changes observable behaviour is T3**, whatever tier a reviewer gave it: a different return value, a new or removed error, a different output or file. A T2 changes the shape of the code, not what it does. **Then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2 as the facilitator chose, T3 as the author chose. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings. **Resolve T3 with the author first, in one message for the whole round** (every T3 finding of that round together, each with its quoted comment, 2–3 approaches with trade-offs, and a recommendation; one reply settles them all — § *Author checkpoints*). **T2 is the facilitator's decision and does not stop the loop**: choose the approach, and give the finding, the approach chosen and the reason in that round's message. A reply that disagrees is a new change from the next commit on. **Every stop lists the T2 decisions made since the last stop** — finding, approach, reason, commit — so the author can ask for a change to any of them; a stop without that list is incomplete. When a finding could be T2 or T3, it is T3. **A fix that changes observable behaviour is T3**, whatever tier a reviewer gave it: a different return value, a new or removed error, a different output or file. A T2 changes the shape of the code, not what it does. **Then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2 as the facilitator chose, T3 as the author chose. One commit per item, TDD, and note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
 **A T3 that comes back is a direction signal, not just one more decision.** If a T3 finding raises the
 same concern as one an earlier round already fixed, the fix changed the code without settling the
@@ -351,7 +351,7 @@ Nothing enforces this section. It holds because you read it.
 
 ## Flow
 
-### Phase A — Local review (always first)
+### Phase A — Local review
 
 **A0. One sentence, then round 1.** Before the first reviewer dispatch, say in one sentence where
 the loop will stop (§ *Author checkpoints*). Then start A1 in the same turn. Ask no question here,
@@ -463,7 +463,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
   # Claude reads "$round" (only this round); parse thread_id from "$round" too
   ```
 
-- **Optional tmux live-watch (spectating only, not the channel) — spawn it only when the user explicitly asked to watch.** The channel is *always* `codex exec`. **Default — even inside tmux — is headless: no pane.** Spawn a read-only spectator pane *only when the user asked to watch* — a `watch` argument to the command, or an in-conversation request like "let me watch" / "show me the codex pane". Being inside tmux is **required but not a request on its own**. The agent sets `watch=1` when it recognized such a request (equivalently, it just runs the spawn only then); the pane follows the per-run `$log` (a raw-feed spectator aid — the authoritative human summary is still Claude's relayed tier list):
+- **Optional tmux live-watch (spectating only, not the channel) — spawn it only when the user explicitly asked to watch.** The channel is *always* `codex exec`. **Default — even inside tmux — is headless: no pane.** Spawn a read-only spectator pane *only when the user asked to watch* — a `watch` argument when the skill is invoked (`/review-loop:review-loop watch`; a lone `watch` token is the watch request against the default target, not a branch named `watch`), or an in-conversation request like "let me watch" / "show me the codex pane". Being inside tmux is **required but not a request on its own**. The agent sets `watch=1` when it recognized such a request (equivalently, it just runs the spawn only then); the pane follows the per-run `$log` (a raw-feed spectator aid — the authoritative human summary is still Claude's relayed tier list):
   ```bash
   # spawn ONLY when the user asked to watch (watch=1, set from intent) AND inside tmux.
   # $TMUX is necessary, not sufficient.
@@ -599,7 +599,7 @@ If `usage.py cost` prints `N/A`, leave out `cost`. The OpenRouter generation end
 
 ## Exit conditions
 
-- **Local gate converged (K consecutive dry rounds, each on every live reviewer's own `converged` verdict — § A3)** → stop and surface to the author. This is the primary, explicit stop signal — prefer it over inferring doneness from a round count, an eyeball of the tree, or "no new comments for N polls".
+- **Local gate converged (K consecutive dry rounds, each on every live reviewer's own `converged` verdict — § A3)** → stop and surface to the author. This is the primary, explicit stop signal — prefer it over inferring doneness from a round count, or an eyeball of the tree.
 - **"Clean" is not one verdict — but naming the panel is disclosure, not a ranking.** Same-family review is **never reported as a downgrade**: multiple passes, same family or not, are the strong hypothesis at work, and this project's history shows same-family reviewers finding a false premise, a class of test weakness, and four weak anchors. The verdict adds one honest note about what was and was not exercised this run:
   - **A cross-family reviewer ran** (a coding CLI alongside Claude) → the decorrelation bonus was exercised: agreement across families is less likely to share a blind spot.
   - **The panel was all one family** (Claude models only, however many) → say so plainly, as a fact, not a demerit. The multi-pass value is real and delivered; the cross-family bonus simply was not exercised this run — a note for the reader, not a verdict of "weaker".
