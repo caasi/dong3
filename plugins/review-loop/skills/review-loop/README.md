@@ -122,10 +122,11 @@ record — GitHub issue #84, which this change uses in place of a spec.
 review this branch with review-loop
 ```
 
-Or the slash command:
+Or the slash command (the skill itself; there is no separate command file):
 
 ```text
-/review-loop              # current branch vs base
+/review-loop:review-loop           # current branch vs base
+/review-loop:review-loop my-branch # another branch vs its base
 ```
 
 ## Non-goals
