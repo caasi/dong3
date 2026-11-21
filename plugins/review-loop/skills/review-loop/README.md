@@ -62,10 +62,11 @@ enrollment.
 
 ## How often it stops for you
 
-The loop names its stops before round 1 and holds to them: the author pass at the start,
-**one message per round that has a T2/T3 finding** carrying all of them together, and the
-hand-off when the gate is clean. So the count is two stops plus one for each such round,
-and a round with none does not stop at all. The number of rounds is the reviewers' call,
+The loop names its stops before round 1 and holds to them: **one message per round that
+has a T2/T3 finding** carrying all of them together, and the hand-off when the gate is clean.
+So the count is one stop for each such round plus the hand-off, and a round with none does
+not stop at all. The author pass at the start is a question, not a stop: the loop asks it
+and goes on to round 1, and a later answer applies from the next commit. The number of rounds is the reviewers' call,
 which is why the loop publishes the arithmetic instead of a single total.
 
 It does not stop in between: whether a round is dry, K, and where the tier boundary falls

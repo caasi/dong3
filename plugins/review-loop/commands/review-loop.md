@@ -41,9 +41,10 @@ Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
   after the local gate, whenever `gh` is authenticated and `jq` is present, unless you opt out.
 - **`/review-loop:init`** — optional; discovers which coding CLIs this host has and verifies how to
   call each one by actually calling it.
-- **The stop shape is published before round 1** — the author pass, one message per
-  round that has a T2/T3 finding, the hand-off. Two stops plus one for each such round,
-  none in between, and three named exceptions that re-publish the shape when they fire.
+- **The stop shape is published before round 1** — one message per round that has a
+  T2/T3 finding, and the hand-off. One stop for each such round plus the hand-off, none in
+  between, and three named exceptions that re-publish the shape when they fire. The author
+  pass rides the same message and does not wait for a reply.
 - **A T3 that comes back re-confirms direction** — a finding raising the same concern as
   one an earlier round fixed makes that round's message a question about where the whole
   change is going, as well as asking for the item's own fix. It is not an extra stop.

@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0 and then held — the author pass, one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0, which does not wait for a reply, and then held — one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -335,21 +335,21 @@ reviewer could imagine a gap is accretion.
 
 ## Author checkpoints — named before round 1, then held
 
-The loop stops for the author at **three kinds of point**, and it names them at A0, before any
-reviewer runs:
+The loop stops for the author at **two kinds of point**, and it names them at A0, before any
+reviewer runs. A0 itself is not a stop: it asks its question, publishes this list, and the loop
+goes on to round 1 in the same turn (§ A0).
 
-1. **A0** — the author pass, and this list.
-2. **Once per round that has a T2/T3 finding** — one message carrying all of them (§ Tiers), never
+1. **Once per round that has a T2/T3 finding** — one message carrying all of them (§ Tiers), never
    one message per finding. When a T3 has come back after a fix, this is the message that
    re-confirms the direction of the whole change (§ Tiers).
-3. **The hand-off** — the local gate has converged, and for a forge target the forge reviewer is
+2. **The hand-off** — the local gate has converged, and for a forge target the forge reviewer is
    clean: group commits, merge, or more work. This one is a conversation the author drives.
    Questions that follow from an offer the author accepted — the grouping shape, whether to delete
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
 
 **Publish the arithmetic, not a single total.** The number of rounds is set by the reviewers'
-verdicts (§ A3), so it cannot be known at A0. The count is two stops plus one for each round that
-has a T2/T3 finding, and a round with none does not stop. Say that at A0.
+verdicts (§ A3), so it cannot be known at A0. The count is one stop for each round that has a
+T2/T3 finding, plus the hand-off, and a round with none does not stop. Say that at A0.
 
 **Between these points the loop does not stop.** Whether a round is dry, how many dry rounds K it
 takes on trust (§ A3), and where the tier boundary falls (§ Facilitator discipline) are facilitator
@@ -371,15 +371,15 @@ Nothing enforces this section. It holds because you read it.
 
 ### Phase A — Local review (always first)
 
-**A0. Author pass first** — before touching anything, ask: "Any simplifications you'd collapse across these changes before I start?" Capture as a commit-plan override. **Publish the checkpoint list in this same message** (§ *Author checkpoints*): the stop shape reaches the author before round 1, which is the only point at which it is of any use.
+**A0. Author pass first, and it does not wait** — before round 1, ask: "Any simplifications you'd collapse across these changes?" **Publish the checkpoint list in this same message** (§ *Author checkpoints*): the stop shape reaches the author before round 1, which is the only point at which it is of any use. Then start A1 in the same turn; do not wait for a reply. A reply that comes later is a commit-plan override from the next commit on. It does not re-open a commit already made, and it adds no stop.
 
 **The journal file, in this same message.** If `.claude/pr-review-journal.md` exists, say that an
 earlier version of this skill wrote a review journal there, that the loop no longer keeps one
-(§ *Non-goals*), and ask whether to remove it. Remove it on a yes — its own commit if the file is
-tracked. On a no, leave it and never write to it. Ask nothing when the file is absent. **Nothing
+(§ *Non-goals*), and ask whether to remove it. Remove it on a yes, whenever the yes comes — its own
+commit if the file is tracked. On a no, or until a reply comes, leave it and never write to it. Ask nothing when the file is absent. **Nothing
 records a no**, so the question comes back at each A0 while the file is there; do not invent a
-place to remember the answer. This rides A0, which is already a stop, so it **adds no stop and
-does not re-publish the shape**, and it is not one of the three exceptions in
+place to remember the answer. This rides A0, so it **adds no stop and does not re-publish the
+shape**, and it is not one of the three exceptions in
 § *Author checkpoints*.
 
 **A1. Every live reviewer, blind and in parallel, on the same unfixed diff.** Nobody reviews a
