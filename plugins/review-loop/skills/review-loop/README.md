@@ -88,7 +88,8 @@ them, or eight under a looser reading of one borderline message. The exception c
   Each stop lists every T2 decision since the last stop, so you can ask for a change.
 - **T3 architectural** — module moves, API shape, "should this exist" — your call.
 
-T3 reaches you batched by round, not one at a time. A finding that could be T2 or T3 is T3.
+T3 reaches you batched by round, not one at a time. A finding that could be T2 or T3 is T3,
+and so is a fix that changes what the code does (a return value, an error, an output).
 
 How a finding is settled follows who reads the artifact. A **runtime prompt** — a
 `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent, and its text
