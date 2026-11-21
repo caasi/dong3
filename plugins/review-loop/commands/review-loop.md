@@ -1,6 +1,6 @@
 ---
-description: Run the assisted review loop — local reviewers answer blind and in parallel (enrolled roster; heterogeneity is a bonus, not a gate), then a forge reviewer (Copilot) for PRs; never merges autonomously
-argument-hint: "[PR-number | branch | (blank = current branch vs base)]"
+description: Run the assisted review loop — local reviewers answer blind and in parallel (enrolled roster; heterogeneity is a bonus, not a gate); never merges autonomously
+argument-hint: "[branch | (blank = current branch vs base)]"
 ---
 
 # /review-loop
@@ -11,8 +11,7 @@ Run the `review-loop` skill against a target.
 
 - `/review-loop` — review the current branch versus its base (local diff target).
 - `/review-loop <branch>` — review the given branch versus its base.
-- `/review-loop <PR-number>` — review an open GitHub PR (adds the Copilot phase).
-- append `watch` (e.g. `/review-loop watch`, `/review-loop 46 watch`) — open a live spectator pane for the Codex review; **requires a tmux session**. A lone `watch` token is the watch request against the default target, not a branch named `watch`.
+- append `watch` (e.g. `/review-loop watch`, `/review-loop my-branch watch`) — open a live spectator pane for the Codex review; **requires a tmux session**. A lone `watch` token is the watch request against the default target, not a branch named `watch`.
 
 **Target:**
 
@@ -31,19 +30,16 @@ Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
   `codex` is on `PATH` (the native `review` subcommand on a working sandbox,
   the embedded-diff `codex exec … -` form when the sandbox is `broken`). tmux
   is optional and opens a live-watch pane **only when you ask** (the `watch`
-  arg or an in-conversation request), never by default. The local gate must be
-  clean before any GitHub PR is opened.
+  arg or an in-conversation request), never by default.
 - **Blind and parallel** — every live reviewer reviews the same unfixed diff, none sees another's
   findings, and fixes land after all have reported. Cross-critique is recommended and gates nothing.
 - **Heterogeneity is a bonus, not a gate** — the loop never requires a cross-family reviewer; the
   verdict names which ones actually ran.
-- **The built-in forge reviewer needs no enrollment** — GitHub Copilot is requested for PR targets
-  after the local gate, whenever `gh` is authenticated and `jq` is present, unless you opt out.
 - **`/review-loop:init`** — optional; discovers which coding CLIs this host has and verifies how to
   call each one by actually calling it.
 - **The stop shape is published before round 1** — one message per round that has a
   T3 finding, and the hand-off. One stop for each such round plus the hand-off, none in
-  between, and three named exceptions that re-publish the shape when they fire. The author
+  between, and one named exception that re-publishes the shape when it fires. The author
   pass rides the same message and does not wait for a reply.
 - **A T3 that comes back re-confirms direction** — a finding raising the same concern as
   one an earlier round fixed makes that round's message a question about where the whole

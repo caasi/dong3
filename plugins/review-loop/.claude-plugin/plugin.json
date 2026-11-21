@@ -9,8 +9,6 @@
   "license": "MIT",
   "keywords": [
     "code-review",
-    "pull-request",
-    "copilot",
     "codex",
     "review-loop",
     "tmux"
