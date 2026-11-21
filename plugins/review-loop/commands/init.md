@@ -29,11 +29,6 @@ Load-bearing invariants:
   it — use it for an expensive model, or for a provider you want to call only by hand. `init`
   shows the rough cost of each reviewer so you can decide. Each reviewer is written with its
   `role` (`routine` | `on_request`).
-- **Presence is not authentication, and Copilot is not enrollable.** The built-in GitHub Copilot
-  adapter needs **no enrollment**: it runs for PR targets whenever `gh` is authenticated and `jq`
-  is present, unless you opt out. `init` checks `gh auth status` *and* `command -v jq` so it can
-  tell you whether Phase B will reach Copilot — it writes no Copilot enrollment record.
-  Enrollment is for a *declared* reviewer on another forge.
 - **Never asks for `sudo`, never fixes your host.** If Codex's native sandbox is blocked, `init`
   records `form: embedded` — a fully supported path, not a degradation — and may point once at
   `references/codex-sandbox-host-fixes.md`. Restoring the native path is an AppArmor/sysctl change

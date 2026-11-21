@@ -35,8 +35,8 @@ can only be argued with; a diff has a runnable ground truth, so where a finding 
 failing test settles what no amount of debate could. That difference is why we left behind:
 
 - Its role split (facilitator + panelists), its Round 0 triage, its Rounds 1–3, and its synthesis
-  output format. `review-loop` already has a shape: reviewers, tiers, an author who decides, a
-  forge phase.
+  output format. `review-loop` already has a shape: reviewers, tiers, and an author who
+  decides.
 - Its **mandatory** cross-critique, and the prompt that pushes a reviewer to disagree. Forcing an
   attack manufactures a refutation when the other reviewer is right, so here cross-critique is
   recommended and **gates nothing**.

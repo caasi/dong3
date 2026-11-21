@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$SCRIPT_DIR/../.."
 MKT="$ROOT/.claude-plugin/marketplace.json"
 PLG="$ROOT/plugins/review-loop/.claude-plugin/plugin.json"
-VERSION=0.15.0
+VERSION=0.16.0
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -121,5 +121,12 @@ $listing
 EOF
 [ "$bad" = 0 ] || fail "a review-loop script is committed non-executable"
 pass "every review-loop *.sh is executable in the index ($(printf '%s\n' "$listing" | wc -l) files)"
+
+# A command file named like the skill hides the skill: the Skill tool then returns the
+# command text, not SKILL.md, and the agent must find SKILL.md on disk (it found an old
+# installed copy in a simulation run). Commands with other names, such as init.md, are fine.
+[ ! -e "$ROOT/plugins/review-loop/commands/review-loop.md" ] \
+  || fail "commands/review-loop.md exists and hides the review-loop skill"
+pass "no command file has the name of the skill"
 
 echo "All review-loop metadata checks passed."

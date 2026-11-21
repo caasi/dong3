@@ -1,8 +1,8 @@
 # review-loop
 
 An assisted (not autonomous) multi-reviewer convergence loop for changes — code or
-design artifacts (specs, plans, docs). It runs local reviewers first and only then
-reaches for GitHub Copilot, and it never merges on its own.
+design artifacts (specs, plans, docs). It runs local reviewers only, and it never
+merges on its own.
 
 ## What this is
 
@@ -11,8 +11,7 @@ problems, classifying every comment into tiers and pausing for your judgment on 
 architectural ones. The local reviewers answer **blind and in parallel** on the same
 unfixed diff — none sees another's findings — and the verdict names which ones actually
 ran. A second look finds what the first missed even by the same weights; whether a
-*different* model family adds more is a bonus, never a gate. The local gate runs first
-so that by the time a forge reviewer (Copilot) sees the PR, there is much less to flag.
+*different* model family adds more is a bonus, never a gate.
 
 ## Reviewer roster
 
@@ -46,9 +45,7 @@ each reviewer in each round to `~/.claude/review-loop-usage.tsv`. A cost that th
 is `N/A`; the next run looks up an OpenRouter cost again and adds it in a later row.
 
 Routine reviewers answer **blind and in parallel** on the same unfixed diff — none sees another's
-findings — and fixes land after all have reported. A **forge reviewer** (Phase B) is not one of
-them: it appears only once a PR/MR exists. GitHub Copilot is the built-in adapter and needs no
-enrollment.
+findings — and fixes land after all have reported.
 
 ## Requirements
 
@@ -56,23 +53,20 @@ enrollment.
 - **Codex (optional):** the `codex` CLI on `PATH` (tmux optional — opens a
   live-watch pane only when you ask). `jq` is used to read the resume `thread_id` from `codex`'s
   `--json` stream; without it, Codex resume falls back to `--last`.
-- **Forge reviewer (optional):** the built-in adapter is GitHub Copilot — an authenticated `gh`
-  CLI and `jq`, GitHub PRs only, and **no enrollment needed**. Another forge's reviewer is
-  reachable by declaring it and its three commands.
 
 ## How often it stops for you
 
-The loop names its stops before round 1 and holds to them: the author pass at the start,
-**one message per round that has a T2/T3 finding** carrying all of them together, and the
-hand-off when the gate is clean. So the count is two stops plus one for each such round,
-and a round with none does not stop at all. The number of rounds is the reviewers' call,
-which is why the loop publishes the arithmetic instead of a single total.
+The loop has two kinds of stop and holds to them: **one message per round that
+has a T3 finding** carrying all of them together, and the hand-off when the gate is clean.
+So the count is one stop for each such round plus the hand-off, and a round with none does
+not stop at all. Each stop message begins with this rule in one sentence. Nothing is asked
+or said about it before round 1. The number of rounds is the reviewers' call, so the sentence
+gives the rule, not a total.
 
 It does not stop in between: whether a round is dry, K, and where the tier boundary falls
-are the loop's own judgments. Three cases can add a stop, because the loop cannot continue
-by itself — Copilot re-raising a comment that already had a fix, a first-ever Copilot review
-that needs one click in the GitHub UI, and a control arm that cannot separate a prompt's
-text from its environment. When one fires, the loop names it and re-publishes the shape.
+are the loop's own judgments. One case can add a stop, because the loop cannot continue
+by itself: a control arm that cannot separate a prompt's text from its environment. When it
+fires, the loop names it and gives the stop sentence again.
 
 ## When a T3 comes back
 
@@ -85,15 +79,20 @@ an extra stop: that round was going to stop anyway.
 How well that holds was measured, and the numbers are in the design record
 (`docs/superpowers/specs/019-review-loop-author-checkpoints-design.md`): across ten runs the
 loop named the recurrence every time, and asked about the whole change's direction in seven of
-them, or eight under a looser reading of one borderline message. The three exception cases above have no runs behind them at all.
+them, or eight under a looser reading of one borderline message. Those runs were made on 0.9.0,
+whose stop shape (a stop at A0 and at every T2/T3 round) stayed the same up to 0.15.0. 0.16.0
+did not run them again. The
+exception case above has no runs behind it at all.
 
 ## Tiers
 
 - **T1 mechanical** — typos, lint, null checks, doc fixes — auto-fixed.
-- **T2 local refactor** — extraction, naming, validation — resolved with you first.
+- **T2 local refactor** — extraction, naming, validation — the loop decides and does not stop.
+  Each stop lists every T2 decision since the last stop, so you can ask for a change.
 - **T3 architectural** — module moves, API shape, "should this exist" — your call.
 
-T2 and T3 reach you batched by round, not one at a time.
+T3 reaches you batched by round, not one at a time. A finding that could be T2 or T3 is T3,
+and so is a fix that changes what the code does (a return value, an error, an output).
 
 How a finding is settled follows who reads the artifact. A **runtime prompt** — a
 `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent, and its text
@@ -127,19 +126,19 @@ record — GitHub issue #84, which this change uses in place of a spec.
 review this branch with review-loop
 ```
 
-Or the slash command:
+Or the slash command (the skill itself; there is no separate command file):
 
 ```text
-/review-loop              # current branch vs base
-/review-loop 1234         # open PR #1234 (adds Copilot)
+/review-loop:review-loop           # current branch vs base
+/review-loop:review-loop my-branch # another branch vs its base
 ```
 
 ## Non-goals
 
-- Not autonomous — you decide T2/T3 fixes and the final merge.
+- Not autonomous — you decide T3 fixes and the final merge.
 - Not a squash-merge tool — defaults to a merge commit to preserve history.
-- The Copilot path is GitHub-only; on other forges the local reviewer gate (the
-  enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies.
+- Not a pull-request bot — it does not request, read or answer reviews on GitHub or another
+  forge. Every reviewer is a local CLI or a model API.
 
 ## Round log
 
@@ -174,10 +173,3 @@ idempotent and preserves your opt-outs.
 
 It never writes a secret: an endpoint is reached through a delegate skill, and its url and key
 stay in the configuration of that skill. It never asks for `sudo`, and never changes your host.
-
-**Copilot is one adapter, not the only possible remote reviewer.** Phase B is a forge-reviewer
-slot with three operations — request, poll, recognize a clean pass. Copilot ships as the built-in
-binding and needs no enrollment. Other forges have review agents; this skill names none and
-implements none, because an adapter nobody here can run would poll forever or report a clean pass
-that never happened. Declare one, supply its three commands and an unambiguous `clean_when`, and
-the loop drives it.
