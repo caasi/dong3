@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0, which does not wait for a reply, and then held — one batched message per round that has a T2/T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
+description: General assisted review loop for changes — code or design artifacts (specs, plans, docs). Local reviewers answer blind and in parallel on the same unfixed diff, before any fix; the verdict names which reviewers actually ran. Convergence is each reviewer's own explicit per-round verdict, not the facilitator's round-count — the loop runs until-dry (K consecutive rounds where every live reviewer reports converged), with the facilitator owning K. The roster is enrolled per host by `/review-loop:init`, which is never a precondition. For PR/MR targets a forge reviewer follows the local gate; GitHub Copilot is the built-in adapter and needs no enrollment. Findings say what would disprove them, and are reproduced before they are acted on; a settled finding keeps the command that settled it, and the loop re-runs every kept command at the start of each round and before each commit; a finding no command settled keeps nothing. The author-stop shape is published at A0, which does not wait for a reply, and then held — one batched message per round that has a T3 finding, the hand-off, plus named exceptions that re-publish it — and the loop never spends a stop on a judgement of its own. A T3 that comes back after a fix is read as a drift signal: that round's message re-confirms the direction of the whole change with the author, as well as asking for the item's own fix. Never merges autonomously.
 ---
 
 # Review Loop (Assisted)
@@ -227,7 +227,7 @@ Reach for these first. Only hand-write a command when a script genuinely doesn't
 - **T2 local refactor**: method extraction, variable naming across a module, added validation.
 - **T3 architectural**: file/module moves, API shape, "should this exist", simplification, scope cuts.
 
-Per round: post the grouped findings, **resolve T2/T3 with the author first, in one message for the whole round** (every T2/T3 finding of that round together, each with its quoted comment, 2–3 approaches with trade-offs, and a recommendation; one reply settles them all — § *Author checkpoints*), **then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2/T3 done as chosen. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
+Per round: post the grouped findings. **Resolve T3 with the author first, in one message for the whole round** (every T3 finding of that round together, each with its quoted comment, 2–3 approaches with trade-offs, and a recommendation; one reply settles them all — § *Author checkpoints*). **T2 is the facilitator's decision and does not stop the loop**: choose the approach, and give the finding, the approach chosen and the reason in that round's message. A reply that disagrees is a new change from the next commit on. **Every stop lists the T2 decisions made since the last stop** — finding, approach, reason, commit — so the author can ask for a change to any of them; a stop without that list is incomplete. When a finding could be T2 or T3, it is T3. **Then** apply the fixes — T1 auto-fixed (except where § *Prompt outputs are run* withholds a fix from auto-apply), T2 as the facilitator chose, T3 as the author chose. One commit per item, TDD, and reply/note the commit hash. (TDD and one-commit-per-item apply to executable changes. For a **runtime prompt** the check is a run — § *Prompt outputs are run*. For a document a human reads there is no test to write first: prefer one logical edit per finding, and review for clarity, consistency, structure and factual accuracy.) Architectural decisions always land before mechanical edits are committed.
 
 **A T3 that comes back is a direction signal, not just one more decision.** If a T3 finding raises the
 same concern as one an earlier round already fixed, the fix changed the code without settling the
@@ -235,7 +235,7 @@ question, and the risk is that the change as a whole is drifting away from where
 it. So **re-confirm the direction of the whole change with the author** — not only that one item. Give
 the earlier finding, the fix commit, what that fix assumed, and the recurrence, then ask whether the
 change is still going where the author wants. The item still arrives with its approaches and a
-recommendation, as every T2/T3 finding does; the direction question is what the recurrence adds. Compare by concern, not by wording: a reviewer that
+recommendation, as every T3 finding does; the direction question is what the recurrence adds. Compare by concern, not by wording: a reviewer that
 renames the same objection has not raised a new one.
 
 This is a different subject from `suspected_drift` (§ A1), which reports that the *review* looks
@@ -339,17 +339,19 @@ The loop stops for the author at **two kinds of point**, and it names them at A0
 reviewer runs. A0 itself is not a stop: it asks its question, publishes this list, and the loop
 goes on to round 1 in the same turn (§ A0).
 
-1. **Once per round that has a T2/T3 finding** — one message carrying all of them (§ Tiers), never
+1. **Once per round that has a T3 finding** — one message carrying all of them (§ Tiers), never
    one message per finding. When a T3 has come back after a fix, this is the message that
-   re-confirms the direction of the whole change (§ Tiers).
+   re-confirms the direction of the whole change (§ Tiers). It also lists the T2 decisions made
+   since the last stop (§ Tiers).
 2. **The hand-off** — the local gate has converged, and for a forge target the forge reviewer is
-   clean: group commits, merge, or more work. This one is a conversation the author drives.
+   clean: group commits, merge, or more work. It lists the T2 decisions made since the last stop
+   (§ Tiers). This one is a conversation the author drives.
    Questions that follow from an offer the author accepted — the grouping shape, whether to delete
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
 
 **Publish the arithmetic, not a single total.** The number of rounds is set by the reviewers'
 verdicts (§ A3), so it cannot be known at A0. The count is one stop for each round that has a
-T2/T3 finding, plus the hand-off, and a round with none does not stop. Say that at A0.
+T3 finding, plus the hand-off, and a round with none does not stop. Say that at A0.
 
 **Between these points the loop does not stop.** Whether a round is dry, how many dry rounds K it
 takes on trust (§ A3), and where the tier boundary falls (§ Facilitator discipline) are facilitator
@@ -450,8 +452,8 @@ reviewer is right. A round that refutes nothing is a legitimate outcome; a round
 nothing is the failed one. But a finding is actionable when it is **reproduced**, not when it
 survives an argument: disagreement about executable code is settled by a test.
 
-**Then** classify the surviving findings into T1/T2/T3, post the grouped list, resolve T2/T3 with
-the author, and apply fixes per *Tiers*. Commit fixes; push only if a remote/PR branch exists.
+**Then** classify the surviving findings into T1/T2/T3, post the grouped list, resolve T3 with
+the author, decide T2, and apply fixes per *Tiers*. Commit fixes; push only if a remote/PR branch exists.
 
 #### Codex mechanics — how the Codex reviewer is driven
 
@@ -718,7 +720,7 @@ record, the loop reasons about thin air.
 
 ## Non-goals
 
-- Not fully autonomous. The author decides T2/T3 fixes and the final merge.
+- Not fully autonomous. The author decides T3 fixes and the final merge.
 - Not a squash-merge tool. Default to a merge commit to preserve history.
 - **Not a journal.** The loop keeps no prose record of its own that carries from one review to
   the next. A change's commit messages and its design record are prose that carries, and they are

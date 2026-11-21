@@ -63,7 +63,7 @@ enrollment.
 ## How often it stops for you
 
 The loop names its stops before round 1 and holds to them: **one message per round that
-has a T2/T3 finding** carrying all of them together, and the hand-off when the gate is clean.
+has a T3 finding** carrying all of them together, and the hand-off when the gate is clean.
 So the count is one stop for each such round plus the hand-off, and a round with none does
 not stop at all. The author pass at the start is a question, not a stop: the loop asks it
 and goes on to round 1, and a later answer applies from the next commit. The number of rounds is the reviewers' call,
@@ -91,10 +91,11 @@ them, or eight under a looser reading of one borderline message. The three excep
 ## Tiers
 
 - **T1 mechanical** — typos, lint, null checks, doc fixes — auto-fixed.
-- **T2 local refactor** — extraction, naming, validation — resolved with you first.
+- **T2 local refactor** — extraction, naming, validation — the loop decides and does not stop.
+  Each stop lists every T2 decision since the last stop, so you can ask for a change.
 - **T3 architectural** — module moves, API shape, "should this exist" — your call.
 
-T2 and T3 reach you batched by round, not one at a time.
+T3 reaches you batched by round, not one at a time. A finding that could be T2 or T3 is T3.
 
 How a finding is settled follows who reads the artifact. A **runtime prompt** — a
 `SKILL.md`, an agent-md pointer, a subagent brief — is read by an agent, and its text
@@ -137,7 +138,7 @@ Or the slash command:
 
 ## Non-goals
 
-- Not autonomous — you decide T2/T3 fixes and the final merge.
+- Not autonomous — you decide T3 fixes and the final merge.
 - Not a squash-merge tool — defaults to a merge commit to preserve history.
 - The Copilot path is GitHub-only; on other forges the local reviewer gate (the
   enrolled roster — a Claude subagent, others you enrol, Codex when present) still applies.

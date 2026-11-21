@@ -42,13 +42,13 @@ Invoke the `review-loop` skill. Load-bearing invariants the skill enforces:
 - **`/review-loop:init`** — optional; discovers which coding CLIs this host has and verifies how to
   call each one by actually calling it.
 - **The stop shape is published before round 1** — one message per round that has a
-  T2/T3 finding, and the hand-off. One stop for each such round plus the hand-off, none in
+  T3 finding, and the hand-off. One stop for each such round plus the hand-off, none in
   between, and three named exceptions that re-publish the shape when they fire. The author
   pass rides the same message and does not wait for a reply.
 - **A T3 that comes back re-confirms direction** — a finding raising the same concern as
   one an earlier round fixed makes that round's message a question about where the whole
   change is going, as well as asking for the item's own fix. It is not an extra stop.
-- **Never merges autonomously** — the author decides T2/T3 fixes and the final
+- **Never merges autonomously** — the author decides T3 fixes and the final
   merge. Default to a merge commit to preserve history.
 - **After convergence** — offers to group the review fixup commits; never
   auto-rebases, feature-branch only, never touches a primary branch.
