@@ -145,21 +145,31 @@ Or the slash command (the skill itself; there is no separate command file):
 The loop writes one line per review round to `~/.claude/review-loop.log`:
 
 ```
-2026-07-30T05:32:07Z  review  project=<slug>  run=<token>  round=<n>  reviewers=<model>:<count>,...
-2026-07-30T05:35:06Z  review  project=<slug>  run=<token>  round=<n>  reviewers=...  end=converged
+2026-07-30T05:32:07Z  review  project=<slug>  run=<token>  round=<n>  reviewers=<model>:<count>,...  outcomes=<model>:<a>+<r>+<d>+<f>,...
+2026-07-30T05:35:06Z  review  project=<slug>  run=<token>  round=<n>  reviewers=...  outcomes=...  end=converged
 ```
 
-The run's last round carries `end=converged`; if you stop the loop between rounds it writes
-`end=stopped` instead, with no `round` and no `reviewers` field.
+`reviewers` gives how many findings each reviewer returned. `outcomes` splits those findings into
+four counts, in this order: the change fixes them (accepted), the loop did not act on them
+(rejected), you said not to fix them at a T3 stop (declined), or you kept them for later at a T3
+stop (deferred). Lines from before 0.17.0 have only `reviewers`. A 0.17.0 line also has only
+`reviewers` when the line with `outcomes` would be over the 1024-byte bound of the log.
 
-A `grep` over it answers which models ran, in which project, how often, and when. Nothing
-computes and nothing is shown to you during a run.
+The run's last round carries `end=converged`; if you stop the loop between rounds it writes
+`end=stopped` instead, with no `round` and no `reviewers` field. In a round that has a T3 finding,
+the loop writes the round line after you answer the T3 message. If you stop the loop at that stop,
+the loop writes the round line first, then the `end=stopped` line.
+
+A `grep` over it answers which models ran, in which project, how often, and when, and how many
+findings of each reviewer the loop accepted. Nothing is shown to you during a run.
 
 **It is a record, not a measurement.** Do not read a capability signal into a round count: it
 mixes artifact difficulty, the K policy, roster composition and your own decisions, and it falls
 when a reviewer drops out mid-run, so a degraded run scores better. The line is also written by
 the agent during the loop, so a round it skipped leaves no trace unless the `round` sequence has
-a gap. Spec 020 states this where the data is.
+a gap. Spec 020 states this where the data is. The accepted count is the judgement of the
+agent that ran the loop, not proof that a finding was correct, and a T2 decision that you reverse
+at a later stop still counts as accepted.
 
 **Off switch:** export `REVIEW_LOOP_LOG=0`, or set it under `env` in `settings.json`. To send
 the lines elsewhere, set `REVIEW_LOOP_LOG_FILE`.

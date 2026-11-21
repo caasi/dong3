@@ -575,10 +575,22 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
 **Log each round, after the dry decision, not before.** After the facilitator aggregates the round's verdicts and decides whether the round is dry, call `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh` for that round:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review dir=<checkout> run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ...
+${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review dir=<checkout> run=<tok> round=<n> reviewer=<model>:<count> reviewer=<model>:<count> ... \
+  outcome=<model>:<accepted>+<rejected>+<declined>+<deferred> outcome=<model>:... ...
 ```
 
 `dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. When the roster has `usage_log: true`, also run `log.sh usage-retry` at this point (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+
+**Give the outcome of each reviewer's findings.** For each reviewer that has a `reviewer=` argument, also give one `outcome=` argument with the same id. Its value is four counts joined by `+`, always in this order and always all four, also when a count is 0: `<accepted>+<rejected>+<declined>+<deferred>`. Each finding of a reviewer goes in exactly one of the four counts, so the four counts of a reviewer add up to its `reviewer=` count:
+
+- **accepted**: the finding is fixed in this change. You fixed it (T1), you chose an approach for it (T2), or the author chose an approach for it at the T3 stop, also one that you did not recommend.
+- **rejected**: you do not act on the finding. For example, it did not reproduce, or cross-critique refuted it. An unreproduced finding that you surface and that nobody acts on is rejected.
+- **declined**: at the T3 stop of this round, the author said not to fix it.
+- **deferred**: at the T3 stop of this round, the author kept the finding but not for this change, for example in a new issue or for a later change.
+
+When two reviewers return the same finding, count it for each of the two: each reviewer found it on its own. In a round that has a T3 finding, write the line after the author answers the T3 message, because the declined and deferred counts are not known before that answer. Write the line of a round before you dispatch the reviewers of the next round: a session that ends in the next round otherwise loses this line too. If the author stops the loop at that stop, write the round line first, then the `end=stopped` line.
+
+Two limits apply to these counts. A T2 decision that the author reverses at a later stop is not counted as declined, because the line of its round is already written. And accepted is your own judgement, not proof that the finding is correct: when you reject a correct finding, the numbers of that reviewer look worse.
 
 **Usage row — only when the roster has `usage_log: true`.** After the round line, write one row for each reviewer that returned a verdict this round:
 
