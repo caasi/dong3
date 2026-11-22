@@ -147,9 +147,11 @@ panel:
   error, run that round again once with `fallback.model` (§ *Codex mechanics*). Name the model
   that ran in the verdict. `codex-limits` reads the `codex` meter; every Codex rate-limit event
   seen so far (2026-10) belongs to it, so the fallback model only uses less of the same meter.
-- **`usage_log`** — top level, `true` or `false`. A missing value counts as `false`. When it is
+- **`usage_log`** — top level, `true` or `false`. A missing value counts as `true`. When it is
   `true`, the loop writes a usage row for each reviewer in each round (§ A3, *Usage row*), and
-  runs `log.sh usage-retry` once before round 1 of each run.
+  runs `log.sh usage-retry` once before round 1 of each run. `false` turns the usage rows off.
+  Like the round line, a usage row waits for the author's keep at the end of the run (§ A3,
+  *Keep or discard*).
 
 **Private content.** Before the loop sends anything to a `deny` reviewer, it makes two
 decisions:
@@ -197,7 +199,13 @@ Compare against the config and **surface every disagreement — never silently f
 Prebuilt so you don't re-derive the same commands each run. All in `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/`, executable:
 
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh {new-run | review ... | usage ... | usage-retry}` — the only writer of the round log, the usage file and the pending cost files (§ A3).
+- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh {new-run | review ... | usage ... | usage-retry | keep ... | discard ... | sweep}` — the only writer of the round log, the usage file, the pending cost files and the staging directory (§ A3). Each has a default place and a variable that moves it:
+  - the round log: `~/.claude/review-loop.log` (`REVIEW_LOOP_LOG_FILE`);
+  - the usage file: `~/.claude/review-loop-usage.tsv` (`REVIEW_LOOP_USAGE_FILE`);
+  - the pending cost files: `~/.claude/review-loop-usage-pending/` (`REVIEW_LOOP_USAGE_PENDING`);
+  - the staging directory: `~/.claude/review-loop-staging/<run>/` (`REVIEW_LOOP_STAGING`; set but empty, the lines go straight to the files).
+
+  `REVIEW_LOOP_LOG=0` turns every write off.
 - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/usage.py {codex-limits | cost <file>...}` — reads one value from outside: the Codex usage percent as `<5h>+<7d>`, with `-` for a window that the plan does not have, or the net OpenRouter cost of the generations in a relay events file. It asks the harness first (for Codex: `codex app-server`); when the harness cannot answer, it reads or computes the value itself (for Codex: the session logs). It prints `N/A` when it cannot get the value, always exits 0, and writes no file. When the command prints no value, for example on a host without a working `python3`, read that as `N/A` too. It reads `OPENROUTER_API_KEY` from the environment.
 
 Reach for these first. Only hand-write a command when a script genuinely doesn't cover the case.
@@ -326,8 +334,8 @@ the author always reads the sentence.
    re-confirms the direction of the whole change (§ Tiers). It also lists the T2 decisions made
    since the last stop (§ Tiers).
 2. **The hand-off** — the local gate has converged: group commits, merge, or more work. It lists the T2 decisions made since the last stop
-   (§ Tiers), and asks about the journal file when there is one (§ A0). This one is a
-   conversation the author drives.
+   (§ Tiers), asks whether to keep the records of this run (§ A3, *Keep or discard*), and asks
+   about the journal file when there is one (§ A0). This one is a conversation the author drives.
    Questions that follow from an offer the author accepted — the grouping shape, whether to delete
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
 
@@ -579,7 +587,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review dir=<checkout> ru
   outcome=<model>:<accepted>+<rejected>+<declined>+<deferred> outcome=<model>:... ...
 ```
 
-`dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. When the roster has `usage_log: true`, also run `log.sh usage-retry` at this point (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+`dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. Also run `log.sh sweep` at this point, and, unless the roster has `usage_log: false`, `log.sh usage-retry` after it (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
 
 **Give the outcome of each reviewer's findings.** For each reviewer that has a `reviewer=` argument, also give one `outcome=` argument with the same id. Its value is four counts joined by `+`, always in this order and always all four, also when a count is 0: `<accepted>+<rejected>+<declined>+<deferred>`. Each finding of a reviewer goes in exactly one of the four counts, so the four counts of a reviewer add up to its `reviewer=` count:
 
@@ -592,7 +600,9 @@ When two reviewers return the same finding, count it for each of the two: each r
 
 Two limits apply to these counts. A T2 decision that the author reverses at a later stop is not counted as declined, because the line of its round is already written. And accepted is your own judgement, not proof that the finding is correct: when you reject a correct finding, the numbers of that reviewer look worse.
 
-**Usage row — only when the roster has `usage_log: true`.** After the round line, write one row for each reviewer that returned a verdict this round:
+**Keep or discard — the record is written first, the permission is asked at the end.** During a run, `log.sh` stages the round lines and the usage rows of `<tok>`. Nothing reaches the round log or the usage file before the end of the run. The end is the hand-off, or the `end=stopped` line when the author stops the loop. In that message, ask one question: keep the records of this run? Keep is the default. If the author says no, run `log.sh discard run=<tok>`. Otherwise run `log.sh keep run=<tok>`. The question is part of a stop that already exists, so it adds no stop. If a run ends with no call, the `log.sh sweep` of a later run keeps its lines 24 hours after the last one. Limit: a run that waits more than 24 hours at a stop can be kept by the sweep of another session. Its later lines then start a new staging directory, and the keep or discard at the end applies only to those lines.
+
+**Usage row — unless the roster has `usage_log: false`.** After the round line, write one row for each reviewer that returned a verdict this round:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh usage dir=<checkout> run=<tok> round=<n> reviewer=<id> model=<model> \
