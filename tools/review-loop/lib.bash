@@ -27,3 +27,6 @@ mk_worktree() { # $1=repo
 # GNU coreutils uses `stat -c %a`; BSD/macOS uses `stat -f %Lp`. The script under test
 # already avoids GNU-only stat for the same reason; the tests must match.
 file_mode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"; }
+
+# The format tests write straight to the files; test-log-staging.sh sets its own staging dir.
+export REVIEW_LOOP_STAGING=''

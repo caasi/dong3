@@ -147,9 +147,11 @@ panel:
   error, run that round again once with `fallback.model` (§ *Codex mechanics*). Name the model
   that ran in the verdict. `codex-limits` reads the `codex` meter; every Codex rate-limit event
   seen so far (2026-10) belongs to it, so the fallback model only uses less of the same meter.
-- **`usage_log`** — top level, `true` or `false`. A missing value counts as `false`. When it is
+- **`usage_log`** — top level, `true` or `false`. A missing value counts as `true`. When it is
   `true`, the loop writes a usage row for each reviewer in each round (§ A3, *Usage row*), and
-  runs `log.sh usage-retry` once before round 1 of each run.
+  runs `log.sh usage-retry` once before round 1 of each run. `false` turns the usage rows off.
+  Like the round line, a usage row waits for the author's keep at the end of the run (§ A3,
+  *Keep or discard*).
 
 **Private content.** Before the loop sends anything to a `deny` reviewer, it makes two
 decisions:
@@ -197,7 +199,13 @@ Compare against the config and **surface every disagreement — never silently f
 Prebuilt so you don't re-derive the same commands each run. All in `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/`, executable:
 
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh {new-run | review ... | usage ... | usage-retry}` — the only writer of the round log, the usage file and the pending cost files (§ A3).
+- `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh {new-run | review ... | usage ... | usage-retry | keep ... | discard ... | sweep}` — the only writer of the round log, the usage file, the pending cost files and the staging directory (§ A3). Each has a default place and a variable that moves it:
+  - the round log: `~/.claude/review-loop.log` (`REVIEW_LOOP_LOG_FILE`);
+  - the usage file: `~/.claude/review-loop-usage.tsv` (`REVIEW_LOOP_USAGE_FILE`);
+  - the pending cost files: `~/.claude/review-loop-usage-pending/` (`REVIEW_LOOP_USAGE_PENDING`);
+  - the staging directory: `~/.claude/review-loop-staging/<run>/` (`REVIEW_LOOP_STAGING`; set but empty, the lines go straight to the files).
+
+  `REVIEW_LOOP_LOG=0` turns every write off.
 - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/usage.py {codex-limits | cost <file>...}` — reads one value from outside: the Codex usage percent as `<5h>+<7d>`, with `-` for a window that the plan does not have, or the net OpenRouter cost of the generations in a relay events file. It asks the harness first (for Codex: `codex app-server`); when the harness cannot answer, it reads or computes the value itself (for Codex: the session logs). It prints `N/A` when it cannot get the value, always exits 0, and writes no file. When the command prints no value, for example on a host without a working `python3`, read that as `N/A` too. It reads `OPENROUTER_API_KEY` from the environment.
 
 Reach for these first. Only hand-write a command when a script genuinely doesn't cover the case.
@@ -326,8 +334,8 @@ the author always reads the sentence.
    re-confirms the direction of the whole change (§ Tiers). It also lists the T2 decisions made
    since the last stop (§ Tiers).
 2. **The hand-off** — the local gate has converged: group commits, merge, or more work. It lists the T2 decisions made since the last stop
-   (§ Tiers), and asks about the journal file when there is one (§ A0). This one is a
-   conversation the author drives.
+   (§ Tiers), asks whether to keep the records of this run (§ A3, *Keep or discard*), and asks
+   about the journal file when there is one (§ A0). This one is a conversation the author drives.
    Questions that follow from an offer the author accepted — the grouping shape, whether to delete
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
 
@@ -454,13 +462,14 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
   # Preflight once: can Codex's command sandbox build here? Routing hint only.
   sandbox=$("${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/sandbox-preflight.sh" 2>/dev/null) || true   # usable | broken | unknown
   ```
-  Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only):
+  Then **each round**: write Codex's stdout to a fresh `$round` file, capture `rc`, append that round to `$log` for the watch, and read **`$round`** (this round only). For every Codex form, remove `$round` by its exact path after Claude has read the findings and parsed `thread_id`:
   ```bash
   round="$(mktemp "${TMPDIR:-/tmp}/review-loop-codex.XXXXXX")"   # template form: portable on BSD/macOS too
   rc=0
   <codex exec …> >"$round" 2>"$err" || rc=$?   # rc=0; … || rc=$? so it survives `set -e`; NEVER `| tee` (masks Codex's rc)
   cat "$round" >>"$log"                       # feed the cumulative watch pane
   # Claude reads "$round" (only this round); parse thread_id from "$round" too
+  rm -f -- "$round"
   ```
 
 - **Optional tmux live-watch (spectating only, not the channel) — spawn it only when the user explicitly asked to watch.** The channel is *always* `codex exec`. **Default — even inside tmux — is headless: no pane.** Spawn a read-only spectator pane *only when the user asked to watch* — a `watch` argument when the skill is invoked (`/review-loop:review-loop watch`; a lone `watch` token is the watch request against the default target, not a branch named `watch`), or an in-conversation request like "let me watch" / "show me the codex pane". Being inside tmux is **required but not a request on its own**. The agent sets `watch=1` when it recognized such a request (equivalently, it just runs the spawn only then); the pane follows the per-run `$log` (a raw-feed spectator aid — the authoritative human summary is still Claude's relayed tier list):
@@ -471,7 +480,7 @@ subcommand is read-only by construction; Codex *finds* issues, Claude applies fi
     -F '#{session_name}:#{window_index}.#{pane_index}' "tail -f '$log'" 2>/dev/null) || true
   ```
   If the user asked to watch but `$TMUX` is unset (can't split a pane), note it once — "not in a tmux session, so I can't open a watch pane; Codex findings are still relayed in the tier list" — and continue headless. Never fail on this.
-  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) so it doesn't orphan — guard it so an unset/failed pane doesn't abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
+  The agent **never reads from this pane** — it reads `codex exec`'s stdout. All rounds append to the same `$log`, so the single pane keeps showing them. **Tear it down** at loop end (clean, usage-limit fallback, or abort) or when the author stops the loop. Guard the watch pane teardown so an unset/failed pane does not abort under `set -e`: `[ -n "${watch_pane:-}" ] && tmux kill-pane -t "$watch_pane" 2>/dev/null || true`. **Then remove `$log` and `$err`** by their exact paths: `rm -f -- "$log" "$err"`. These files hold the full Codex review text; the loop keeps only the round log and the usage file. No tmux? Codex still runs — the human sees its findings relayed in Claude's own grouped tier list.
 
 - **Resolve the target into the working tree first.** `codex exec review` reviews the *current checkout*, so before reviewing, make the checkout match the requested target: for a `<branch>` target, `git checkout` it (or run from its worktree). Only then does `review --base "$base"` (or `--uncommitted`) look at the right diff. (If checkout isn't possible, **don't** pipe a diff into `review -`: both `codex exec -` and `review -` read the *prompt / instructions* from stdin, **never** a diff or review target — so it would still review the current checkout. Instead use the embedded-diff form (§ Codex mechanics): put the diff in the prompt, e.g. `codex exec --json --sandbox read-only "Review this diff for correctness, design, and risk:\n$(git diff "$base"...HEAD)"` — or tell the author the target can't be reviewed without checkout.)
 
@@ -579,7 +588,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh review dir=<checkout> ru
   outcome=<model>:<accepted>+<rejected>+<declined>+<deferred> outcome=<model>:... ...
 ```
 
-`dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. When the roster has `usage_log: true`, also run `log.sh usage-retry` at this point (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
+`dir=` is the path of the checkout under review: the worktree of the target, not the directory the session started in. The project of the line comes from it. Without `dir=`, the project comes from the current directory, and a review started from a parent repository is logged under the parent. Give one `reviewer=` argument per reviewer that returned a verdict this round. Never join reviewers into one comma-separated value — a model id can itself contain a comma, so a joined list cannot be split back into its parts. Mint `<tok>` once per run, before round 1, with `${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh new-run`, and reuse it for every round of that run. Also run `log.sh sweep` at this point, and, unless the roster has `usage_log: false`, `log.sh usage-retry` after it (§ *Usage row*). Put `end=converged` on the last round's line, the one that reaches K consecutive dry rounds. If the author stops the loop between rounds, write `log.sh review dir=<checkout> run=<tok> end=stopped` instead — no `round`, no `reviewer` argument. Write the line **after** the dry decision, never before: the log is append-only, and `end` cannot be known until this round's exit condition is evaluated.
 
 **Give the outcome of each reviewer's findings.** For each reviewer that has a `reviewer=` argument, also give one `outcome=` argument with the same id. Its value is four counts joined by `+`, always in this order and always all four, also when a count is 0: `<accepted>+<rejected>+<declined>+<deferred>`. Each finding of a reviewer goes in exactly one of the four counts, so the four counts of a reviewer add up to its `reviewer=` count:
 
@@ -592,7 +601,9 @@ When two reviewers return the same finding, count it for each of the two: each r
 
 Two limits apply to these counts. A T2 decision that the author reverses at a later stop is not counted as declined, because the line of its round is already written. And accepted is your own judgement, not proof that the finding is correct: when you reject a correct finding, the numbers of that reviewer look worse.
 
-**Usage row — only when the roster has `usage_log: true`.** After the round line, write one row for each reviewer that returned a verdict this round:
+**Keep or discard — the record is written first, the permission is asked at the end.** During a run, `log.sh` stages the round lines and the usage rows of `<tok>`. Nothing reaches the round log or the usage file before the end of the run. The end is the hand-off, or the `end=stopped` line when the author stops the loop. In that message, ask one question: keep the records of this run? Keep is the default. If the author says no, run `log.sh discard run=<tok>`. Otherwise run `log.sh keep run=<tok>`. The question is part of a stop that already exists, so it adds no stop. If a run ends with no call, the `log.sh sweep` of a later run keeps its lines 24 hours after the last one. Limit: a run that waits more than 24 hours at a stop can be kept by the sweep of another session. Its later lines then start a new staging directory, and the keep or discard at the end applies only to those lines.
+
+**Usage row — unless the roster has `usage_log: false`.** After the round line, write one row for each reviewer that returned a verdict this round:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/skills/review-loop/scripts/log.sh usage dir=<checkout> run=<tok> round=<n> reviewer=<id> model=<model> \

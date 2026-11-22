@@ -40,9 +40,10 @@ no history and no research: those go to the memory of the harness. `/review-loop
 stamp-1 file and keeps the old one as `review-loop.local.md.stamp1`.
 
 Two optional keys: `fallback` gives Codex a cheaper model for a round when its usage is high or
-after a usage-limit error, and `usage_log: true` makes the loop write the tokens and the cost of
-each reviewer in each round to `~/.claude/review-loop-usage.tsv`. A cost that the loop cannot get
-is `N/A`; the next run looks up an OpenRouter cost again and adds it in a later row.
+after a usage-limit error, and `usage_log: false` stops the loop from writing the tokens and the
+cost of each reviewer in each round to `~/.claude/review-loop-usage.tsv`. Without the key, the loop
+writes them. A cost that the loop cannot get is `N/A`; the next run looks up an OpenRouter cost
+again and adds it in a later row.
 
 Routine reviewers answer **blind and in parallel** on the same unfixed diff — none sees another's
 findings — and fixes land after all have reported.
@@ -163,6 +164,22 @@ the loop writes the round line first, then the `end=stopped` line.
 A `grep` over it answers which models ran, in which project, how often, and when, and how many
 findings of each reviewer the loop accepted. Nothing is shown to you during a run.
 
+**Written first, kept at the end.** During a run, the round lines and the usage rows wait in
+`~/.claude/review-loop-staging/<run>/`. At the hand-off, or when you stop the loop, the loop asks
+one question: keep the records of this run? Keep is the default. A no removes them, with the
+pending cost ids of the run. A run that ends with no answer is kept by a later run, 24 hours after
+its last line. So the files hold only runs that you kept, and the question never blocks the loop.
+
+Limits of this design:
+
+- A run that waits more than 24 hours at a stop can be kept by a later run in another session.
+  Its later lines then start a new staging directory, and your answer at the end applies only to
+  those lines.
+- If a flusher dies after it claims a run, the lines of that run are lost. They are never written
+  twice.
+- A staging directory inside a git work tree gets no lines, the same as the other files: the line
+  is not written.
+
 **It is a record, not a measurement.** Do not read a capability signal into a round count: it
 mixes artifact difficulty, the K policy, roster composition and your own decisions, and it falls
 when a reviewer drops out mid-run, so a degraded run scores better. The line is also written by
@@ -171,8 +188,17 @@ a gap. Spec 020 states this where the data is. The accepted count is the judgeme
 agent that ran the loop, not proof that a finding was correct, and a T2 decision that you reverse
 at a later stop still counts as accepted.
 
-**Off switch:** export `REVIEW_LOOP_LOG=0`, or set it under `env` in `settings.json`. To send
-the lines elsewhere, set `REVIEW_LOOP_LOG_FILE`.
+**Off switch:** export `REVIEW_LOOP_LOG=0`, or set it under `env` in `settings.json`. Then the
+loop writes nothing. Four variables move the files:
+
+| Variable | Default |
+|---|---|
+| `REVIEW_LOOP_LOG_FILE` | `~/.claude/review-loop.log` |
+| `REVIEW_LOOP_USAGE_FILE` | `~/.claude/review-loop-usage.tsv` |
+| `REVIEW_LOOP_USAGE_PENDING` | `~/.claude/review-loop-usage-pending/` |
+| `REVIEW_LOOP_STAGING` | `~/.claude/review-loop-staging/`. Set but empty: no staging, and the lines go straight to the files. |
+
+The loop refuses a place inside a git work tree.
 
 ## `/review-loop:init` (optional)
 

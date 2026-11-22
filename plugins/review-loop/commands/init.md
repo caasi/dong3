@@ -44,9 +44,9 @@ Load-bearing invariants:
   `private_content: allow | deny` for each reviewer that is not a Claude model. It suggests
   `deny` for a reviewer on a provider that you have not accepted for private content. A missing
   value counts as `deny` for each entry that is not `kind: claude-model`.
-- **Asks about the usage record.** "Record the token count and the cost of each reviewer in each
-  round?" The answer goes into `usage_log` (default `false`). On a re-run, keep the earlier answer
-  unless you change it.
+- **Does not ask about the usage record.** The loop writes the token count and the cost of each
+  reviewer in each round unless `usage_log: false`, and asks at the end of each run whether to keep
+  the records of that run. On a re-run, keep an earlier `usage_log` value unless you change it.
 - **Asks for a Codex fallback model.** When Codex is enrolled, `init` asks for a cheaper model and
   a usage percent, and writes `fallback: {model, usage_percent}`. No answer → no `fallback`.
 - **Endpoints are declared, never discovered.** Name one and `init` enrolls it through a
