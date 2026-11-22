@@ -58,6 +58,9 @@ ll_line() { # $1=event, rest = key=value tokens already formed by caller
 ll_logfile() { printf '%s' "${REVIEW_LOOP_LOG_FILE:-$HOME/.claude/review-loop.log}"; }
 ll_usagefile() { printf '%s' "${REVIEW_LOOP_USAGE_FILE:-$HOME/.claude/review-loop-usage.tsv}"; }
 ll_pendingdir() { printf '%s' "${REVIEW_LOOP_USAGE_PENDING:-$HOME/.claude/review-loop-usage-pending}"; }
+# A run stages its lines here until the hand-off (log.sh keep | discard | sweep). Set but empty
+# means no staging: the lines go straight to the files.
+ll_stagingdir() { printf '%s' "${REVIEW_LOOP_STAGING-$HOME/.claude/review-loop-staging}"; }
 
 # Append a line to the round log with guards: off switch, work-tree check, size bound.
 # All failure paths return 0 and write nothing.

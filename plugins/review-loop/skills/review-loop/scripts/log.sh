@@ -19,9 +19,53 @@ usage_append() { # $1=row
 # Limit: a row that another writer appends in between makes this false, so the ids of the row are
 # not kept, or a found late cost is looked up again. The loop writes one row at a time (§ A3).
 # Only a regular file is read: ll_append refuses a FIFO, and reading one waits for a writer.
-row_written() {
-  local f; f="$(ll_usagefile)"
+row_written() { # $1=row [$2=file, default the usage file]
+  local f="${2:-$(ll_usagefile)}"
   [ -f "$f" ] && [ ! -h "$f" ] && [ "$(tail -n 1 "$f" 2>/dev/null)" = "$1" ]
+}
+# The staging dir of a run. Nothing when staging is off, or when the token is not a plain name:
+# then the line goes straight to the file, and no path is built from the token.
+stage_of() { # $1=run token
+  local s; s="$(ll_stagingdir)"
+  [ -n "$s" ] && [ -n "$1" ] || return 0
+  # No '-': discard removes the pending files "<run>-*", which must not match a run "<run>-x",
+  # and sweep reads the claim time from a claim name split on '-'.
+  case "$1" in *[!A-Za-z0-9_]*) return 0 ;; esac
+  printf '%s' "$s/$1"
+}
+# A staging dir holds only the files log.sh writes there. Anything else means that the variable
+# points at a directory of the user, and nothing in it is moved or removed.
+only_staged() { # $1=dir
+  local e
+  for e in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+    [ -e "$e" ] || [ -h "$e" ] || continue
+    case "${e##*/}" in log|usage) [ -f "$e" ] && [ ! -h "$e" ] || return 1 ;; *) return 1 ;; esac
+  done
+}
+# keep: move a run's staged lines to the main files. discard: drop them, with the run's pending ids.
+# The rename is the claim: of two flushers of one run, only one gets the directory, so a line
+# reaches a main file once (TLA+ model and race test, see the commit message).
+# Limit: a flusher that dies after the rename loses the lines it held; sweep removes that claim
+# after 7 days. Appending a claim again could write a line twice, and a lost line costs less.
+# The claim name carries the claim time: a rename keeps the mtime of the directory, which is the
+# time of its first line, so an old run would look like an old claim while it is being read.
+flush() { # $1=keep|discard $2=run token
+  local st c l pd
+  # The off switch: a keep would append nothing and then remove the staged lines.
+  [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && return 0
+  st="$(stage_of "$2")"; [ -n "$st" ] || return 0
+  [ -d "$st" ] && [ ! -h "$st" ] && only_staged "$st" || return 0
+  c="$(dirname "$st")/.claim-$2-$(date +%s)-$$-$RANDOM"
+  mv -- "$st" "$c" 2>/dev/null || return 0
+  if [ "$1" = keep ]; then
+    if [ -f "$c/log" ]; then while IFS= read -r l; do ll_append "$l"; done < "$c/log"; fi
+    if [ -f "$c/usage" ]; then while IFS= read -r l; do usage_append "$l"; done < "$c/usage"; fi
+  else
+    pd="$(ll_pendingdir)"
+    if [ -d "$pd" ] && pending_ok; then rm -f -- "$pd/$2-"*.jsonl; fi
+  fi
+  rm -f -- "$c/log" "$c/usage"; rmdir -- "$c" 2>/dev/null || true   # under set -e, a failure would skip the next run= argument
+  return 0
 }
 # One side of a rate-limit value: a decimal number, or - for a window that the plan does not have.
 rl_side() { case "$1" in -) ;; ''|.|*[!0-9.]*|*.*.*) return 1 ;; esac; }
@@ -92,7 +136,8 @@ case "${1:-}" in
     if [ "$(printf '%s\n' "$line" | wc -c)" -gt 1024 ]; then
       line="$(ll_line review "${fields[@]}" ${endf:+"$endf"})"
     fi
-    ll_append "$line" || true
+    st="$(stage_of "$run")"
+    ll_append "$line" ${st:+"$st/log"} || true
     ;;
   usage)
     shift
@@ -129,13 +174,14 @@ case "${1:-}" in
     proj="$(ll_project_slug "$pdir")"
     row="$(ll_ts)"$'\t'"$proj"
     for c in "${cols[@]}"; do n="u_$c"; row="$row"$'\t'"${!n}"; done
-    usage_append "$row"
+    st="$(stage_of "$u_run")"
+    if [ -n "$st" ]; then ll_append "$row" "$st/usage" || true; else usage_append "$row"; fi
     # An N/A cost can still be found later: keep the generation ids, and nothing else of the
     # events, for usage-retry. A msg_ id never gets a cost, so such a file is not kept. Without
     # the row, a late row would have no row to match.
     # Only a regular events file is read: a FIFO waits for a writer that never comes.
     if [ "$u_cost" = N/A ] && [ -f "$pend" ] && [ -n "$u_run" ] && [ -n "$u_round" ] && [ -n "$u_reviewer" ] \
-      && [ "${REVIEW_LOOP_LOG:-1}" != 0 ] && row_written "$row" && pending_ok; then
+      && [ "${REVIEW_LOOP_LOG:-1}" != 0 ] && row_written "$row" "${st:+$st/usage}" && pending_ok; then
       # One line for grep, as usage.py cost reads across line breaks: both must find the same ids.
       ids="$({ tr '\n' ' ' < "$pend"; } 2>/dev/null | grep -o '"responseId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/' | sort -u)" || ids=""
       # A here-string, not a pipe: grep -q stops at the first bad id, a writer into the pipe then
@@ -164,11 +210,14 @@ case "${1:-}" in
     for pf in "$pd"/*.jsonl; do
       [ "$SECONDS" -lt "$budget" ] 2>/dev/null || break
       [ -f "$pf" ] && [ ! -h "$pf" ] || continue
+      IFS=$'\t' read -r proj run round rev model < "$pf" || continue
+      # The row of a run that is still staged is not in the usage file yet, and a discard
+      # removes these ids: wait for the hand-off.
+      st="$(stage_of "$run")"; [ -n "$st" ] && [ -d "$st" ] && continue
       # No 404 wait: these generations are old, so a 404 now means no record yet, and waiting for
       # each file would hold round 1 back by 25 s per file.
       c="$(REVIEW_LOOP_RETRY_WAIT=0 REVIEW_LOOP_TIME_LIMIT=$((budget - SECONDS)) python3 "$DIR/usage.py" cost "$pf" 2>/dev/null)" || c=""
       case "$c" in ''|*[!0-9.]*) continue ;; esac
-      IFS=$'\t' read -r proj run round rev model < "$pf" || continue
       # Only the cost is new. A reader takes it for the earlier row with the same project, run,
       # round and reviewer (SKILL.md § A3). Limit: two sweeps at the same time can both write a
       # late row for one key, so a reader takes the last one.
@@ -177,6 +226,35 @@ case "${1:-}" in
       row_written "$row" && rm -f "$pf"
     done
     ;;
-  *) echo "usage: log.sh {new-run | review [dir=<path>] run=... [round=...] [reviewer=<id>:<count> ...] [outcome=<id>:<a>+<r>+<d>+<f> ...] [end=...] | usage [dir=<path>] run=... round=... reviewer=<id> model=<id> [input= output= cached= reasoning= total= cost= cost_source= rl_before= rl_after= pending=<events file>] | usage-retry}" >&2; exit 0 ;;
+  keep|discard)
+    m="$1"; shift
+    . "$DIR/logline.sh" 2>/dev/null || exit 0
+    for kv in "$@"; do case "$kv" in run=*) flush "$m" "${kv#run=}" ;; esac; done
+    ;;
+  sweep)
+    # Before round 1 of each run: a run that nobody answered for is kept (the default answer).
+    # 24 hours, so that a run of another session that is still going is not taken.
+    . "$DIR/logline.sh" 2>/dev/null || exit 0
+    [ "${REVIEW_LOOP_LOG:-1}" = 0 ] && exit 0
+    s="$(ll_stagingdir)"; [ -n "$s" ] && [ -d "$s" ] && [ ! -h "$s" ] || exit 0
+    for d in "$s"/*/; do
+      d="${d%/}"
+      # shellcheck disable=SC2015  # continue when any test fails: the intended reading
+      [ -d "$d" ] && [ ! -h "$d" ] || continue
+      # The directory itself counts too: a writer makes it just before its first line.
+      [ -n "$(find "$d" -maxdepth 0 -mmin +1440 2>/dev/null)" ] || continue
+      [ -z "$(find "$d" -type f -mmin -1440 2>/dev/null)" ] && flush keep "${d##*/}"
+    done
+    for c in "$s"/.claim-*; do
+      # shellcheck disable=SC2015  # continue when any test fails: the intended reading
+      [ -d "$c" ] && [ ! -h "$c" ] && only_staged "$c" || continue
+      # .claim-<run>-<claim time>-<pid>-<random>: read the time from the end of the name.
+      t="${c##*/}"; t="${t%-*}"; t="${t%-*}"; t="${t##*-}"
+      case "$t" in ''|*[!0-9]*) continue ;; esac
+      [ $(( $(date +%s) - t )) -gt 604800 ] || continue
+      rm -f -- "$c/log" "$c/usage"; rmdir -- "$c" 2>/dev/null || true
+    done
+    ;;
+  *) echo "usage: log.sh {new-run | review [dir=<path>] run=... [round=...] [reviewer=<id>:<count> ...] [outcome=<id>:<a>+<r>+<d>+<f> ...] [end=...] | usage [dir=<path>] run=... round=... reviewer=<id> model=<id> [input= output= cached= reasoning= total= cost= cost_source= rl_before= rl_after= pending=<events file>] | usage-retry | keep run=... | discard run=... | sweep}" >&2; exit 0 ;;
   # exit 0, not 2: acceptance §424 makes non-zero exit forbidden for either writer.
 esac
