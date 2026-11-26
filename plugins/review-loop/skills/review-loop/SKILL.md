@@ -150,8 +150,8 @@ panel:
 - **`usage_log`** — top level, `true` or `false`. A missing value counts as `true`. When it is
   `true`, the loop writes a usage row for each reviewer in each round (§ A3, *Usage row*), and
   runs `log.sh usage-retry` once before round 1 of each run. `false` turns the usage rows off.
-  Like the round line, a usage row waits for the author's keep at the end of the run (§ A3,
-  *Keep or discard*).
+  Like the round line, a usage row is staged until the end of the run, and is then kept unless
+  the author said no (§ A3, *Keep or discard*).
 
 **Private content.** Before the loop sends anything to a `deny` reviewer, it makes two
 decisions:
@@ -334,7 +334,7 @@ the author always reads the sentence.
    re-confirms the direction of the whole change (§ Tiers). It also lists the T2 decisions made
    since the last stop (§ Tiers).
 2. **The hand-off** — the local gate has converged: group commits, merge, or more work. It lists the T2 decisions made since the last stop
-   (§ Tiers), asks whether to keep the records of this run (§ A3, *Keep or discard*), and asks
+   (§ Tiers), says that the records of this run are kept (§ A3, *Keep or discard*), and asks
    about the journal file when there is one (§ A0). This one is a conversation the author drives.
    Questions that follow from an offer the author accepted — the grouping shape, whether to delete
    the branch, a rollback that needs a decision — are inside this stop, not new ones.
@@ -601,7 +601,7 @@ When two reviewers return the same finding, count it for each of the two: each r
 
 Two limits apply to these counts. A T2 decision that the author reverses at a later stop is not counted as declined, because the line of its round is already written. And accepted is your own judgement, not proof that the finding is correct: when you reject a correct finding, the numbers of that reviewer look worse.
 
-**Keep or discard — the record is written first, the permission is asked at the end.** During a run, `log.sh` stages the round lines and the usage rows of `<tok>`. Nothing reaches the round log or the usage file before the end of the run. The end is the hand-off, or the `end=stopped` line when the author stops the loop. In that message, ask one question: keep the records of this run? Keep is the default. If the author says no, run `log.sh discard run=<tok>`. Otherwise run `log.sh keep run=<tok>`. The question is part of a stop that already exists, so it adds no stop. If a run ends with no call, the `log.sh sweep` of a later run keeps its lines 24 hours after the last one. Limit: a run that waits more than 24 hours at a stop can be kept by the sweep of another session. Its later lines then start a new staging directory, and the keep or discard at the end applies only to those lines.
+**Keep or discard — the record is written first and kept by default.** During a run, `log.sh` stages the round lines and the usage rows of `<tok>`. Nothing reaches the round log or the usage file before the end of the run. The end is the hand-off, or the `end=stopped` line when the author stops the loop. Run `log.sh keep run=<tok>` before you write that message, unless the author said in this run not to keep its records: then run `log.sh discard run=<tok>`. The message says which one ran. Do not ask whether to keep the records, and do not offer a discard. A no that comes after the keep is too late for `log.sh`, because both files are append-only: then tell the author that the lines of the run carry `run=<tok>`. If a run ends with no call, the `log.sh sweep` of a later run keeps its lines 24 hours after the last one. Limit: a run that waits more than 24 hours at a stop can be kept by the sweep of another session. Its later lines then start a new staging directory, and the keep or discard at the end applies only to those lines.
 
 **Usage row — unless the roster has `usage_log: false`.** After the round line, write one row for each reviewer that returned a verdict this round:
 
