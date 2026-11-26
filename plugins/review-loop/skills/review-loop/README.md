@@ -165,10 +165,10 @@ A `grep` over it answers which models ran, in which project, how often, and when
 findings of each reviewer the loop accepted. Nothing is shown to you during a run.
 
 **Written first, kept at the end.** During a run, the round lines and the usage rows wait in
-`~/.claude/review-loop-staging/<run>/`. At the hand-off, or when you stop the loop, the loop asks
-one question: keep the records of this run? Keep is the default. A no removes them, with the
-pending cost ids of the run. A run that ends with no answer is kept by a later run, 24 hours after
-its last line. So the files hold only runs that you kept, and the question never blocks the loop.
+`~/.claude/review-loop-staging/<run>/`. At the hand-off, or when you stop the loop, the loop keeps
+them. It does not ask. If you tell it during the run not to keep the records, it removes them,
+with the pending cost ids of the run. A run that ends with no keep is kept by a later run, 24 hours
+after its last line. So the files hold every run except the runs that you said no to.
 
 Limits of this design:
 
